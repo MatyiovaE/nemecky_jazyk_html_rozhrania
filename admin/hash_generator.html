@@ -1,1 +1,63 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<title>Generátor SHA-256 hesla</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px;
+    line-height: 1.6;
+  }
+  input {
+    width: 100%;
+    padding: 10px;
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+  #hash-output {
+    font-family: monospace;
+    background: #f4f4f4;
+    padding: 15px;
+    border-radius: 5px;
+    word-break: break-all;
+  }
+</style>
+</head>
+<body>
 
+<h2>Generátor SHA‑256 hash pre heslo</h2>
+<p>Zadajte nové heslo a automaticky sa vygeneruje jeho SHA‑256 hash.</p>
+
+<input type="text" id="password-input" placeholder="Zadajte heslo">
+
+<h3>Vygenerovaný hash:</h3>
+<div id="hash-output">(čakám na vstup...)</div>
+
+<script>
+// Funkcia na výpočet SHA-256
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+const input = document.getElementById("password-input");
+const output = document.getElementById("hash-output");
+
+// Generovanie hashu pri písaní
+input.addEventListener("input", async () => {
+  if (input.value.trim() === "") {
+    output.textContent = "(čakám na vstup...)";
+    return;
+  }
+  const hash = await sha256(input.value);
+  output.textContent = hash;
+});
+</script>
+
+</body>
+</html>
