@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<title>Skloňovanie neurčitého člena v nemčine (N/D/A) - oneskorená spätná väzba</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f4f8;
+        padding: 20px;
+    }
+    h2 {
+        text-align: center;
+    }
+    table {
+        border-collapse: collapse;
+        margin: 0 auto;
+        border: 2px solid white;
+    }
+    th, td {
+        border: 2px solid white;
+        width: 150px;
+        height: 50px;
+        text-align: center;
+        font-size: 18px;
+    }
+    th {
+        background-color: white;
+        color: black;
+    }
+    .white-cell {
+        background-color: white;
+        color: black;
+        font-weight: bold;
+    }
+    .lightblue { background-color: #add8e6; }
+    .lightpink { background-color: #ffb6c1; }
+    .lightgreen { background-color: #90ee90; }
+    .lightgray { background-color: #d3d3d3; }
+    .lightorange { background-color: #ffd580; }
+    .darkgreen { background-color: #3cb371; }
+
+    .message {
+        text-align: center;
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+    .error { color: red; }
+    .score {
+        text-align: center;
+        font-size: 20px;
+        margin-top: 15px;
+        font-weight: bold;
+    }
+    #currentItem {
+        text-align: center;
+        font-size: 20px;
+        margin-bottom: 10px;
+        font-weight: normal;
+        color: #333;
+    }
+    /* zväčšenie písma len pre farebné bunky s odpoveďami */
+    td[data-answer] {
+        font-size: 22px;
+        font-weight: bold;
+        cursor: pointer;
+        user-select: none;
+    }
+    /* zvýraznenie vybratej bunky */
+    td.selected {
+        outline: 3px solid #222;
+        box-shadow: inset 0 0 0 2px #fff;
+    }
+
+    /* panel s dostupnými položkami */
+    .bank-wrap {
+        max-width: 760px;
+        margin: 14px auto 0;
+        text-align: center;
+    }
+    .items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 8px;
+    }
+    .item-btn {
+        padding: 8px 14px;
+        font-size: 18px;
+        font-weight: bold;
+        border: 2px solid #222;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        min-width: 64px;
+    }
+    .item-btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+
+    .controls {
+        text-align: center;
+        margin-top: 12px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+    .controls button {
+        padding: 8px 14px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: 2px solid #222;
+        background: #fff;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+
+<h2>Skloňovanie neurčitého člena v nemčine - N/D/A (oneskorená spätná väzba)</h2>
+<p class="message">Rozmiestni jednotlivé položky do buniek podľa pokynov. <br>Ak chceš svoje rozhodnutie zmeniť, klikni na danú bunku dvakrát a potom pokračuj v priraďovaní.<br><strong>Po ukončení klikni na tlačidlo "Vyhodnotiť".</strong></p>
+<div id="currentItem">Krok 1: Klikni na bunku.<br>Krok 2: Klikni na konkrétnu položku.</div>
+<div id="feedback" class="message"></div>
+
+<table>
+    <tr>
+        <th>pád</th>
+        <th>mužský rod</th>
+        <th>ženský rod</th>
+        <th>stredný rod</th>
+        <th>množné číslo</th>
+    </tr>
+    <tr>
+        <td class="white-cell">nominatív</td>
+        <td class="lightblue" data-answer="ein"></td>
+        <td class="lightpink" data-answer="eine"></td>
+        <td class="lightgreen" data-answer="ein"></td>
+        <td class="lightgray" data-answer="-"></td>
+    </tr>
+    <tr>
+        <td class="white-cell">datív</td>
+        <td class="lightorange" data-answer="einem"></td>
+        <td class="lightorange" data-answer="einer"></td>
+        <td class="lightorange" data-answer="einem"></td>
+        <td class="lightorange" data-answer="-"></td>
+    </tr>
+    <tr>
+        <td class="white-cell">akuzatív</td>
+        <td class="darkgreen" data-answer="einen"></td>
+        <td class="darkgreen" data-answer="eine"></td>
+        <td class="darkgreen" data-answer="ein"></td>
+        <td class="darkgreen" data-answer="-"></td>
+    </tr>
+</table>
+
+<div class="bank-wrap">
+    <div><strong>Dostupné položky:</strong></div>
+    <div id="items" class="items"></div>
+</div>
+
+<div class="controls">
+    <button id="evaluateBtn">Vyhodnotiť</button>
+    <button id="resetBtn">Reset</button>
+</div>
+
+<div class="score" id="scoreDisplay"></div>
+
+<script>
+const cells = Array.from(document.querySelectorAll("td[data-answer]"));
+const itemsDiv = document.getElementById("items");
+const scoreDisplay = document.getElementById("scoreDisplay");
+const feedback = document.getElementById("feedback");
+const currentItemEl = document.getElementById("currentItem");
+const evaluateBtn = document.getElementById("evaluateBtn");
+const resetBtn = document.getElementById("resetBtn");
+
+let items = cells.map((c, idx) => ({ id: idx, text: c.dataset.answer }));
+let bank = [];
+let usedIds = new Set();
+let selectedCell = null;
+let evaluated = false;
+
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function init() {
+    // vyčisti bunky
+    cells.forEach(cell => {
+        cell.textContent = "";
+        cell.classList.remove("selected");
+        cell.style.border = "2px solid white";
+        delete cell.dataset.assignedId;
+    });
+    // priprav bank
+    bank = shuffleArray(items.slice());
+    usedIds.clear();
+    evaluated = false;
+    renderItems();
+    scoreDisplay.textContent = "";
+    feedback.textContent = "";
+    currentItemEl.innerHTML = "<strong>Krok 1:</strong> Klikni na bunku.<br><strong>Krok 2:</strong> Klikni na položku pod tabuľkou.";
+}
+
+function renderItems() {
+    itemsDiv.innerHTML = "";
+    bank.forEach(item => {
+        if (!usedIds.has(item.id)) {
+            const btn = document.createElement("button");
+            btn.textContent = item.text;
+            btn.className = "item-btn";
+            btn.addEventListener("click", () => assignToSelected(item));
+            if (evaluated) btn.disabled = true;
+            itemsDiv.appendChild(btn);
+        }
+    });
+    const remaining = bank.length - usedIds.size;
+    currentItemEl.textContent = `Vyber bunku a klikni na konkrétnu položku. Zostáva: ${remaining}`;
+}
+
+function selectCell(cell) {
+    if (evaluated) return;
+    if (selectedCell) selectedCell.classList.remove("selected");
+    selectedCell = cell;
+    if (selectedCell) selectedCell.classList.add("selected");
+}
+
+function clearCell(cell) {
+    if (evaluated) return;
+    const prevId = cell.dataset.assignedId ? parseInt(cell.dataset.assignedId, 10) : null;
+    if (prevId !== null && usedIds.has(prevId)) {
+        usedIds.delete(prevId);
+    }
+    delete cell.dataset.assignedId;
+    cell.textContent = "";
+    renderItems();
+}
+
+function assignToSelected(item) {
+    if (evaluated) return;
+    if (!selectedCell) {
+        feedback.textContent = "Najprv klikni na bunku, kam chceš položku vložiť.";
+        return;
+    }
+    // vráť prípadný predchádzajúcu položku do banky
+    const prevId = selectedCell.dataset.assignedId ? parseInt(selectedCell.dataset.assignedId, 10) : null;
+    if (prevId !== null) {
+        usedIds.delete(prevId);
+    }
+    // priraď nový
+    selectedCell.dataset.assignedId = String(item.id);
+    selectedCell.textContent = item.text;
+    usedIds.add(item.id);
+    feedback.textContent = "";
+    renderItems();
+}
+
+cells.forEach(cell => {
+    cell.addEventListener("click", () => selectCell(cell));
+    cell.addEventListener("dblclick", () => clearCell(cell)); // rýchla oprava: vymaž bunku
+});
+
+evaluateBtn.addEventListener("click", () => {
+    let score = 0;
+    cells.forEach(cell => {
+        const correct = cell.textContent === cell.dataset.answer;
+        if (correct) {
+            cell.style.border = "3px solid green";
+            score++;
+        } else {
+            cell.style.border = "3px solid red";
+        }
+    });
+    const percent = Math.round((score / cells.length) * 100);
+    scoreDisplay.textContent = `${score}/${cells.length} bodov (${percent}%)`;
+    evaluated = true;
+    // zablokuj vkladanie po vyhodnotení
+    Array.from(itemsDiv.querySelectorAll(".item-btn")).forEach(btn => btn.disabled = true);
+    if (selectedCell) selectedCell.classList.remove("selected");
+    selectedCell = null;
+});
+
+resetBtn.addEventListener("click", init);
+
+// štart
+init();
+</script>
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<title>Skloňovanie – určitý člen v nemčine (oneskorená spätná väzba)</title>
+<style>
+  body { font-family: Arial, sans-serif; background-color: #f0f4f8; padding: 20px; }
+  h2 { text-align: center; margin-bottom: 16px; }
+  table { border-collapse: collapse; margin: 0 auto; border: 2px solid white; }
+  th, td { border: 2px solid white; width: 180px; height: 56px; text-align: center; font-size: 18px; }
+  th { background-color: white; color: black; }
+  .white-cell { background-color: white; color: black; font-weight: bold; }
+  .lightblue   { background-color: #add8e6; }
+  .lightpink   { background-color: #ffb6c1; }
+  .lightgreen  { background-color: #90ee90; }
+  .lightgray   { background-color: #d3d3d3; }
+  .lightpurple { background-color: #dda0dd; }
+  .lightorange { background-color: #ffd580; }
+  .darkgreen   { background-color: #3cb371; }
+  td[data-answer] { font-size: 20px; font-weight: bold; cursor: pointer; user-select: none; }
+  .bank { text-align: center; margin: 20px 0; }
+  .bank-item { display: inline-block; padding: 5px 10px; margin: 5px; background: #eef; border: 1px solid #99c; border-radius: 4px; cursor: pointer; }
+  .score { text-align: center; font-size: 20px; margin-top: 15px; font-weight: bold; }
+  .correct { border: 2px solid green !important; }
+  .incorrect { border: 2px solid red !important; }
+  .selected { outline: 3px solid #000; }
+</style>
+</head>
+<body>
+
+<h2>Skloňovanie – určitý člen v nemčine (oneskorená spätná väzba)</h2>
+<div style="text-align:center; margin-bottom: 16px;">
+  <p>Rozmiestni jednotlivé položky do buniek podľa pokynov.<br>
+  Ak chceš svoje rozhodnutie zmeniť, klikni na danú bunku dvakrát a potom pokračuj v priraďovaní.<br>
+  Po ukončení cvičenia stlač klávesu <strong>V</strong>.</p>
+  <p><strong>Krok 1:</strong> Klikni na bunku.<br>
+     <strong>Krok 2:</strong> Klikni na položku pod tabuľkou.</p>
+</div>
+
+
+<table id="exerciseTable">
+  <tr>
+    <th>pád</th>
+    <th>mužský rod</th>
+    <th>ženský rod</th>
+    <th>stredný rod</th>
+    <th>množné číslo</th>
+  </tr>
+  <tr><td class="white-cell">nominatív</td><td class="lightblue" data-key="n_mr" data-answer="der"></td><td class="lightpink" data-key="n_zr" data-answer="die"></td><td class="lightgreen" data-key="n_sr" data-answer="das"></td><td class="lightgray" data-key="n_pl" data-answer="die"></td></tr>
+  <tr><td class="white-cell">genitív</td><td class="lightpurple" data-key="g_mr" data-answer="des + -(e)s"></td><td class="lightpurple" data-key="g_zr" data-answer="der"></td><td class="lightpurple" data-key="g_sr" data-answer="des + -(e)s"></td><td class="lightpurple" data-key="g_pl" data-answer="der"></td></tr>
+  <tr><td class="white-cell">datív</td><td class="lightorange" data-key="d_mr" data-answer="dem"></td><td class="lightorange" data-key="d_zr" data-answer="der"></td><td class="lightorange" data-key="d_sr" data-answer="dem"></td><td class="lightorange" data-key="d_pl" data-answer="den + -n"></td></tr>
+  <tr><td class="white-cell">akuzatív</td><td class="darkgreen" data-key="a_mr" data-answer="den"></td><td class="darkgreen" data-key="a_zr" data-answer="die"></td><td class="darkgreen" data-key="a_sr" data-answer="das"></td><td class="darkgreen" data-key="a_pl" data-answer="die"></td></tr>
+</table>
+
+<div class="bank" id="bank">
+  <span class="bank-item">die</span><span class="bank-item">die</span><span class="bank-item">dem</span><span class="bank-item">der</span><span class="bank-item">den + -n</span><span class="bank-item">die</span><span class="bank-item">des + -(e)s</span><span class="bank-item">den</span><span class="bank-item">des + -(e)s</span><span class="bank-item">die</span><span class="bank-item">der</span><span class="bank-item">der</span><span class="bank-item">dem</span><span class="bank-item">das</span><span class="bank-item">der</span><span class="bank-item">das</span>
+</div>
+
+
+<div class="score" id="scoreDisplay"></div>
+
+<script>
+  const table = document.getElementById("exerciseTable");
+  const bank = document.getElementById("bank");
+  const scoreEl = document.getElementById("scoreDisplay");
+  let selectedCell = null;
+
+  table.addEventListener("click", e => {
+    if (e.target.tagName === "TD" && e.target.dataset.key) {
+      selectedCell = e.target;
+      table.querySelectorAll("td").forEach(td => td.classList.remove("selected"));
+      e.target.classList.add("selected");
+    }
+  });
+
+  table.addEventListener("dblclick", e => {
+    if (e.target.tagName === "TD" && e.target.dataset.key && e.target.textContent.trim() !== "") {
+      const word = e.target.textContent.trim();
+      e.target.textContent = "";
+      e.target.classList.remove("correct", "incorrect", "selected");
+      const span = document.createElement("span");
+      span.className = "bank-item";
+      span.textContent = word;
+      bank.appendChild(span);
+    }
+  });
+
+  bank.addEventListener("click", e => {
+    if (e.target.classList.contains("bank-item") && selectedCell && selectedCell.textContent.trim() === "") {
+      selectedCell.textContent = e.target.textContent;
+      e.target.remove();
+      selectedCell.classList.remove("selected");
+      selectedCell = null;
+    }
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "v") {
+      let correct = 0;
+      let total = 0;
+      table.querySelectorAll("td[data-answer]").forEach(td => {
+        total++;
+        td.classList.remove("correct", "incorrect");
+        if (td.textContent.trim() === td.dataset.answer) {
+          td.classList.add("correct");
+          correct++;
+        } else {
+          td.classList.add("incorrect");
+        }
+      });
+      const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
+      scoreEl.textContent = `Skóre: ${correct} / ${total} (${percent} %)`;
+      scoreEl.style.color = percent >= 80 ? "green" : percent >= 50 ? "orange" : "red";
+    }
+  });
+  
+  
+</script>
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor testov - PL - Blokové priraďovanie</title>
+    <style>
+        body { font-family: Courier bold, monospace; background-color: #f4f4f9; padding: 20px; color: #333; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; }
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
+        input[type="text"], input[type="number"], textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        textarea { height: 300px; font-family: monospace; font-size: 17px; white-space: pre; overflow-x: auto; border: 2px solid #007bff; }
+        
+        .grid-row { display: flex; gap: 20px; }
+        .grid-col { flex: 1; }
+
+        table.grading-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table.grading-table th, table.grading-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        table.grading-table th { background-color: #e9ecef; }
+        
+        button { background-color: #28a745; color: white; padding: 15px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 20px; width: 100%; transition: background 0.3s; }
+        button:hover { background-color: #218838; }
+
+        .note { font-size: 0.85em; color: #666; margin-top: 5px; }
+        .highlight { color: #d9534f; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Generátor pracovných listov - úlohy s priraďovaním</h1>
+
+    <div class="grid-row">
+        <div class="grid-col">
+            <label for="testName">Názov testu:</label>
+            <input type="text" id="testName" placeholder="napr. Nemčina - Prídavné mená">
+        </div>
+        <div class="grid-col">
+            <label for="taskCount">Počet úloh (blokov) v teste:</label>
+            <input type="number" id="taskCount" value="3" min="1">
+            <div class="note">Koľko ucelených cvičení sa má vybrať.</div>
+        </div>
+        <div class="grid-col">
+            <label for="groupCount">Počet skupín (A, B...):</label>
+            <input type="number" id="groupCount" value="1" min="1" max="26">
+        </div>
+    </div>
+
+    <label for="instructions">Pokyny pre žiaka:</label>
+    <input type="text" id="instructions" value="V každej úlohe spoj pojmy v ľavom stĺpci s pojmami v pravom stĺpci.">
+
+    <label for="dataInput">Dáta (Pojem [TAB] Definícia):</label>
+    <div class="note">
+        <span class="highlight">DÔLEŽITÉ:</span> Jednotlivé úlohy (bloky) oddeľte <b>jedným prázdnym riadkom</b>.
+        V rámci bloku použite TAB na oddelenie dvojíc.
+    </div>
+    <textarea id="dataInput" spellcheck="false" placeholder="Pojem1	Definícia1&#10;Pojem2	Definícia2&#10;&#10;InýPojem1	InáDefinícia1&#10;InýPojem2	InáDefinícia2"></textarea>
+
+    <label>Hodnotenie (rozsah percent):</label>
+    <table class="grading-table" id="gradingTable">
+        <thead>
+            <tr>
+                <th style="width: 80px;">Známka</th>
+                <th>Počet percent</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>1</td><td><input type="text" id="grade1" value="100 % - 90 %"></td></tr>
+            <tr><td>2</td><td><input type="text" id="grade2" value="89 % - 75 %"></td></tr>
+            <tr><td>3</td><td><input type="text" id="grade3" value="74 % - 50 %"></td></tr>
+            <tr><td>4</td><td><input type="text" id="grade4" value="49 % - 30 %"></td></tr>
+            <tr><td>5</td><td><input type="text" id="grade5" value="29 % - 0 %"></td></tr>
+        </tbody>
+    </table>
+
+    <button onclick="generateRTF()">Vygenerovať súbor .rtf</button>
+</div>
+
+<script>
+    // --- 0. Pomocné funkcie ---
+    
+    function sanitizeFilename(name) {
+        if (!name) return "test";
+        let safeName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        safeName = safeName.replace(/\s+/g, '_');
+        safeName = safeName.replace(/[^a-z0-9_]/gi, '');
+        return safeName.substring(0, 50); 
+    }
+
+    function toRTF(str) {
+        if (!str) return "";
+        let res = "";
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i);
+            if (code > 127) {
+                res += `\\u${code}?`;
+            } else if (code === 92 || code === 123 || code === 125) {
+                res += "\\" + str.charAt(i);
+            } else if (code === 10) {
+                 res += "\\line ";
+            } else if (code === 9) {
+                 res += "\\tab ";
+            } else {
+                res += str.charAt(i);
+            }
+        }
+        return res;
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    // --- 1. Obsluha LocalStorage ---
+    const fields = ['testName', 'taskCount', 'groupCount', 'instructions', 'dataInput', 'grade1', 'grade2', 'grade3', 'grade4', 'grade5'];
+
+    function saveSettings() {
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) localStorage.setItem(id, el.value);
+        });
+    }
+
+    function loadSettings() {
+        fields.forEach(id => {
+            if (localStorage.getItem(id)) {
+                const el = document.getElementById(id);
+                if(el) el.value = localStorage.getItem(id);
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSettings();
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.addEventListener('input', saveSettings);
+        });
+    });
+
+    // --- 2. Obsluha TAB ---
+    document.getElementById('dataInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 1;
+            saveSettings(); 
+        }
+    });
+
+   // --- 3. Hlavná logika generovania ---
+    function generateRTF() {
+        const testName = document.getElementById('testName').value;
+        const instructions = document.getElementById('instructions').value;
+        const taskCount = parseInt(document.getElementById('taskCount').value);
+        const groupCount = parseInt(document.getElementById('groupCount').value);
+        const rawData = document.getElementById('dataInput').value;
+
+        // PARSOVANIE PO BLOKOCH
+        let rawBlocks = rawData.split(/\n\s*\n/);
+        
+        let allBlocks = [];
+        rawBlocks.forEach(blockText => {
+            if (blockText.trim() === "") return;
+            let pairs = [];
+            blockText.split('\n').forEach(line => {
+                if (line.trim() === "") return;
+                const parts = line.split('\t');
+                if (parts.length >= 2) {
+                    pairs.push({ term: parts[0].trim(), def: parts[1].trim() });
+                }
+            });
+            if (pairs.length > 0) {
+                allBlocks.push(pairs);
+            }
+        });
+
+        if (allBlocks.length < taskCount) {
+            alert(`Upozornenie: Požadujete ${taskCount} úloh, ale v zadaní je len ${allBlocks.length} blokov. Vygeneruje sa maximum.`);
+        }
+
+        const globalSpacing = "\\sl240\\slmult1";
+        const spaceAfter = "\\sa50";
+        const tableSpacing = "\\sl240\\slmult1\\sa30"; 
+
+        let rtf = `{\\rtf1\\ansi\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Comic Sans MS;}}
+\\margl1080\\margr1080\\margt1080\\margb1080 \\viewkind4\\uc1\\pard${spaceAfter}${globalSpacing}\\f0\\fs24 `;
+
+        let allGroupsSolutions = [];
+        const groups = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        // --- CYKLUS PRE SKUPINY ---
+        for (let g = 0; g < groupCount; g++) {
+            const groupLetter = groups[g % 26];
+
+            let shuffledBlocks = [...allBlocks];
+            shuffleArray(shuffledBlocks);
+            let selectedBlocks = shuffledBlocks.slice(0, taskCount);
+
+            let groupSolution = { letter: groupLetter, tasks: [] };
+
+            // Hlavička
+            rtf += `${toRTF("Meno: ............................................................")}  ${toRTF("Trieda: .....................")}  ${toRTF("Dátum: .........................")}\\par\\pard\\sa100\\par\n`;
+            rtf += `\\qc\\b\\fs28 ${toRTF(testName)}\\b0\\fs24\\par\n`;
+            rtf += `\\qc\\b ${toRTF("Skupina")} ${groupLetter}\\b0\\sa180\\par\n`;
+            rtf += `\\ql\\b ${toRTF(instructions)}\\b0\\sa180\\par\n`;
+
+            // --- CYKLUS PRE ÚLOHY V SKUPINE ---
+            selectedBlocks.forEach((blockPairs, index) => {
+                const taskNum = index + 1;
+                
+                let currentPairs = [...blockPairs];
+                shuffleArray(currentPairs);
+
+                let leftSide = currentPairs.map((p, idx) => ({ 
+                    id: idx + 1, 
+                    text: p.term, 
+                    originalId: p.term + "###" + p.def 
+                }));
+
+                let rightSide = currentPairs.map((p) => ({ 
+                    text: p.def, 
+                    originalId: p.term + "###" + p.def 
+                }));
+                shuffleArray(rightSide);
+
+                const letters = "abcdefghijklmnopqrstuvwxyz";
+                rightSide = rightSide.map((item, idx) => {
+                    let letChar = letters[idx % 26] + ")";
+                    return { ...item, letter: letChar, pureLetter: letters[idx % 26] };
+                });
+
+                let taskSolutionMap = {};
+                leftSide.forEach(left => {
+                    const matchingRight = rightSide.find(r => r.originalId === left.originalId);
+                    taskSolutionMap[left.id] = matchingRight.pureLetter;
+                });
+                groupSolution.tasks.push({ id: taskNum, map: taskSolutionMap, count: leftSide.length });
+
+                // VYPIS ZADANIA ÚLOHY
+                rtf += `\\keepn\\b ${toRTF("Úloha " + taskNum)}\\b0\\sa180\\par\n`;
+				
+                
+                for (let i = 0; i < leftSide.length; i++) {
+                    const left = leftSide[i];
+                    const right = rightSide[i];
+                    rtf += `\\trowd \\trgaph108\\trleft-108
+\\clbrdrt\\brdrnone \\clbrdrl\\brdrnone \\clbrdrb\\brdrnone \\clbrdrr\\brdrnone \\cellx4800
+\\clbrdrt\\brdrnone \\clbrdrl\\brdrnone \\clbrdrb\\brdrnone \\clbrdrr\\brdrnone \\cellx9600 
+\\pard\\intbl${tableSpacing} ${left.id}. ${toRTF(left.text)}\\cell ${right.letter} ${toRTF(right.text)}\\cell\\row\n`;
+                }
+                
+                // --- VLOŽENIE TABUĽKY ODPOVEDÍ HNEĎ POD ÚLOHU ---
+                rtf += `\\pard${spaceAfter}${globalSpacing}`; // Reset formátu pred tabuľkou
+                rtf += `\\par\\b ${toRTF("Odpovede:")}\\b0\\par\n`;
+
+                const count = leftSide.length;
+                const colWidth = Math.floor(9000 / count);
+                let gridDef = "\\trowd \\trgaph108\\trleft-108";
+                for(let k=1; k<=count; k++) {
+                    gridDef += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx${k*colWidth}`;
+                }
+
+                // Riadok s číslami
+                rtf += gridDef + `\n\\pard\\intbl${tableSpacing}`;
+                for(let k=1; k<=count; k++) rtf += `\\qc ${k}\\cell`;
+                rtf += "\\row\n";
+
+                // Riadok prázdny
+                rtf += gridDef + `\n\\pard\\intbl${tableSpacing}`;
+                for(let k=1; k<=count; k++) rtf += `\\cell`; 
+                rtf += "\\row\n";
+
+                rtf += `\\pard${spaceAfter}${globalSpacing}\\par\\par\n`; // Väčšia medzera za celou úlohou
+            });
+
+            allGroupsSolutions.push(groupSolution);
+
+            // --- HODNOTENIE PÄTIČKA ---
+            rtf += `\\sb300 ${toRTF("Počet bodov: _______________")}\\sa150\\par\n`;
+            rtf += `\\sb0 ${toRTF("Počet percent: _______________")}\\sa150\\par\n`; 
+            rtf += `${toRTF("Výsledná známka a podpis učiteľa: _____________")}\\par\n`;
+            rtf += `\\par\n`;
+
+            rtf += `\\trowd \\trgaph108\\trleft-108
+\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx2000
+\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx6000
+\\pard\\intbl${tableSpacing}\\b ${toRTF("Známka")}\\cell ${toRTF("Počet percent")}\\cell\\row\n`;
+
+            for (let i = 1; i <= 5; i++) {
+                let range = document.getElementById('grade' + i).value;
+                rtf += `\\trowd \\trgaph108\\trleft-108
+\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx2000
+\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx6000
+\\pard\\intbl${tableSpacing}\\b0 ${i}\\cell ${toRTF(range)}\\cell\\row\n`;
+            }
+            
+            rtf += `\\pard${spaceAfter}${globalSpacing}`; 
+
+            if (g < groupCount - 1) {
+                rtf += `\\page\n`;
+            }
+        }
+
+        // --- RIEŠENIA (TEACHER KEY) ---
+        rtf += `\\page\n`;
+        rtf += `\\pard${spaceAfter}${globalSpacing}\\qc\\b\\fs28 ${toRTF("Správne riešenia")}\\b0\\fs24\\par\n`;
+        rtf += `\\par\n`;
+
+        allGroupsSolutions.forEach(grp => {
+            rtf += `\\ql\\b ${toRTF("Skupina")} ${grp.letter}\\b0\\par\n`;
+
+            grp.tasks.forEach(task => {
+                const count = task.count;
+                const colWidth = Math.floor(9000 / count);
+
+                let tableDef = "\\trowd \\trgaph108\\trleft-108";
+                for (let k = 1; k <= count; k++) tableDef += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx${k * colWidth}`;
+
+                rtf += `\\pard ${toRTF("Úloha " + task.id + ":")}\\par\n`;
+                rtf += tableDef + `\n\\pard\\intbl${tableSpacing}`; 
+                for (let k = 1; k <= count; k++) rtf += `\\qc ${k}\\cell`;
+                rtf += "\\row\n";
+
+                rtf += tableDef + `\n\\pard\\intbl${tableSpacing}`; 
+                for (let k = 1; k <= count; k++) rtf += `\\qc ${task.map[k]}\\cell`;
+                rtf += "\\row\n";
+                
+                rtf += `\\pard${spaceAfter}${globalSpacing}\\par\n`;
+            });
+            rtf += `\\par\\par\n`;
+        });
+
+        rtf += `}`;
+        
+        const safeFileName = sanitizeFilename(testName);
+        const blob = new Blob([rtf], { type: "application/rtf" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${safeFileName}_test.rtf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

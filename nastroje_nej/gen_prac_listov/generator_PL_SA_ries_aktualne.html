@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor PL s písomným doplnením</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #27ae60;
+            --bg-color: #ecf0f1;
+            --panel-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: Courier bold, monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 20px; color: var(--primary-color); }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: var(--primary-color);
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        textarea {
+            height: 400px;
+            font-family: 'Courier bold', monospace;
+            white-space: pre;
+            overflow-x: auto;
+            line-height: 1.4;
+        }
+
+        .grading-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .grading-table th, .grading-table td {
+            border: 1px solid #bdc3c7;
+            padding: 8px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        
+        .grading-table input {
+            width: 60px;
+            text-align: center;
+            border: none;
+            background: transparent;
+            font-weight: bold;
+        }
+
+        .btn-generate {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 25px;
+            width: 100%;
+            transition: background 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-generate:hover {
+            background-color: #219150;
+        }
+
+        .info {
+            font-size: 0.85em;
+            color: #555;
+            margin-bottom: 15px;
+            background: #d5e6f3;
+            padding: 12px;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .tab-hint {
+            font-size: 0.8em;
+            color: #888;
+            text-align: right;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor testov s doplnením (na tlač)</h1>
+
+    <div class="container">
+        <div class="panel">
+            <h3>🛠 Nastavenia testu</h3>
+            
+            <label>Názov cvičenia / testu:</label>
+            <input type="text" id="testTitle" placeholder="Napr. Štvrťročná písomka">
+
+            <label>Pokyny pre žiaka:</label>
+            <input type="text" id="instructions" placeholder="Napr. Preložte nasledujúce vety.">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label>Počet skupín:</label>
+                    <input type="number" id="groupCount" value="2" min="1" max="10">
+                </div>
+                <div>
+                    <label>Úloh v skupine:</label>
+                    <input type="number" id="questionsPerGroup" value="10" min="1">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label>Počet stĺpcov:</label>
+                    <input type="number" id="columnCount" value="2" min="1" max="3">
+                </div>
+                <div>
+                    <label>Číslovanie:</label>
+                    <select id="numberingStyle">
+                        <option value="decimal">1. , 2. , 3.</option>
+                        <option value="alpha">a) , b) , c)</option>
+                        <option value="upper-alpha">A. , B. , C.</option>
+                    </select>
+                </div>
+            </div>
+
+            <label>📊 Hodnotiaca tabuľka:</label>
+            <table class="grading-table">
+                <thead>
+                    <tr>
+                        <th>Známka</th>
+                        <th>Max %</th>
+                        <th>Min %</th>
+                    </tr>
+                </thead>
+                <tbody id="gradingBody">
+                    <tr><td>1</td><td><input type="number" id="g1max" value="100"></td><td><input type="number" id="g1min" value="90"></td></tr>
+                    <tr><td>2</td><td><input type="number" id="g2max" value="89"></td><td><input type="number" id="g2min" value="75"></td></tr>
+                    <tr><td>3</td><td><input type="number" id="g3max" value="74"></td><td><input type="number" id="g3min" value="50"></td></tr>
+                    <tr><td>4</td><td><input type="number" id="g4max" value="49"></td><td><input type="number" id="g4min" value="30"></td></tr>
+                    <tr><td>5</td><td><input type="number" id="g5max" value="29"></td><td><input type="number" id="g5min" value="0"></td></tr>
+                </tbody>
+            </table>
+
+            <button class="btn-generate" onclick="generateRTF()">Stiahnuť .rtf test</button>
+        </div>
+
+        <div class="panel">
+            <h3>📝 Vstupné dáta</h3>
+            <div class="info">
+                **Formát:** Zadanie [TAB] Odpoveď 1 [TAB] Odpoveď 2...<br>
+                Každá úloha na nový riadok. 
+            </div>
+            <textarea id="taskInput" placeholder="Slnko svieti[TAB]Die Sonne scheint
+Pes breše[TAB]Der Hund bellt
+Jablko[TAB]Apfel[TAB]Apple"></textarea>
+            <div class="tab-hint">Tip: Klávesa TAB funguje priamo v poli.</div>
+        </div>
+    </div>
+
+<script>
+    // --- 1. LOCAL STORAGE ---
+    const inputs = document.querySelectorAll('input, select, textarea');
+
+    function saveToStorage() {
+        inputs.forEach(el => {
+            if (el.id) localStorage.setItem('gen_v9_align_' + el.id, el.value);
+        });
+    }
+
+    function loadFromStorage() {
+        inputs.forEach(el => {
+            if (el.id) {
+                const saved = localStorage.getItem('gen_v9_align_' + el.id);
+                if (saved !== null) el.value = saved;
+            }
+        });
+    }
+
+    inputs.forEach(el => {
+        el.addEventListener('input', saveToStorage);
+        el.addEventListener('change', saveToStorage);
+    });
+
+    document.addEventListener('DOMContentLoaded', loadFromStorage);
+
+    // --- 2. TAB KEY HANDLER ---
+    document.getElementById('taskInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 1;
+            saveToStorage();
+        }
+    });
+
+    // --- 3. HELPER FUNCTIONS ---
+    
+    function toRTF(str) {
+        if (!str) return "";
+        let rtfStr = "";
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i);
+            if (code > 127) {
+                rtfStr += `\\u${code}?`; 
+            } else if (str[i] === '\n') {
+                rtfStr += '\\line ';
+            } else if (str[i] === '\\' || str[i] === '{' || str[i] === '}') {
+                rtfStr += '\\' + str[i];
+            } else {
+                rtfStr += str[i];
+            }
+        }
+        return rtfStr;
+    }
+
+    function shuffleArray(array) {
+        let newArr = [...array];
+        for (let i = newArr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+        }
+        return newArr;
+    }
+
+    function getNumbering(index, style) {
+        index = index + 1;
+        if (style === 'alpha') return String.fromCharCode(96 + index) + ')';
+        if (style === 'upper-alpha') return String.fromCharCode(64 + index) + '.';
+        return index + '.';
+    }
+
+    function getGroupLetter(index) {
+        return String.fromCharCode(65 + index);
+    }
+
+    // --- 4. GENERATION LOGIC ---
+    function generateRTF() {
+        const rawText = document.getElementById('taskInput').value;
+        const title = document.getElementById('testTitle').value;
+        const instructions = document.getElementById('instructions').value;
+        const groupsCount = parseInt(document.getElementById('groupCount').value) || 1;
+        const questionsPerGroup = parseInt(document.getElementById('questionsPerGroup').value) || 10;
+        const cols = parseInt(document.getElementById('columnCount').value) || 2;
+        const numberingStyle = document.getElementById('numberingStyle').value;
+
+        const lines = rawText.split('\n').filter(line => line.trim() !== '');
+        const allTasks = lines.map(line => {
+            const parts = line.split('\t');
+            return {
+                question: parts[0].trim(),
+                answers: parts.slice(1).map(a => a.trim()).filter(a => a !== '')
+            };
+        });
+
+        if (allTasks.length === 0) {
+            alert("Zadajte prosím aspoň jednu úlohu.");
+            return;
+        }
+
+        // Hlavička RTF
+        let rtf = `{\\rtf1\\ansi\\ansicpg1250\\deff0\\nouicompat\\deflang1051
+{\\fonttbl{\\f0\\fnil\\fcharset238 Comic Sans MS;}}
+{\\colortbl ;\\red0\\green0\\blue0;\\red0\\green0\\blue0;}
+\\viewkind4\\uc1\\pard\\sa200\\sl276\\slmult1\\f0\\fs24 
+\\margl720\\margr720\\margt720\\margb720 `; 
+
+        let solutionsContent = "";
+
+        for (let g = 0; g < groupsCount; g++) {
+            const shuffled = shuffleArray(allTasks);
+            const selectedTasks = shuffled.slice(0, questionsPerGroup);
+            const groupLetter = getGroupLetter(g);
+
+            // --- ČASŤ 1: HLAVIČKA ---
+            rtf += `\\pard\\ql ${toRTF("Meno: ................................................................................  Trieda: .....................  Dátum: ..............................")}\\par`;
+            rtf += `\\par `; 
+            rtf += `\\pard\\qc\\b\\fs36 ${toRTF(title)}\\b0\\fs24\\par`;
+            rtf += `\\par `; 
+            rtf += `\\pard\\qc\\b\\fs28 ${toRTF("Skupina " + groupLetter)}\\b0\\fs24\\par`;
+            rtf += `\\par `; 
+            // Dôležité: Tu nedávame extra \\par, aby sa nevytvoril prázdny riadok pred sekciou
+            rtf += `\\pard\\ql\\b ${toRTF(instructions)}\\b0\\sa320`;
+            
+            // --- ČASŤ 2: ÚLOHY ---
+            if (cols > 1) {
+                // sbknone = Continuous section break
+                rtf += `\\sect\\sbknone\\cols${cols}\\colsx720 `;
+                rtf += `\\pard\\fs23 `; 
+            } else {
+                 rtf += `\\pard\\fs23 `; 
+            }
+
+            selectedTasks.forEach((task, idx) => {
+                const num = getNumbering(idx, numberingStyle);
+                // OPRAVA: Namiesto \\par\\par používame \\sa320 (Space After)
+                // To zabezpečí, že ak stĺpec začína týmto odsekom, medzera sa ignoruje a text je hore.
+                rtf += `\\pard\\keepn\\fi-360\\li360\\sa320 ${num}\\tab ${toRTF(task.question)}: .................................\\par`;
+            });
+
+            // --- ČASŤ 3: NÁVRAT DO 1 STĹPCA ---
+            if (cols > 1) {
+                rtf += `\\sect\\sbknone\\cols1\\par `;
+            }
+            rtf += `\\pard\\fs24`;
+
+          // --- Hodnotiaca tabuľka ---
+rtf += `\\b ${toRTF("Hodnotenie")}:\\b0\\par `;
+rtf += `\\pard\\keepn`; 
+
+// Riadok 1: Hlavička so zúženými rozmermi
+rtf += `\\trowd\\trgaph108\\trleft-108`;
+rtf += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx1200`; // Úzky stĺpec
+rtf += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx3000`; // Celková šírka
+rtf += `\\pard\\intbl ${toRTF("Známka")}\\cell ${toRTF("Počet percent")}\\cell\\row`;
+
+// --- CYKLUS PRE RIADKY S DÁTAMI ---
+for(let i=1; i<=5; i++) {
+    const max = document.getElementById(`g${i}max`).value;
+    const min = document.getElementById(`g${i}min`).value;
+    
+    // ZOPAKOVANIE NASTAVENIA RIADKU A HRANÍC BUNIEK (kľúčová oprava!)
+    rtf += `\\trowd\\trgaph108\\trleft-108`;
+    
+    // NASTAVENIE ZÚŽENEJ ŠÍRKY STĹPCOV (1200 a 3000)
+    rtf += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx1200`; 
+    rtf += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx3000`;
+    
+    rtf += `\\pard\\intbl ${i}\\cell ${max} % - ${min} %\\cell\\row`;
+}
+rtf += `\\pard`;
+
+            // Pätička
+            rtf += `\\par ${toRTF("Počet bodov: _______________")}\\par`;
+            rtf += `\\par ${toRTF("Počet percent: _______________")}\\par`;
+            rtf += `\\par ${toRTF("Výsledná známka a podpis učiteľa: _____________")}\\par`;
+
+            rtf += `\\page `;
+
+            // --- RIEŠENIE ---
+            solutionsContent += `\\pard\\keepn\\b\\fs28 ${toRTF("Riešenie")} - Skupina ${groupLetter}\\b0\\fs24\\par\\par`;
+            
+            solutionsContent += `\\sect\\sbknone\\cols2\\colsx720 `; 
+            solutionsContent += `\\pard\\fs24 `;
+
+            selectedTasks.forEach((task, idx) => {
+                const num = getNumbering(idx, numberingStyle);
+                const answers = task.answers.join(" / ");
+                // Aj tu pre istotu použijeme space after namiesto hard enterov, vyzerá to profesionálnejšie
+                solutionsContent += `\\pard\\keepn\\fi-360\\li360\\sa150 ${num}\\tab ${toRTF(task.question)} - \\b ${toRTF(answers)}\\b0\\par`;
+            });
+
+            solutionsContent += `\\sect\\sbknone\\cols1\\par `;
+            solutionsContent += `\\pard\\par\\par`; 
+        }
+
+        rtf += solutionsContent;
+        rtf += `}`;
+
+        const blob = new Blob([rtf], { type: "application/rtf" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `test_${Date.now()}.rtf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+<br><br>
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

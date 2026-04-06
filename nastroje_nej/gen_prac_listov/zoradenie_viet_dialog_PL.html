@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor PL - Dialógy</title>
+  <style>
+    body {
+      font-family: Courier bold, monospace;
+      max-width: 640px;
+      margin: 2em auto;
+      padding: 0 1em;
+    }
+    textarea {
+      width: 100%;
+      height: 180px;
+      font-family: monospace;
+      margin-bottom: 1em;
+    }
+    #output {
+      margin: 1.5em 0;
+      white-space: pre-wrap;
+      font-family: sans-serif;
+    }
+    .button {
+      display: inline-block;
+      background-color: #007BFF;
+      color: #fff;
+      padding: 0.5em 1em;
+      border: none;
+      border-radius: 4px;
+      text-decoration: none;
+      font-size: 1em;
+      cursor: pointer;
+      margin-right: 0.5em;
+    }
+    .button.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Generátor pracovného listu na zoradenie dialógov</h1>
+  <p>
+    Vložte viacero dialógov.<br>
+    Každú vetu v rámci konkrétneho dialógu zadajte na nový riadok.<br>
+    Každý dialóg oddeľte jedným prázdnym riadkom.
+  </p>
+
+  <textarea id="inputArea" placeholder="A: Hallo, wie geht's?
+B: Hallo, es geht, danke. Und dir?
+A: Danke, es geht.
+
+A: Guten Morgen!
+B: Morgen, wie war dein Wochenende?
+A: Super, danke."></textarea>
+
+  <button id="generate" class="button">Generovať pracovný list</button>
+  <a id="download" class="button disabled">Stiahnuť .rtf</a>
+
+  <div id="output" aria-live="polite"></div>
+
+  <script>
+    const STORAGE_KEY = 'dialogueInput';
+    const textarea = document.getElementById('inputArea');
+
+    // Obnova obsahu z localStorage
+    document.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved !== null) textarea.value = saved;
+    });
+
+    // Ukladanie pri každej zmene
+    textarea.addEventListener('input', () => {
+      localStorage.setItem(STORAGE_KEY, textarea.value);
+    });
+
+    // Náhodné premiešanie
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // Escapovanie riadkov do RTF Unicode sekvencií
+    function rtfEscape(str) {
+      return str.replace(/[\u0080-\uFFFF]|[\\{}]/g, ch => {
+        if (ch === '\\') return '\\\\';
+        if (ch === '{')  return '\\{';
+        if (ch === '}')  return '\\}';
+        return `\\u${ch.charCodeAt(0)}?`;
+      });
+    }
+
+    document.getElementById('generate').addEventListener('click', () => {
+      const raw = textarea.value.trim();
+      if (!raw) return;
+
+      // Rozdeľ na bloky podľa prázdneho riadka
+      const blocks = raw
+        .split(/\n\s*\n/)
+        .map(b => b.trim())
+        .filter(b => b);
+
+      // Pre každý blok rozdel na riadky a zamiešaj
+      const allTasks = blocks.map(block => {
+        const lines = block
+          .split('\n')
+          .map(l => l.trim())
+          .filter(l => l);
+        return shuffle(lines);
+      });
+
+      // Zobrazenie v prehliadači
+      const outDiv = document.getElementById('output');
+      const pageLines = allTasks.map((task, i) =>
+        `Úloha ${i+1}: ${task.join(' / ')}`
+      );
+      outDiv.textContent = pageLines.join('\n\n');
+
+      // --- RTF export pre Word s CP1250 a Courier New bold ---
+      const rtfHeader = [
+        "{\\rtf1",
+        "\\ansi",
+        "\\ansicpg1250",
+        "{\\fonttbl{\\f0 Courier New;}}",
+        "\\deff0",
+        "\\viewkind4\\uc1",
+        ""
+      ].join("");
+
+      let rtfBody = "";
+      allTasks.forEach((task, i) => {
+        // Nadpis Úloha X (Courier New, bold)
+        rtfBody += "\\pard\\f0\\b "
+                 + rtfEscape(`Úloha ${i+1}`)
+                 + " \\b0\\par\n";
+        // Obsah viet oddelených " / "
+        rtfBody += "\\pard\\f0 "
+                 + rtfEscape(task.join(" / "))
+                 + "\\par\\par\n";
+      });
+
+      const rtfFooter = "}";
+
+      // Vytvorenie Blob-u s RTF a správnym typom
+      const blob = new Blob(
+        [rtfHeader + rtfBody + rtfFooter],
+        { type: 'application/rtf' }
+      );
+
+      const url = URL.createObjectURL(blob);
+      const dl  = document.getElementById('download');
+      dl.href     = url;
+      dl.download = 'pracovny_list_dialogy.rtf';
+      dl.classList.remove('disabled');
+    });
+  </script>
+ <br><br>
+  &nbsp;&nbsp;<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>

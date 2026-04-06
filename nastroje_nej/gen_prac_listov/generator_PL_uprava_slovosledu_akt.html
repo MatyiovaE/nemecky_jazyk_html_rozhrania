@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor testov: Pomiešané vety</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 30px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h2, h3 { color: #2c3e50; }
+    label { font-weight: bold; display: block; margin-top: 10px; }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      margin-bottom: 10px;
+      font-family: monospace;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    input[type="text"], input[type="number"] {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+    .row { display: flex; gap: 20px; }
+    .col { flex: 1; }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      margin-right: 10px;
+      cursor: pointer;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+    button:hover { background-color: #2980b9; }
+    button.secondary { background-color: #95a5a6; }
+    button.secondary:hover { background-color: #7f8c8d; }
+    #output {
+      white-space: pre-wrap;
+      background-color: #f0f0f0;
+      padding: 10px;
+      border: 1px solid #ccc;
+      height: 150px;
+      overflow-y: auto;
+      font-family: monospace;
+      margin-top: 10px;
+    }
+    table.grading { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    table.grading th, table.grading td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    table.grading th { background-color: #f2f2f2; }
+    table.grading input { border: none; background: transparent; text-align: center; width: 100%; margin: 0; }
+    #copyStatus { margin-top: 10px; font-weight: bold; color: green; height: 20px; }
+    .footer-credits { margin-top: 40px; font-size: 0.9em; color: #666; border-top: 1px solid #eee; padding-top: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Generátor testov: Pomiešanie položiek vo vete</h2>
+  
+  <div class="row">
+    <div class="col">
+      <label for="testName">Názov testu:</label>
+      <input type="text" id="testName" placeholder="Napr. Test z nemčiny - slovosled">
+    </div>
+    <div class="col">
+      <label for="taskCount">Počet úloh v teste:</label>
+      <input type="number" id="taskCount" placeholder="Napr. 10" min="1">
+    </div>
+    <div class="col">
+      <label for="groupCount">Počet skupín (A, B...):</label>
+      <input type="number" id="groupCount" placeholder="Napr. 2" min="1" value="1">
+    </div>
+  </div>
+
+  <label for="instructions">Pokyny pre žiakov:</label>
+  <input type="text" id="instructions" placeholder="Napíš poradové číslo nad každú položku tak, aby výsledná veta mala správny slovosled.">
+
+  <label for="input"><b>Zadajte vety (položky oddeľte klávesou TAB, veta = riadok):</b></label>
+  <textarea id="input" placeholder="Hans[TAB]ist[TAB]16 Jahre[TAB]alt[TAB]."></textarea>
+
+  <label><b>Hodnotenie (Známka / Rozsah percent):</b></label>
+  <table class="grading" id="gradingTable">
+    <thead>
+      <tr>
+        <th>Známka</th>
+        <th>Rozsah percent (editovateľné)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td><input type="text" id="grade1" value="100 % - 90 %"></td></tr>
+      <tr><td>2</td><td><input type="text" id="grade2" value="89 % - 75 %"></td></tr>
+      <tr><td>3</td><td><input type="text" id="grade3" value="74 % - 50 %"></td></tr>
+      <tr><td>4</td><td><input type="text" id="grade4" value="49 % - 30 %"></td></tr>
+      <tr><td>5</td><td><input type="text" id="grade5" value="29 % - 0 %"></td></tr>
+    </tbody>
+  </table>
+
+  <br>
+  <div style="display: flex; align-items: center;">
+    <button onclick="generateRTF()">📄 Vygenerovať súbor .rtf</button>
+    <button class="secondary" onclick="shuffleSentencesPreview()">👁️ Len náhľad (na obrazovke)</button>
+    <button class="secondary" onclick="copyToClipboard()">📋 Kopírovať náhľad</button>
+  </div>
+
+  <h3 id="previewTitle" style="display:none;">Náhľad (iba jedna verzia):</h3>
+  <div id="output" style="display:none;"></div>
+  <div id="copyStatus"></div>
+
+  <div class="footer-credits">
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  </div>
+</div>
+
+<script>
+  // --- 1. LOCAL STORAGE LOGIC ---
+  const fields = ['testName', 'taskCount', 'groupCount', 'instructions', 'input', 'grade1', 'grade2', 'grade3', 'grade4', 'grade5'];
+
+  function loadData() {
+    fields.forEach(id => {
+      const stored = localStorage.getItem('veta_mix_' + id);
+      if (stored !== null) document.getElementById(id).value = stored;
+    });
+  }
+
+  function saveData() {
+    fields.forEach(id => {
+      localStorage.setItem('veta_mix_' + id, document.getElementById(id).value);
+    });
+  }
+
+  fields.forEach(id => {
+    document.getElementById(id).addEventListener('input', saveData);
+  });
+
+  window.addEventListener('DOMContentLoaded', loadData);
+
+  // --- 2. TEXTAREA TAB HANDLING ---
+  document.getElementById('input').addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const textarea = this;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      textarea.value = textarea.value.substring(0, start) + '\t' + textarea.value.substring(end);
+      textarea.selectionStart = textarea.selectionEnd = start + 1;
+      saveData();
+    }
+  });
+
+  // --- 3. HELPER FUNCTIONS ---
+  function shuffleArray(array) {
+    let currentIndex = array.length, randomIndex;
+    while (currentIndex != 0) {
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+    return array;
+  }
+
+  // Unicode encoder for RTF
+  function toRTF(str) {
+    if (!str) return "";
+    return str.replace(/[^\x00-\x7F]/g, function(c) {
+      return '\\u' + c.charCodeAt(0) + '?';
+    });
+  }
+
+  // --- 4. PREVIEW LOGIC ---
+  function shuffleSentencesPreview() {
+    const inputText = document.getElementById('input').value;
+    const lines = inputText.split('\n').filter(line => line.trim() !== '');
+    let limit = parseInt(document.getElementById('taskCount').value) || lines.length;
+    if (limit > lines.length) limit = lines.length;
+    const selectedLines = shuffleArray([...lines]).slice(0, limit);
+
+    const outputLines = selectedLines.map(line => {
+      const items = line.split('\t').filter(item => item.trim() !== '');
+      const shuffled = shuffleArray([...items]);
+      return shuffled.join(' / ');
+    });
+
+    const outputDiv = document.getElementById('output');
+    outputDiv.style.display = 'block';
+    document.getElementById('previewTitle').style.display = 'block';
+    outputDiv.textContent = outputLines.join('\n');
+    document.getElementById('copyStatus').textContent = '';
+  }
+
+  function copyToClipboard() {
+    const outputText = document.getElementById('output').textContent;
+    const status = document.getElementById('copyStatus');
+    if (!outputText.trim()) return;
+
+    navigator.clipboard.writeText(outputText).then(() => {
+      status.textContent = '✅ Náhľad skopírovaný.';
+      setTimeout(() => status.textContent = '', 3000);
+    }).catch(() => {
+      status.textContent = '❌ Chyba kopírovania.';
+    });
+  }
+
+  // --- 5. RTF GENERATION LOGIC ---
+  function generateRTF() {
+    const testName = document.getElementById('testName').value || "Test";
+    const instructions = document.getElementById('instructions').value || "";
+    const groupCount = parseInt(document.getElementById('groupCount').value) || 1;
+    let taskLimitInput = parseInt(document.getElementById('taskCount').value);
+    
+    const rawInput = document.getElementById('input').value;
+    const allLines = rawInput.split('\n').filter(line => line.trim() !== '');
+
+    if (allLines.length === 0) {
+      alert("Zadajte prosím aspoň jednu vetu.");
+      return;
+    }
+
+    const taskLimit = (taskLimitInput && taskLimitInput > 0 && taskLimitInput <= allLines.length) ? taskLimitInput : allLines.length;
+
+    // Grades
+    const grades = [
+      document.getElementById('grade1').value,
+      document.getElementById('grade2').value,
+      document.getElementById('grade3').value,
+      document.getElementById('grade4').value,
+      document.getElementById('grade5').value
+    ];
+
+    // RTF Header Setup
+    let rtf = "{\\rtf1\\ansi\\ansicpg1250\\deff0\\nouicompat\\deflang1051";
+    rtf += "{\\fonttbl{\\f0\\fnil\\fcharset0 Comic Sans MS;}{\\f1\\fnil\\fcharset238 Comic Sans MS;}}";
+    rtf += "{\\colortbl ;\\red0\\green0\\blue0;}";
+    
+    // Nastavenie užších okrajov (cca 1.5 cm = 850 twips)
+    rtf += "\\margl900\\margr900\\margt850\\margb850 ";
+    
+    rtf += "\\viewkind4\\uc1\\pard\\sa200\\sl276\\slmult1\\f0\\fs22\\lang1051 ";
+
+    let solutionsText = ""; 
+    const groups = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    // Celková dostupná šírka pre tabuľku (Strana - Okraje)
+    // A4 width ~11900. Margins ~1800. Usable ~10100.
+    const usablePageWidth = 10100;
+
+    for (let g = 0; g < groupCount; g++) {
+      const groupLabel = groups[g % 26];
+      if (g > 0) rtf += "\\page ";
+
+      // 1. HEADER - Upravené tabulátory pre Meno/Trieda/Dátum
+      // Roztiahnutie na celú šírku strany
+      rtf += "\\pard\\tx5000\\tx10100 "; 
+      rtf += `${toRTF("Meno: ........................................................................")}   ${toRTF("Trieda: ................................")}   ${toRTF("Dátum: .................................")}\\par`;
+      rtf += "\\pard \\par "; 
+
+      // 2. TITLE
+      rtf += `\\pard\\qc\\b\\fs28 ${toRTF(testName)} \\par`;
+      rtf += `\\fs24 ${toRTF("Skupina")} ${groupLabel} \\par`;
+      rtf += "\\pard\\b0\\fs22 \\par "; 
+
+      // 3. INSTRUCTIONS
+      if (instructions) {
+        rtf += `\\pard ${toRTF(instructions)} \\par \\par `;
+      }
+
+      // 4. TASKS GENERATION
+      let groupSentences = shuffleArray([...allLines]).slice(0, taskLimit);
+      
+      solutionsText += `\\par\\b ${toRTF("Skupina")} ${groupLabel}:\\b0\\par `;
+
+      groupSentences.forEach((line, index) => {
+        let rawItems = line.split('\t').filter(i => i.trim() !== '');
+        let indexedItems = rawItems.map((txt, i) => ({ text: txt, origIndex: i + 1 }));
+        
+        let shuffledItems = shuffleArray([...indexedItems]);
+        let solSequence = shuffledItems.map(item => item.origIndex).join(""); 
+        let taskLabel = String.fromCharCode(97 + (index % 26)) + ")"; 
+
+        solutionsText += `${taskLabel} ${solSequence} \\tab `;
+        if ((index + 1) % 5 === 0) solutionsText += "\\par "; 
+
+        // RTF TABLE CONSTRUCTION
+        // Logika: 1. stĺpec je úzky a bez orámovania (obsahuje označenie a)), zvyšok sú položky.
+        
+        rtf += "\\pard "; // Reset paragraph
+        
+        // Výpočet šírky
+        const labelColWidth = 600; // Šírka pre a) b)...
+        const contentWidth = usablePageWidth - labelColWidth; 
+
+        // Spočítame znaky pre pomer šírok
+        let totalChars = shuffledItems.reduce((sum, item) => sum + item.text.length + 3, 0);
+        
+        // --- 1. RIADOK (ČÍSLA - PRÁZDNE BUNKY) ---
+        rtf += "\\trowd\\trgaph108\\trleft-108";
+        let currentPos = 0;
+
+        // A) Bunka pre označenie (v 1. riadku prázdna a bez orámovania)
+        currentPos += labelColWidth;
+        rtf += `\\clbrdrt\\brdrnil \\clbrdrl\\brdrnil \\clbrdrb\\brdrnil \\clbrdrr\\brdrnil \\cellx${currentPos}`;
+
+        // B) Bunky pre čísla (s orámovaním)
+        shuffledItems.forEach(item => {
+           let ratio = (item.text.length + 3) / totalChars;
+           let cellWidth = Math.floor(contentWidth * ratio);
+           if (cellWidth < 600) cellWidth = 600;
+           currentPos += cellWidth;
+           rtf += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx${currentPos}`;
+        });
+
+        // Obsah 1. riadku
+        rtf += "\\pard\\intbl \\cell"; // Prázdna bunka pre label
+        for (let i = 0; i < shuffledItems.length; i++) {
+            rtf += "\\cell "; // Prázdne bunky pre čísla
+        }
+        rtf += "\\row "; 
+
+        // --- 2. RIADOK (SLOVÁ + OZNAČENIE ÚLOHY) ---
+        rtf += "\\trowd\\trgaph108\\trleft-108";
+        currentPos = 0;
+
+        // A) Definícia bunky pre označenie
+        currentPos += labelColWidth;
+        rtf += `\\clbrdrt\\brdrnil \\clbrdrl\\brdrnil \\clbrdrb\\brdrnil \\clbrdrr\\brdrnil \\cellx${currentPos}`; // Bez orámovania
+
+        // B) Definícia buniek pre slová (identická šírka ako v 1. riadku)
+        shuffledItems.forEach(item => {
+           let ratio = (item.text.length + 3) / totalChars;
+           let cellWidth = Math.floor(contentWidth * ratio);
+           if (cellWidth < 600) cellWidth = 600;
+           currentPos += cellWidth;
+           rtf += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx${currentPos}`;
+        });
+
+        // Obsah 2. riadku
+        // Tu vložíme label "a)" do prvej neviditeľnej bunky, zarovnaný doprava k tabuľke
+        rtf += `\\pard\\intbl\\qr\\b ${taskLabel} \\b0\\cell`; 
+        
+        // Vložíme slová
+        for (let i = 0; i < shuffledItems.length; i++) {
+            rtf += `\\qc ${toRTF(shuffledItems[i].text)} \\cell`; // qc = center align in cell
+        }
+        rtf += "\\row "; 
+        
+        rtf += "\\pard \\par "; // Medzera za tabuľkou
+      });
+
+      // 5. FOOTER (Hodnotenie)
+      rtf += "\\par "; 
+      rtf += "\\pard\\keepn "; 
+      rtf += `${toRTF("Počet bodov: _____________")} \\par\\par `; // <--- ZMENA: Dvojité \\par pre väčší riadkovanie
+      rtf += `${toRTF("Počet percent: _____________")} \\par\\par `; // <--- ZMENA: Dvojité \\par pre väčší riadkovanie
+      rtf += `${toRTF("Výsledná známka a podpis učiteľa: _____________")} \\par \\par `;
+      
+      // Tabuľka hodnotenia
+      rtf += `\\par ${toRTF("Hodnotenie:")} \\par `;
+      
+      let col1W = 1500;
+      let col2W = 4500;
+
+      // Hlavička
+      rtf += "\\trowd\\trgaph108\\trleft-108";
+      rtf += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx${col1W}`;
+      rtf += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx${col1W+col2W}`;
+      rtf += `\\pard\\intbl\\qc\\b ${toRTF("Známka")} \\cell \\b0 ${toRTF("Počet percent")} \\cell \\row `;
+
+      // Riadky 1-5
+      for (let i = 0; i < 5; i++) {
+          rtf += "\\trowd\\trgaph108\\trleft-108";
+          rtf += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx${col1W}`;
+          rtf += `\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx${col1W+col2W}`;
+          rtf += `\\pard\\intbl\\qc ${i+1} \\cell ${toRTF(grades[i])} \\cell \\row `;
+      }
+      rtf += "\\pard \\par";
+
+    } // End Group Loop
+
+    // 6. SOLUTION KEY
+    rtf += "\\page "; 
+    rtf += `\\pard\\qc\\b\\fs28 ${toRTF("KĽÚČ SPRÁVNYCH ODPOVEDÍ")} \\par \\pard\\b0\\fs22 \\par `;
+    rtf += `${toRTF("Čísla predstavujú poradie slova v pôvodnej vete. (Napr. ak žiak vidí 3. slovo vety na 1. mieste, píše nad neho 3).")}\\par`;
+    rtf += solutionsText;
+    rtf += "}"; 
+
+    // Download
+    const blob = new Blob([rtf], { type: "application/rtf" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${testName.replace(/[^a-zA-Z0-9]/g, "_")}.rtf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+</script>
+
+</body>
+</html>

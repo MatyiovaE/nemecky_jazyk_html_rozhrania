@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Použitie tut weh a tun weh</title>
+  <style>
+    :root{
+      --orange:#ff9a3c;
+      --green:#9bf59b;
+      --accent:#222;
+      --muted:#666;
+      --bg:#f7f7f7;
+      --error:#b00020;
+    }
+    body{font-family:Courier bold, monospace;margin:0;padding:18px;background:var(--bg);color:var(--accent)}
+    .container{max-width:980px;margin:0 auto;background:#fff;padding:14px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+    h1{margin:0 0 10px 0;}
+    label{display:block;margin:6px 0;color:var(--muted);font-size:13px}
+    input[type="text"], textarea, input[type="number"]{width:100%;box-sizing:border-box;padding:8px;border-radius:6px;border:1px solid #ddd;font-size:14px}
+    textarea{min-height:120px; font-family:monospace; font-size: 130%; white-space:pre;}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    button{background:#0b69ff;color:#fff;border:0;padding:8px 12px;border-radius:7px;font-weight:600;cursor:pointer}
+    button.secondary{background:#6c757d}
+    .smallBtn{background:#e0e0e0;color:#111;border-radius:6px;padding:6px 8px;font-weight:600;cursor:pointer;border:0}
+    .previewNote{font-size:13px;color:var(--muted);margin-top:6px}
+    hr{border:none;height:1px;background:#eee;margin:14px 0}
+    .exerciseHeader{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+    .exerciseTitle{font-size:18px;font-weight:700}
+    .studentName{padding:6px;border-radius:8px;border:1px solid #ddd}
+    .instructions{border-left:4px solid #ffd27a;padding:8px;border-radius:8px;color:#5a4a00;font-size:18px;margin-top:10px}
+    .boardWrap{margin-top:10px}
+    .scoreRow{display:flex;gap:10px;align-items:center;margin-top:8px}
+    .scoreBox{font-weight:700}
+    .errorBox{color:var(--error);font-weight:900;text-align:center;margin:8px 0;font-size:22px}
+    .board{display:flex;gap:10px;margin-top:6px}
+    .panel{flex:1;min-height:400px;border-radius:10px;padding:6px 8px;box-sizing:border-box;display:flex;flex-direction:column;align-items:stretch}
+    .panelHeader{font-weight:800;margin-bottom:6px;text-align:center;font-size:20px}
+    .panel.tutweh{background:linear-gradient(180deg,#fff4ea,#fff3e8);border:2px solid rgba(255,154,60,.18)}
+    .panel.tunweh {
+  background: linear-gradient(180deg, #f7f7f7, #f1f1f1);
+  border: 2px solid rgba(160,160,160,0.25);
+}
+
+    .target{flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);padding:6px;border-radius:8px;border:2px dashed rgba(0,0,0,.04)}
+    .phraseBox{font-size:20px;text-align:center;padding:10px;background:#fff;border-radius:10px;border:1px solid #eee;box-shadow:0 6px 20px rgba(0,0,0,.03);white-space:pre-wrap}
+    .movedPhrase{font-size:18px;font-weight:800;padding:4px 6px;margin:2px 0;line-height:1.0;background:rgba(255,255,255,0.6);border-radius:6px;word-break:break-word}
+    .controls{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+    .message{margin-top:6px;font-size:14px}
+    .ok{color:green;font-weight:700}
+    .progress{margin-top:6px;font-size:13px;color:var(--muted)}
+    .final{margin-top:12px;padding:10px;border-radius:10px;background:#f9f9fb;border:1px solid #eee}
+    .hidden{display:none}
+    .small{font-size:12px;color:var(--muted)}
+    footer{margin-top:12px;font-size:12px;color:var(--muted);text-align:right}
+    @media (max-width:720px){ .board{flex-direction:column} .phraseBox{font-size:18px} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Generátor cvičení: Použitie „tut weh“ a „tun weh“</h1>
+
+    <label for="exerciseTitle"><strong>Názov cvičenia</strong></label>
+    <input id="exerciseTitle" type="text" placeholder="Použitie „tut weh“ a „tun weh“" value="Použitie „tut weh“ a „tun weh“">
+
+    <label for="inputArea"><strong>Zadajte slovné spojenia v tvare:<br>mein Arm[TAB]tut weh<br>meine Augen[TAB]tun weh<br>Každé slovné spojenie má byť zapísané na nový riadok.</strong></label>
+    <textarea id="inputArea" placeholder="mein Arm[TAB]tut weh
+meine Augen[TAB]tun weh
+mein Auge[TAB]tut weh"></textarea>
+  
+
+    <div class="row" style="margin-top:10px">
+      <div style="flex:1;display:flex;gap:8px;flex-wrap:wrap">
+        <button id="generateBtn">Vygenerovať cvičenie</button>
+        <button id="saveBtn" class="secondary">Uložiť cvičenie ako HTML</button>
+        <button id="saveStateBtn" class="smallBtn" title="Uložiť súčasný stav generátora do localStorage">Uložiť stav</button>
+        <button id="clearStateBtn" class="smallBtn" title="Vymazať uložený stav z localStorage">Vymazať uložené</button>
+      </div>
+      <div style="text-align:right;min-width:170px">
+        <div class="small">Položky: <span id="countItems">0</span></div>
+        <div class="small">Platné položky: <span id="validItems">0</span></div>
+      </div>
+    </div>
+
+    <hr>
+
+    <div id="exerciseArea" class="hidden">
+      <div class="exerciseHeader">
+        <div class="exerciseTitle" id="viewTitle"></div>
+        <div style="flex:1"></div>
+        <label class="small">Meno žiaka</label>
+        <input id="studentInput" class="studentName" type="text" placeholder="Zadajte meno žiaka">
+      </div>
+
+      <div class="instructions" id="studentInstructions">
+        <strong>Pokyny:<br>
+		Prečítaj si zobrazené slovné spojenie a klikni do správneho stĺpca.<br>Správne priradené slovné spojenia sa zobrazia v príslušnom stĺpci.<br>
+		Ak klikneš nesprávne, zobrazí sa chybové hlásenie červenou farbou (v tom prípade nezískaš bod ani po oprave).</strong> 
+      </div>
+
+      <div class="scoreRow">
+        <div class="scoreBox">Počet bodov: <span id="liveScore">0</span></div>
+        <div style="flex:1"></div>
+        <div class="small" id="scoreInfo"></div>
+      </div>
+
+      <div class="phraseBox" id="phraseBox">—</div>
+
+      <div id="errorBox" class="errorBox hidden"></div>
+
+      <div class="boardWrap">
+        <div class="board">
+          <div class="panel tutweh" id="panelTutweh" data-side="tutweh">
+            <div class="panelHeader">tut weh</div>
+            <div class="target" id="targetTutweh"></div>
+          </div>
+          <div class="panel tunweh" id="panelTunweh" data-side="tunweh">
+            <div class="panelHeader">tun weh</div>
+            <div class="target" id="targetTunweh"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="nextBtn" class="secondary hidden">Ďalšie slovné spojenie</button>
+        <div class="message" id="statusMessage"></div>
+      </div>
+
+      <div class="progress" id="progress">Body: 0 / 0</div>
+
+      <div id="finalResult" class="final hidden"></div>
+    </div>
+
+  </div>
+
+<script>
+/* enable TAB in textarea */
+(function enableTab(){ const ta=document.getElementById('inputArea'); ta.addEventListener('keydown', function(e){ if(e.key==='Tab'){ e.preventDefault(); const start=this.selectionStart; const end=this.selectionEnd; const v=this.value; this.value = v.substring(0,start) + '\t' + v.substring(end); this.selectionStart = this.selectionEnd = start+1; } }); })();
+
+/* DOM refs */
+const inputArea = document.getElementById('inputArea');
+const generateBtn = document.getElementById('generateBtn');
+const saveBtn = document.getElementById('saveBtn');
+const saveStateBtn = document.getElementById('saveStateBtn');
+const clearStateBtn = document.getElementById('clearStateBtn');
+const countItems = document.getElementById('countItems');
+const validItems = document.getElementById('validItems');
+
+const exerciseArea = document.getElementById('exerciseArea');
+const viewTitle = document.getElementById('viewTitle');
+const phraseBox = document.getElementById('phraseBox');
+const panelTutweh = document.getElementById('panelTutweh');
+const panelTunweh = document.getElementById('panelTunweh');
+const statusMessage = document.getElementById('statusMessage');
+const progress = document.getElementById('progress');
+const finalResult = document.getElementById('finalResult');
+const studentInput = document.getElementById('studentInput');
+const nextBtn = document.getElementById('nextBtn');
+const exerciseTitleInput = document.getElementById('exerciseTitle');
+const errorBox = document.getElementById('errorBox');
+const liveScoreEl = document.getElementById('liveScore');
+
+let items = [];
+let order = [];
+let currentIndex = -1;
+let score = 0;
+let total = 0;
+
+/* localStorage keys */
+const STORAGE_KEY = 'tutweh_tunweh_generator_state_v1';
+
+/* load saved state if present */
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return false;
+    const state = JSON.parse(raw);
+    if(state.title) exerciseTitleInput.value = state.title;
+    if(state.input) inputArea.value = state.input;
+    if(state.student) studentInput.value = state.student;
+    updateCounts();
+    return true;
+  }catch(e){
+    console.warn('loadState error', e);
+    return false;
+  }
+}
+
+/* save state to localStorage (called on changes and manual save) */
+function saveState(){
+  const state = {
+    title: exerciseTitleInput.value || '',
+    input: inputArea.value || '',
+    student: studentInput.value || ''
+  };
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    flashSavedIndicator();
+  }catch(e){
+    console.warn('saveState error', e);
+  }
+}
+
+/* clear saved state */
+function clearState(){
+  try{
+    localStorage.removeItem(STORAGE_KEY);
+    alert('Uložený stav bol vymazaný.');
+  }catch(e){
+    console.warn('clearState error', e);
+  }
+}
+
+/* small visual feedback for save */
+function flashSavedIndicator(){
+  saveStateBtn.textContent = 'Uložené';
+  setTimeout(()=> saveStateBtn.textContent = 'Uložiť stav', 900);
+}
+
+/* parse input */
+function parseInput(raw){
+  const lines = raw.split('\n');
+  const parsed = []; let id=0;
+  for(let r of lines){
+    const line = r.trim();
+    if(!line) continue;
+    const parts = line.split('\t');
+    let phrase, cat;
+    if(parts.length>=2){ phrase = parts.slice(0,parts.length-1).join('\t').trim(); cat = parts[parts.length-1].trim().toLowerCase(); }
+    else { const s=line.split(/\s+/); cat=s.pop().toLowerCase(); phrase=s.join(' ').trim(); }
+    if(!phrase || (cat!=='tut weh' && cat!=='tun weh')) continue;
+    const side = cat==='tut weh' ? 'tutweh' : 'tunweh';
+    parsed.push({id:++id, text:phrase, side:side, attemptedWrong:false, done:false});
+  }
+  return parsed;
+}
+
+/* UI helpers */
+function updateCounts(){ countItems.textContent = (inputArea.value.split('\n').filter(Boolean)).length; validItems.textContent = items.length; }
+function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]] } return b }
+function updateProgress(){ const doneCount = items.filter(i=>i.done).length; progress.textContent = `Priebežné skóre: ${doneCount} / ${total}`; }
+function updateLiveScore(){ liveScoreEl.textContent = score; }
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* start exercise */
+function startExercise(){
+  items = parseInput(inputArea.value);
+  updateCounts();
+  if(items.length === 0){ alert('Neboli nájdené žiadne platné položky. Skontroluj formát (slovné spojenie[TAB]tut weh/tun weh).'); return; }
+  score=0; updateLiveScore();
+  currentIndex=-1; order = shuffle(items.map(it=>it.id)); total = items.length;
+  updateProgress();
+  viewTitle.textContent = exerciseTitleInput.value || 'tut weh / tun weh';
+  exerciseArea.classList.remove('hidden');
+  finalResult.classList.add('hidden');
+  statusMessage.textContent = '';
+  errorBox.classList.add('hidden');
+  nextBtn.classList.add('hidden');
+  clearPanels();
+  showNext();
+}
+
+/* clear panels */
+function clearPanels(){ [panelTutweh, panelTunweh].forEach(p=>{ p.querySelectorAll('.movedPhrase').forEach(n=>n.remove()); }); }
+
+/* show next item */
+function showNext(){
+  errorBox.classList.add('hidden');
+  while(order.length && items.find(i=>i.id===order[0]).done) order.shift();
+  if(order.length===0){ finish(); return; }
+  currentIndex = order.shift();
+  const it = items.find(i=>i.id===currentIndex);
+  const replaced = escapeHtml(it.text).replace(/\\t/g,'&nbsp;&nbsp;&nbsp;&nbsp;').replace(/\t/g,'&nbsp;&nbsp;&nbsp;&nbsp;');
+  phraseBox.innerHTML = replaced;
+  statusMessage.textContent = '';
+}
+
+/* append to panel */
+function appendToPanel(side, textHtml){
+  const container = side === 'tutweh' ? panelTutweh : panelTunweh;
+  const el = document.createElement('div');
+  el.className = 'movedPhrase';
+  el.innerHTML = textHtml;
+  const target = container.querySelector('.target');
+  container.insertBefore(el, target);
+}
+
+/* handle clicks */
+function onPanelClick(side){
+  if(currentIndex === -1) return;
+  const it = items.find(i=>i.id===currentIndex);
+  if(it.done) return;
+  if(side === it.side){
+    it.done = true;
+    const movedHtml = escapeHtml(it.text).replace(/\\t/g,'&nbsp;&nbsp;&nbsp;&nbsp;').replace(/\t/g,'&nbsp;&nbsp;&nbsp;&nbsp;');
+    appendToPanel(side, movedHtml);
+    if(!it.attemptedWrong) score++;
+    updateLiveScore();
+    statusMessage.innerHTML = '<span class="ok">Správne ✓</span>';
+    setTimeout(()=>{ showNext(); updateProgress(); }, 450);
+  } else {
+    it.attemptedWrong = true;
+    errorBox.textContent = 'Nesprávne - skús to znova.';
+    errorBox.classList.remove('hidden');
+    statusMessage.textContent = '';
+  }
+}
+
+/* finish */
+function finish(){
+  currentIndex = -1;
+  phraseBox.textContent = '🎉 Hotovo!';
+  const name = (studentInput.value || '').trim();
+  const percent = total === 0 ? 0 : Math.round((score/total)*100);
+  const now = new Date(); const ts = now.toLocaleString();
+  finalResult.innerHTML = `
+    <div><strong>Názov cvičenia:</strong> ${escapeHtml(viewTitle.textContent)}</div>
+    <div><strong>Meno žiaka:</strong> ${escapeHtml(name || '—')}</div>
+    <div><strong>Skóre:</strong> ${score} / ${total} (${percent} %)</div>
+    <div><strong>Dátum a čas:</strong> ${ts}</div>
+  `;
+  finalResult.classList.remove('hidden');
+  statusMessage.textContent = '';
+  updateProgress();
+}
+
+/* events */
+generateBtn.addEventListener('click', ()=> startExercise());
+panelTutweh.addEventListener('click', ()=> onPanelClick('tutweh'));
+panelTunweh.addEventListener('click', ()=> onPanelClick('tunweh'));
+
+/* autosave inputs to localStorage on change (debounced) */
+let saveTimer = null;
+[inputArea, exerciseTitleInput, studentInput].forEach(el=>{
+  el.addEventListener('input', ()=>{
+    if(saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=>{ saveState(); saveTimer = null; }, 700);
+  });
+});
+saveStateBtn.addEventListener('click', ()=> saveState());
+clearStateBtn.addEventListener('click', ()=> { if(confirm('Naozaj vymazať uložený stav generátora?')){ clearState(); } });
+
+/* save as standalone HTML */
+saveBtn.addEventListener('click', ()=>{
+  const parsed = parseInput(inputArea.value);
+  if(parsed.length===0){ alert('Neboli nájdené platné položky, takže nie je čo uložiť.'); return; }
+  const payload = { title: exerciseTitleInput.value || 'tut weh / tun weh', items: parsed };
+  const blobContent = generateStandaloneHTML(payload);
+  const blob = new Blob([blobContent], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  const safeTitle = (payload.title || 'exercise').replace(/[^a-z0-9_\-]/gi,'_').slice(0,80) || 'exercise';
+  a.download = safeTitle + '.html'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(url), 5000);
+});
+
+/* standalone HTML generator (adds student input + number of tasks control + reshuffle on load) */
+function generateStandaloneHTML(data){
+  const itemsJson = JSON.stringify(data.items);
+  const titleEsc = escapeHtml(data.title || 'tut weh / tun weh');
+  return `<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${titleEsc}</title>
+<style>
+:root{--error:#b00020;--muted:#666}
+body{font-family:Courier bold, monospace;margin:18px;background:#f7f7f7;color:#222}
+.wrap{max-width:900px;margin:0 auto;background:#fff;padding:14px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.06)}
+h1{margin:0 0 8px}
+.controlsTop{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+input[type="text"],input[type="number"],button{padding:8px;border-radius:6px;border:1px solid #ddd;font-size:14px}
+input[type="number"]{width:110px}
+.instructions{background:#fffbe6;border-left:4px solid #ffd27a;padding:8px;border-radius:8px;color:#5a4a00;font-size:18px;margin-top:10px}
+.phrase{margin-top:12px;padding:10px;border-radius:10px;background:#fff;border:1px solid #eee;font-size:30px;text-align:center;white-space:pre-wrap}
+.board{display:flex;gap:10px;margin-top:10px}
+.panel{flex:1;padding:6px 8px;border-radius:10px;display:flex;flex-direction:column;min-height:400px}
+.panel.tutweh{background:linear-gradient(180deg,#fff4ea,#fff3e8);border:2px solid rgba(255,154,60,.18)}
+.panel.tunweh {
+  background: linear-gradient(180deg, #f7f7f7, #f1f1f1);
+  border: 2px solid rgba(160,160,160,0.25);
+}
+.panelHeader{font-weight:800;margin-bottom:6px;text-align:center;font-size:40px}
+.hint{flex:1;display:flex;align-items:center;justify-content:center;color:#666;font-weight:700}
+.movedPhrase{font-size:30px;font-weight:800;padding:4px 6px;margin:2px 0;line-height:1.0;background:rgba(255,255,255,0.6);border-radius:6px;word-break:break-word}
+.movedPhrase.tutweh{background:rgba(255,200,150,0.45)}
+.movedPhrase.tunweh {
+  background: rgba(200,200,200,0.45);
+}
+.errorBox{color:var(--error);font-weight:900;text-align:center;margin:8px 0;font-size:28px}
+.scoreRow{display:flex;gap:10px;align-items:center;margin-top:8px}
+.footerSmall{font-size:12px;color:#666;margin-top:10px}
+#detailsTable{width:100%;border-collapse:collapse;margin-top:20px;font-size:20px}
+#detailsTable th,#detailsTable td{border:1px solid #ddd;padding:8px;text-align:center}
+#detailsTable th{background:#f0f0f0}
+.symbolExplain{margin-top:10px;font-size:18px;color:#555}
+@media(max-width:720px){.board{flex-direction:column}.phrase{font-size:30px}}
+@media print{
+  body{background:#fff;color:#000}
+  .controlsTop,
+  .instructions,
+  .board,
+  .phrase,
+  #printBtn,
+  #errorBox,
+  #detailsBtn {display:none!important}
+  .wrap{box-shadow:none;border:none}
+  #detailsSection,#final{display:block!important}
+  h1{text-align:center;margin-bottom:20px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>${titleEsc}</h1>
+
+  <div class="controlsTop">
+    <label>Meno žiaka <input id="studentName" type="text" placeholder="Zadajte meno"></label>
+    <label>Počet úloh <input id="taskCount" type="number" min="1" value="\${data.items.length}" title="Počet úloh, ktoré sa majú zobraziť"></label>
+    <button id="startBtn">Štart</button>
+    <div style="flex:1"></div>
+    <div class="scoreRow"><div class="scoreBox">Priebežné skóre: <span id="liveScore">0</span></div></div>
+  </div>
+
+  <div class="instructions"><strong>Pokyny:<br>
+  Prečítaj si zobrazené slovné spojenie a klikni do správneho stĺpca.<br>
+  Správne priradené slovné spojenia sa zobrazia v príslušnom stĺpci.<br>
+  Ak klikneš nesprávne, zobrazí sa chybové hlásenie červenou farbou (v tom prípade nezískaš bod ani po oprave).</strong></div>
+
+  <div id="phrase" class="phrase">—</div>
+  <div id="errorBox" class="errorBox" style="display:none"></div>
+
+  <div class="board">
+    <div class="panel tutweh" id="tutwehPanel"><div class="panelHeader">tut weh</div><div class="hint"></div></div>
+    <div class="panel tunweh" id="tunwehPanel"><div class="panelHeader">tun weh</div><div class="hint"></div></div>
+  </div>
+
+  <div id="final" class="final" style="display:none;margin-top:10px"></div>
+  <div id="detailsSection" style="display:none"></div>
+
+  <button id="printBtn" style="margin-top:10px">🖨️ Tlačiť / Exportovať do PDF</button>
+</div>
+
+<script>
+const allItems = ${itemsJson};
+let items=[],order=[],currentId=null,score=0;
+const phraseEl=document.getElementById('phrase');
+const errorEl=document.getElementById('errorBox');
+const liveEl=document.getElementById('liveScore');
+const tutwehPanel=document.getElementById('tutwehPanel');
+const tunwehPanel=document.getElementById('tunwehPanel');
+const startBtn=document.getElementById('startBtn');
+const taskCountInput=document.getElementById('taskCount');
+const studentNameInput=document.getElementById('studentName');
+const printBtn=document.getElementById('printBtn');
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[m]));
+}
+function shuffle(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function updateLiveScore(){liveEl.textContent=score;}
+
+function prepareItems(requestCount){
+  const shuffledAll=shuffle(allItems);
+  const count=Math.max(1,Math.min(requestCount||allItems.length,allItems.length));
+  const selected=shuffledAll.slice(0,count).map(it=>({...it,attemptedWrong:false,done:false,userSide:null,firstUserSide:null}));
+  items=shuffle(selected);
+  order=items.map(it=>it.id);
+  score=0;updateLiveScore();
+  clearPanels();
+  errorEl.style.display='none';
+  document.getElementById('final').style.display='none';
+  document.getElementById('detailsSection').style.display='none';
+  next();
+}
+
+function next(){
+  errorEl.style.display='none';
+  while(order.length&&items.find(x=>x.id===order[0]).done)order.shift();
+  if(order.length===0){finish();return;}
+  currentId=order.shift();
+  const it=items.find(x=>x.id===currentId);
+  phraseEl.innerHTML=escapeHtml(it.text);
+}
+
+function appendToPanel(side,html){
+  const container=side==='tutweh'?tutwehPanel:tunwehPanel;
+  const el=document.createElement('div');
+  el.className='movedPhrase '+side;
+  el.innerHTML=html;
+  const hint=container.querySelector('.hint');
+  container.insertBefore(el,hint);
+}
+
+function onPanelClick(side){
+  if(currentId===null)return;
+  const it=items.find(x=>x.id===currentId);
+  if(!it||it.done)return;
+  if(it.firstUserSide===null){it.firstUserSide=side;}
+  it.userSide=side;
+  if(side===it.side){
+    it.done=true;
+    appendToPanel(side,escapeHtml(it.text));
+    if(!it.attemptedWrong)score++;
+    updateLiveScore();
+    setTimeout(next,350);
+  }else{
+    it.attemptedWrong=true;
+    errorEl.textContent='Nesprávne - skús to znova.';
+    errorEl.style.display='block';
+  }
+}
+
+function clearPanels(){[tutwehPanel,tunwehPanel].forEach(p=>p.querySelectorAll('.movedPhrase').forEach(n=>n.remove()));}
+
+function finish(){
+  currentId=null;
+  phraseEl.textContent='🎉 Hotovo!';
+  const total=items.length;
+  const percent=Math.round(score/total*100);
+  const st=studentNameInput.value.trim()||'—';
+  const now=new Date().toLocaleString();
+  const final=document.getElementById('final');
+  final.innerHTML='<div><strong>Názov cvičenia:</strong> ${titleEsc}</div>'
+   +'<div><strong>Meno žiaka:</strong> '+escapeHtml(st)+'</div>'
+   +'<div><strong>Skóre:</strong> '+score+' / '+total+' ('+percent+' %)</div>'
+   +'<div><strong>Dátum a čas:</strong> '+now+'</div>'
+   +'<div style="margin-top:8px"><button id="detailsBtn">Detailné výsledky</button></div>';
+  final.style.display='block';
+  document.getElementById('detailsBtn').addEventListener('click',showDetails);
+}
+
+function showDetails(){
+  const mapSide = s => (s === 'tutweh' ? 'tut weh' : (s === 'tunweh' ? 'tun weh' : '—'));
+  let html = '<h2>Detailné výsledky</h2><table id="detailsTable"><tr><th>Slovné spojenie</th><th>Správna odpoveď</th><th>Odpoveď žiaka</th><th>Výsledok</th></tr>';
+  for(const i of items){
+    let sym = '❌';
+    if(i.attemptedWrong){ sym = '❌'; }
+    else if(i.userSide === i.side){ sym = '✅'; }
+    const correctText = mapSide(i.side);
+    const userText = i.firstUserSide ? mapSide(i.firstUserSide) : '—';
+    html += '<tr><td>' + escapeHtml(i.text) + '</td><td>' + correctText + '</td><td>' + userText + '</td><td>' + sym + '</td></tr>';
+  }
+  html += '</table><div class="symbolExplain">✅ = správne na prvý pokus &nbsp;&nbsp; ❌ = nesprávne na prvý pokus</div>';
+  const d = document.getElementById('detailsSection');
+  d.innerHTML = html;
+  d.style.display = 'block';
+}
+
+
+window.onbeforeprint=()=>{try{showDetails();}catch(e){}};
+tutwehPanel.addEventListener('click',()=>onPanelClick('tutweh'));
+tunwehPanel.addEventListener('click',()=>onPanelClick('tunweh'));
+startBtn.addEventListener('click',()=>{const n=parseInt(taskCountInput.value,10)||allItems.length;prepareItems(n);});
+printBtn.addEventListener('click',()=>window.print());
+(function initOnLoad(){const tc=document.getElementById('taskCount');tc.min=1;tc.max=allItems.length;tc.value=allItems.length;prepareItems(allItems.length);})();
+<\/script>
+<br><br><b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)<br><br>
+</body></html>`;
+}
+
+/* try load saved state on open */
+loadState();
+updateCounts();
+</script>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>

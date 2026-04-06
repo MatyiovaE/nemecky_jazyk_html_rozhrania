@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="sk">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Nemecký jazyk - prehľad nástrojov a učebných zdrojov</title>
+    <style>
+      body { 
+        font-family: Courier bold, monospace; 
+        font-size: 110%; 
+      }
+      table {
+        border: 1px solid black; 
+        border-collapse: collapse; 
+        width: 1000px;
+        margin: 0 auto; /* centrovanie tabuľky horizontálne */
+      }
+	  td {
+  padding: 6px; /* alebo 5px, 10px podľa potreby */
+}
+table tr:nth-child(1) {
+  background-color: #ffffff; /* hlavička ostane biela */
+}
+
+table tr:nth-child(2n+2) {
+  background-color: #f2f2f2; /* každý druhý riadok od 2. */
+}
+
+table {
+  counter-reset: riadky; /* inicializácia čítača */
+}
+
+table tr:not(:first-child) td:first-child::before {
+  counter-increment: riadky;       /* zvýši čítač o 1 */
+  content: counter(riadky) ". ";   /* vloží číslo pred obsah bunky */
+  font-weight: bold;               /* voliteľné zvýraznenie */
+}
+    </style>
+	
+	 <style>
+    /* štýl pre zobrazenie a odsadenie */
+    #last-modified {
+      text-align: center;           
+      font-family: Courier bold, monospace;
+      font-size: 16px;
+      color: darkgreen;
+    }
+
+    /* štýl pre hrubý štítok */
+    #last-modified .label {
+      font-weight: 700;             /* hrubé písmo pre "Posledná zmena:" */
+      margin-right: 6px;            /* medzera medzi štítkom a časom */
+    }
+
+    /* štýl pre samotný čas (normálne písmo) */
+    #last-modified .time {
+      font-weight: 400;             /* normálne písmo pre čas */
+    }
+  </style>
+  </head>
+  <body>
+    <h1 style="font-weight: bold; text-align: center;">Nemecký jazyk - pomôcky</h1>
+    <br>
+	<p style="font-weight: bold; font-size:140%; text-align: center;">Vytváranie pracovných listov</p>
+    <table style="border: 1px solid black; border-collapse: collapse; width: 1100px;" border="1">
+      <tbody>
+        <tr style="height: 60px;">
+          <td data-id="1" style="border: 1px solid black; width: 700px;"><span style="font-size: 120%; font-weight: bold;">Názov nástroja</span> </td>
+          <td data-id="2" style="border: 1px solid black; width: 400px;"><span style="font-size: 120%; font-weight: bold;">Vytvorený učebný zdroj - príklad</span> </td>
+        </tr>
+        
+		<tr style="height: 60px;">
+          <td data-id="3" style="border: 1px solid black; width: 700px;"><a href="nastroje/generator_PL_MC_ries_aktualne.html" target="_blank"><b>Test s výberom z viacerých odpovedí aj s riešením - generátor PL na tlač</b></a></td>
+          <td data-id="4" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/pracovny_list_test_MC_ries_priklad.rtf" target="_blank">Príklad - Test s výberom z viacerých odpovedí (aj s riešením)</a></td>
+        </tr>
+		
+		
+		<tr style="height: 60px;">
+          <td data-id="3" style="border: 1px solid black; width: 700px;"><a href="nastroje/generator_PL_SA_ries_aktualne.html" target="_blank"><b>Test s doplnením písanej odpovede aj s riešením - generátor PL na tlač</b></a></td>
+          <td data-id="4" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/pracovny_list_test_SA_ries_priklad.rtf" target="_blank">Príklad - Test s doplnením písanej odpovede (aj s riešením)</a></td>
+        </tr>
+		
+		<tr style="height: 60px;">
+          <td data-id="3" style="border: 1px solid black; width: 700px;"><a href="nastroje/generator_PL_priradovanie_ries_viac_uloh_aktualne.html" target="_blank"><b>Test s priraďovaním správnej odpovede aj s riešením - generátor PL na tlač</b></a></td>
+          <td data-id="4" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/Antonyma_test_priklad.rtf" target="_blank">Príklad - Antonymá - priraďovanie (aj s riešením)</a></td>
+        </tr>
+		
+<tr style="height: 60px;">
+          <td data-id="3" style="border: 1px solid black; width: 700px;"><a href="nastroje/gen_pl_dopl_do_ram_def_vlavo_akt.html" target="_blank"><b>Mriežka na doplňovanie slov bez tajničky (definície priamo v mriežke) - generátor PL na tlač aj s riešením</b></a></td>
+          <td data-id="4" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/Mriezka_def_vlavo_Cislovky_do_20.pdf" target="_blank">Príklad - Doplňovanie slov do mriežky (Číslovky do 20 po nemecky; definície v mriežke)</a></td>
+        </tr>
+		
+		<tr style="height: 60px;">
+          <td data-id="3" style="border: 1px solid black; width: 700px;"><a href="nastroje/gen_pl_dopl_do_ram_def_pod_akt.html" target="_blank"><b>Mriežka na doplňovanie slov bez tajničky (definície pod mriežkou) - generátor PL na tlač aj s riešením</b></a></td>
+          <td data-id="4" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/Mriezka_def_dole_NEJ_Kvety.pdf" target="_blank">Príklad - Doplňovanie slov do mriežky (NEJ - Kvety; definície pod mriežkou)</a></td>
+        </tr>
+		
+		
+		<tr style="height: 60px;">
+          <td data-id="3" style="border: 1px solid black; width: 700px;"><a href="nastroje/Tajnicka_mriezka_miesane_def_vlavo_aktualne.html" target="_blank"><b>Krížovka s tajničkou (definície v mriežke) - aj dodatočné miešanie slov - generátor PL na tlač</b></a></td>
+          <td data-id="4" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/Tajnicka_def_vlavo_Opakovanie_slovnej_zasoby.pdf" target="_blank">Príklad - Krížovka s tajničkou (definícia v mriežke)</a></td>
+        </tr>
+		
+		<tr style="height: 60px;">
+          <td data-id="3" style="border: 1px solid black; width: 700px;"><a href="nastroje/generator_PL_tajnicka_def_pod.html" target="_blank"><b>Krížovka s tajničkou (definície pod mriežkou) - aj dodatočné miešanie slov - generátor PL na tlač</b></a></td>
+          <td data-id="4" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/Tajnicka_def_dole_Opakovanie_slovnej_zasoby.pdf" target="_blank">Príklad - Krížovka s tajničkou (definície pod mriežkou)</a></td>
+        </tr>
+		<tr style="height: 60px;">
+          <td data-id="3" style="border: 1px solid black; width: 700px;"><a href="nastroje/generator_viacsmerovky_aktualne.html" target="_blank"><b>Viacsmerovka - generátor PL na tlač</b></a></td>
+          <td data-id="4" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/viacsmerovka_pl_priklad.rtf" target="_blank">Príklad - Viacsmerovka - pracovný list</a></td>
+        </tr>		
+		
+        <tr style="height: 60px;">
+          <td data-id="5" style="border: 1px solid black; width: 700px;"><a href="nastroje/generator_PL_uprava_slovosledu_akt.html" target="_blank"><b>Pomiešanie položiek vo vete aj s riešením - generátor PL na tlač</b></a>
+		  </td>
+          <td data-id="6" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/PL_Slovosled_po_spojke_deshalb_priklad.rtf" target="_blank">Príklad - Pomiešanie položiek vo vete</a></td>
+        </tr>
+		
+        <tr style="height: 60px;">
+          <td data-id="7" style="border: 1px solid black; width: 700px;"><a href="nastroje/zoradenie_viet_dialog_PL.html" target="_blank"><b>Zoradenie viet v dialógu - generátor PL na tlač</b></a>
+          </td>
+          <td data-id="8" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/pracovny_list_dialogy_priklad.docx" target="_blank">Príklad - Zoradenie viet v dialógu</a></td>
+        </tr>
+				
+		<tr style="height: 60px;">
+          <td data-id="7" style="border: 1px solid black; width: 700px;"><a href="nastroje/generator_PL_dopl_do_suv_textu_1_medz_vsetko_akt.html" target="_blank"><b>Výber z alternatív v odsekoch súvislého textu - generátor PL na tlač</b></a>
+          </td>
+          <td data-id="8" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/9_rocnik__telefonicky_rozhovor_kb_163_priklad.rtf" target="_blank">Príklad - Výber z alternatív (dialóg - nemecký jazyk)</a></td>
+        </tr>
+
+		  <tr style="height: 60px;">
+          <td data-id="7" style="border: 1px solid black; width: 700px;"><a href="nastroje/generator_PL_dopl_do_uloh_1_medz_vsetko_akt.html" target="_blank"><b>Výber z alternatív v miešaných úlohách (aj s riešením) - generátor PL na tlač</b></a>
+          </td>
+          <td data-id="8" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/akuzativ_osobnych_zamen_ihn_es_sie_priklad.pdf" target="_blank">Príklad - Akuzatív osobných zámen (ihn/es/sie)(nemecký jazyk)</a></td>
+        </tr>
+		
+		 <tr style="height: 60px;">
+          <td data-id="7" style="border: 1px solid black; width: 700px;"><a href="nastroje/generator_PL_pism_retazce_aktualne.html" target="_blank"><b>Tvorenie písmenových reťazcov - generátor PL na tlač</b></a>
+          </td>
+          <td data-id="8" style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/PL_pismenove_retazce_priklad.rtf" target="_blank">Príklad - Písmenové reťazce</a></td>
+        </tr>
+		
+		
+		 <tr style="height: 60px;">
+          <td style="border: 1px solid black; width: 700px;"><a href="nastroje/text_pre_dyslektikov.html" target="_blank"><b>Písanie textu pre dyslektikov (editor s možnosťou exportu)</b> - funguje v Microsoft Edge</a>
+		  </td>
+          <td style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/IV_A_2025.10.29_14_bez.pdf" target="_blank">Príklad - Ako k nám prišla bájka (pracovný list na čítanie)</a>
+          </td>
+        </tr>
+		 </tbody>
+    </table>
+<br><br>
+
+<p style="font-weight: bold; font-size:140%; text-align: center;">Vytváranie HTML nástrojov</p>
+<br><br>
+		<p style="font-weight: bold; font-size:120%; text-align: center;">Časovanie slovies</p>
+    <table style="border: 1px solid black; border-collapse: collapse; width: 1100px;" border="1">
+      <tbody>
+        <tr style="height: 60px;">
+          <td data-id="1" style="border: 1px solid black; width: 700px;"><span style="font-size: 120%; font-weight: bold;">Názov nástroja</span> </td>
+          <td data-id="2" style="border: 1px solid black; width: 400px;"><span style="font-size: 120%; font-weight: bold;">Vytvorený učebný zdroj - príklad</span> </td>
+        </tr>
+		
+		<tr style="height: 60px;">
+          <td style="border: 1px solid black; width: 700px;"><a href="nastroje_nej/casovanie_slovies/generator_cas_slov_prit_cas_tab_bod_akt.html" target="_blank"><b>Časovanie slovies v prítomnom čase - generovanie prehľadu</b></a>
+		  </td>
+          <td style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/___.html" target="_blank">___</a>
+          </td>
+        </tr>
+		
+		<tr style="height: 60px;">
+          <td style="border: 1px solid black; width: 700px;"><a href="nastroje_nej/casovanie_slovies/generator_cas_slov_pret_tab_bod_akt.html" target="_blank"><b>Časovanie slovies v préterite - generovanie prehľadu</b></a>
+		  </td>
+          <td style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/___.html" target="_blank">___</a>
+          </td>
+        </tr>
+
+<tr style="height: 60px;">
+          <td style="border: 1px solid black; width: 700px;"><a href="nastroje_nej/casovanie_slovies/generator_cas_slov_perf_tab_bod.html" target="_blank"><b>Časovanie slovies v perfekte - generovanie prehľadu</b></a>
+		  </td>
+          <td style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/___.html" target="_blank">___</a>
+          </td>
+        </tr> 
+		
+		<tr style="height: 60px;">
+          <td style="border: 1px solid black; width: 700px;"><a href="nastroje_nej/casovanie_slovies/generator_cas_slov_bud_cas_tab.html" target="_blank"><b>Časovanie slovies v budúcom čase - generovanie prehľadu</b></a>
+		  </td>
+          <td style="border: 1px solid black; width: 400px;"><a href="priklady_pouzitia/___.html" target="_blank">___</a>
+          </td>
+        </tr>
+		</tbody>
+    </table>
+
+<br><br>
+    <p style="font-weight: bold; text-align:center;">© Mgr. Erika Matyiová (2025 - 2026)</p>
+	<!-- miesto, kde sa zobrazí text -->
+  <div id="last-modified">
+    <span class="label">Posledná zmena:</span>
+    <span class="time">načítavam...</span>
+  </div>
+<br><br>
+  <script>
+    (function() {
+      const timeEl = document.querySelector('#last-modified .time');
+
+      function pad(n) {
+        return n < 10 ? '0' + n : n;
+      }
+
+      function formatDate(d) {
+        const day = pad(d.getDate());
+        const month = pad(d.getMonth() + 1);
+        const year = d.getFullYear();
+        const hours = pad(d.getHours());
+        const minutes = pad(d.getMinutes());
+        return `${day}.${month}.${year} ${hours}:${minutes}`;
+      }
+
+      function update() {
+        const lm = document.lastModified;
+        if (!lm) {
+          timeEl.textContent = 'neznámy čas';
+          return;
+        }
+        const date = new Date(lm);
+        if (isNaN(date.getTime())) {
+          timeEl.textContent = 'neznámy čas';
+          return;
+        }
+        timeEl.textContent = formatDate(date);
+      }
+
+      // prvé zobrazenie
+      update();
+
+      // voliteľné: kontrola každé 2 sekundy (po reload-e sa aktualizuje)
+      setInterval(update, 2000);
+    })();
+  </script>
+
+
+  </body>
+</html>

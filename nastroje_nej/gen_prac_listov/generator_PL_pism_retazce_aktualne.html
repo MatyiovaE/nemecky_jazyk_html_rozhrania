@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Tvorenie písmenových reťazcov (generátor pracovných listov)</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 950px; margin: 20px auto; padding: 20px; background-color: #f4f7f6; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 0; }
+        h2 { font-size: 1.1em; margin-top: 20px; color: #34495e; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        
+        label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.9em; }
+        .hint { font-size: 0.85em; color: #7f8c8d; font-weight: normal; margin-left: 5px; }
+        
+        input[type="text"], input[type="number"], textarea, select { 
+            width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; 
+        }
+        input[type="number"] { width: 100px; }
+        
+        textarea { font-family: monospace; font-size: 110%; }
+        #dataInput { height: 150px; }
+        #instructions { height: 80px; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        
+        /* Tabuľka hodnotenia */
+        .grading-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .grading-table th, .grading-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .grading-table th { background-color: #f9f9f9; width: 80px; text-align: center; }
+        .grading-table input { border: none; background: transparent; width: 100%; padding: 5px; margin: 0; }
+        .grading-table input:focus { outline: 2px solid #3498db; background: white; }
+
+        .controls { margin-top: 30px; display: flex; gap: 10px; flex-wrap: wrap; border-top: 1px solid #eee; padding-top: 20px; }
+        button { padding: 12px 25px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: 0.2s; font-size: 1em; }
+        .btn-main { background: #3498db; color: white; flex-grow: 1; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-export { background: #2ecc71; color: white; }
+        .btn-import { background: #f1c40f; color: #333; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        
+        .footer-info { margin-top: 20px; font-size: 0.9em; color: #7f8c8d; text-align: right; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1 style="text-align: center;">Tvorenie písmenových reťazcov -<br>generátor pracovných listov (.rtf)</h1>
+    <span style="font-size: 110%; font-weight: bold; color: #7f8c8d;">Obaľovanie slov náhodnými skupinami písmen</span>
+
+    <div class="grid-2">
+        <div>
+            <label><strong>Názov testu:</strong></label>
+            <input type="text" id="testTitle" placeholder="Napr. Lesné zvieratá">
+        </div>
+        <div>
+            <label><strong>Autor a rok:</strong></label>
+            <input type="text" id="authorYear" placeholder="Mgr. Ján Novák, 2026">
+        </div>
+    </div>
+
+    <div class="grid-3">
+        <div>
+            <label><strong>Počet úloh na skupinu:</strong></label>
+            <input type="number" id="taskLimit" value="10" min="1">
+        </div>
+        <div>
+            <label><strong>Počet skupín (A, B...):</strong> <span class="hint">Max 5</span></label>
+            <input type="number" id="groupCount" value="2" min="1" max="5">
+        </div>
+        <div>
+            <label><strong>Abeceda náhodných písmen:</strong></label>
+            <select id="alphabet">
+                <option value="sk-low">Slovenská (malé)</option>
+                <option value="sk-up">Slovenská (VEĽKÉ)</option>
+                <option value="en-low">Anglická (malé)</option>
+                <option value="en-up">Anglická (VEĽKÉ)</option>
+                <option value="de-low">Nemecká (malé)</option>
+                <option value="de-up">Nemecká (VEĽKÉ)</option>
+                <option value="fr-low">Francúzska (malé)</option>
+            </select>
+        </div>
+    </div>
+    
+    <div>
+        <label><strong>Transformácia textu:</strong></label>
+        <select id="textCase" style="width: auto; display: inline-block;">
+            <option value="keep">Pôvodná veľkosť</option>
+            <option value="upper">ZMENIŤ VŠETKO NA VEĽKÉ</option>
+        </select>
+    </div>
+
+    <label><strong>Pokyny pre žiaka:</strong></label>
+    <textarea id="instructions">Vyznač zvýrazňovačom v jednotlivých písmenových reťazcoch slová a vypíš ich pod jednotlivé zadania. Počet slov je uvedený v zátvorke. Dbaj na písanie malých a veľkých písmen.</textarea>
+
+    <label><strong>Stupnica hodnotenia</strong> (pre potreby učiteľa):</label>
+    <table class="grading-table">
+        <tr><th>Známka</th><th>Percentuálne rozpätie (editovateľné texty)</th></tr>
+        <tr><th>1</th><td><input type="text" id="grade1" value="100 % - 90 %"></td></tr>
+        <tr><th>2</th><td><input type="text" id="grade2" value="89 % - 75 %"></td></tr>
+        <tr><th>3</th><td><input type="text" id="grade3" value="74 % - 50 %"></td></tr>
+        <tr><th>4</th><td><input type="text" id="grade4" value="49 % - 30 %"></td></tr>
+        <tr><th>5</th><td><input type="text" id="grade5" value="29 % - 0 %"></td></tr>
+    </table>
+
+    <label><strong>Vložte slová oddelené tabulátorom. Každý riadok zodpovedá jednej úlohe.</strong></label>
+    <textarea id="dataInput" placeholder="pes&#9;mačka&#9;kôň&#10;medveď&#9;rys"></textarea>
+
+    <div class="controls">
+        <button class="btn-main" onclick="generateRTF()">Vygenerovať súbor .rtf</button>
+        <button class="btn-export" onclick="exportSettings()">Export nastavení</button>
+        <button class="btn-import" onclick="document.getElementById('impFile').click()">Import nastavení</button>
+        <input type="file" id="impFile" style="display:none" onchange="importSettings(this)">
+    </div>
+
+    <div class="footer-info">
+        <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+    </div>
+</div>
+
+<script>
+    // --- KONFIGURÁCIA A POMOCNÉ PREMENNÉ ---
+    const alphabets = {
+        'sk-low': 'aáäbcčdďeéfghiíjklĺľmnňoóôpqrŕssštťuúvwxyýzž',
+        'sk-up': 'AÁÄBCČDĎEÉFGHIÍJKLĹĽMNŇOÓÔPQRŔSŠTŤUÚVWXYÝZŽ',
+        'en-low': 'abcdefghijklmnopqrstuvwxyz',
+        'en-up': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        'de-low': 'abcdefghijklmnopqrstuvwxyzäöüß',
+        'de-up': 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ',
+        'fr-low': 'abcdefghijklmnopqrstuvwxyzàâéèêëîïôùûüÿç'
+    };
+
+    // --- LOCAL STORAGE LOGIKA ---
+    const fieldIds = ['testTitle', 'authorYear', 'taskLimit', 'groupCount', 'alphabet', 'textCase', 'instructions', 'dataInput', 'grade1', 'grade2', 'grade3', 'grade4', 'grade5'];
+
+    function loadLocalStorage() {
+        fieldIds.forEach(id => {
+            const val = localStorage.getItem('rtfgen_' + id);
+            if(val !== null) document.getElementById(id).value = val;
+        });
+        // Listener pre auto-save
+        fieldIds.forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                localStorage.setItem('rtfgen_' + id, e.target.value);
+            });
+        });
+    }
+
+    // Podpora TAB v textarea
+    document.getElementById('dataInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = this.selectionStart;
+            this.value = this.value.substring(0, start) + "\t" + this.value.substring(this.selectionEnd);
+            this.selectionStart = this.selectionEnd = start + 1;
+        }
+    });
+
+    // Export nastavení
+    function exportSettings() {
+        const data = {};
+        fieldIds.forEach(id => data[id] = document.getElementById(id).value);
+        const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'nastavenia_rtf.json';
+        a.click();
+    }
+
+    // Import nastavení
+    function importSettings(input) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                Object.keys(data).forEach(k => {
+                    if (fieldIds.includes(k)) {
+                        const el = document.getElementById(k);
+                        if(el) {
+                            el.value = data[k];
+                            localStorage.setItem('rtfgen_' + k, data[k]);
+                        }
+                    }
+                });
+                alert('Nastavenia boli úspešne načítané.');
+            } catch(err) {
+                alert('Chyba pri importovaní súboru.');
+            }
+        };
+        reader.readAsText(input.files[0]);
+        input.value = ''; // reset inputu
+    }
+
+    // --- LOGIKA GENEROVANIA REŤAZCOV ---
+    
+    function getRandomChar(type) {
+        const chars = alphabets[type] || alphabets['en-low'];
+        return chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    function createChain(wordsArray, type) {
+        let chain = "";
+        const getFiller = () => {
+            let f = "";
+            let len = Math.floor(Math.random() * 5) + 3; // 3-7 náhodných znakov
+            for(let i=0; i<len; i++) f += getRandomChar(type);
+            return f;
+        };
+        
+        // Začiatok
+        chain += getFiller();
+        wordsArray.forEach(w => {
+            chain += w + getFiller();
+        });
+        return chain;
+    }
+
+    function sanitizeFilename(text) {
+        return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') || 'PL_pismenove_retazce';
+    }
+
+    // --- RTF ENCODING HELPER ---
+    // RTF vyžaduje escape sekvencie pre znaky mimo ASCII (napr. \u269? pre č)
+    function toRTF(str) {
+        if (!str) return "";
+        let res = "";
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i);
+            if (code > 127) {
+                // Unicode escape pre RTF: \uNNNN? (kde NNNN je dec hodnota, ? je fallback)
+                res += `\\u${code}?`;
+            } else if (code === 10) { // Newline
+                res += "\\par ";
+            } else if (str[i] === '\\' || str[i] === '{' || str[i] === '}') {
+                res += "\\" + str[i];
+            } else {
+                res += str[i];
+            }
+        }
+        return res;
+    }
+
+    // --- HLAVNÁ FUNKCIA: GENERATE RTF ---
+    function generateRTF() {
+        // 1. Zber dát
+        const title = document.getElementById('testTitle').value || 'Písmenové reťazce';
+        const author = document.getElementById('authorYear').value || '';
+        const limit = parseInt(document.getElementById('taskLimit').value) || 10;
+        const numGroups = parseInt(document.getElementById('groupCount').value) || 1;
+        const alphaType = document.getElementById('alphabet').value;
+        const textCase = document.getElementById('textCase').value;
+        const instructions = document.getElementById('instructions').value;
+        const rawData = document.getElementById('dataInput').value;
+        
+        // Parsovanie úloh
+        let allTasks = rawData.split('\n').filter(l => l.trim() !== '').map(line => {
+            let words = line.split('\t').map(w => w.trim()).filter(w => w !== '');
+            if (textCase === 'upper') words = words.map(w => w.toUpperCase());
+            return words;
+        });
+
+        if (allTasks.length === 0) { alert('Zadajte aspoň jednu úlohu (riadok so slovami).'); return; }
+
+        // 2. Príprava RTF hlavičky
+        // Comic Sans MS font tabuľka
+        let rtfContent = `{\\rtf1\\ansi\\ansicpg1250\\deff0\\nouicompat\\deflang1051{\\fonttbl{\\f0\\fnil\\fcharset0 Comic Sans MS;}{\\f1\\fnil\\fcharset238 Segoe UI;}}\\paperw11906\\paperh16838\\margl850\\margr850\\margt567\\margb567`;
+		
+        rtfContent += `\\viewkind4\\uc1\\pard\\f0\\fs24 `; // fs24 = 12pt
+
+        const groupNames = ['A', 'B', 'C', 'D', 'E'];
+        let solutionsLog = "";
+
+// 3. Cyklus cez skupiny
+for (let g = 0; g < numGroups; g++) {
+    const gName = groupNames[g % groupNames.length];
+    
+    // Náhodný výber úloh pre túto skupinu
+    let groupTasks = [...allTasks];
+    groupTasks.sort(() => Math.random() - 0.5);
+    groupTasks = groupTasks.slice(0, limit);
+
+    // Ak to nie je prvá strana, pridáme Page Break
+    if (g > 0) rtfContent += `\\page `;
+
+    // --- HEADER STRÁNKY ---
+    // POZOR: Všetky texty musia ísť cez toRTF() kvôli diakritike
+    rtfContent += `\\qc ${toRTF("Meno:")} .....................................................................   ${toRTF("Trieda:")} ....................   ${toRTF("Dátum:")} ............................\\par\\par `;
+    
+    // Názov
+    rtfContent += `\\pard\\qc\\sa200\\sl276\\slmult1\\b\\fs32 ${toRTF(title)}\\par\\fs24\\b0 `;
+    
+    // Skupina
+    rtfContent += `\\pard\\qc\\sa100\\sl276\\slmult1\\b ${toRTF("Skupina")} ${gName}\\b0\\par `;
+
+    // Pokyny
+    if(instructions) {
+        rtfContent += `\\pard\\ql\\sa200\\sl276\\slmult1\\fs22\\i ${toRTF(instructions)}\\i0\\par `;
+    }
+
+    // --- ÚLOHY ---
+    // groupSolutionText: nastavíme od začiatku jednoduché riadkovanie pre riešenia danej skupiny
+    // fs24 = 12pt, zarovnanie vľavo (ql)
+    let groupSolutionText = `\\pard\\ql\\sl240\\slmult0\\fs24 \\b ${toRTF("Skupina")} ${gName}\\b0\\par `;
+
+    groupTasks.forEach((words, index) => {
+        const chain = createChain(words, alphaType);
+        const taskLetter = String.fromCharCode(65 + index); // A, B, C...
+        
+        // Zadanie (pôvodné formátovanie)
+        rtfContent += `\\pard\\sa100\\sl240\\slmult1 \\fs24\\b ${taskLetter}.  ${toRTF(chain)} \\b0 (${words.length})\\par `;
+        
+        // Riadok pre odpoveď
+        rtfContent += `\\tab ${toRTF("Nájdené slová:")} __________________________________________________\\sa280\\par `;
+
+        // Uloženie do riešenia: každý riadok ukončíme \\par, ale v rámci groupSolutionText platí jednoduché riadkovanie
+        groupSolutionText += `${taskLetter}.  ${toRTF(words.join('  '))}\\par `;
+    });
+
+    // --- FOOTER (HODNOTENIE) ---
+    rtfContent += `\\par `;
+    rtfContent += `${toRTF("Počet bodov:")} _______________\\par `; 
+    rtfContent += `${toRTF("Počet percent:")} _______________\\par `;
+    rtfContent += `${toRTF("Výsledná známka a podpis učiteľa:")} ____________________\\par `;
+    
+    // --- TABUĽKA HODNOTENIA (S MRIEŽKOU) ---
+    rtfContent += `\\par `;
+    rtfContent += `\\pard\\sa100\\b ${toRTF("Stupnica hodnotenia:")} \\b0\\par `;
+    
+    // Definícia hraníc buniek pre tabuľku: Hore, Dole, Vľavo, Vpravo (všetky simple single line)
+    const cellBorders = "\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10";
+    
+    // Hlavička tabuľky
+    rtfContent += `\\trowd\\trgaph108\\trleft-108`;
+    rtfContent += `${cellBorders}\\cellx1100`; // Šírka 1. stĺpca
+    rtfContent += `${cellBorders}\\cellx4100`; // Šírka 2. stĺpca
+    rtfContent += `\\pard\\intbl\\b\\qc ${toRTF("Známka")} \\b0\\cell`;
+    rtfContent += `\\pard\\intbl\\b\\qc ${toRTF("Percentuálne rozpätie")} \\b0\\cell`;
+    rtfContent += `\\row `;
+    
+    // Riadky tabuľky 1-5
+    for(let i=1; i<=5; i++) {
+        const val = document.getElementById('grade'+i).value;
+        rtfContent += `\\trowd\\trgaph108\\trleft-108`;
+        rtfContent += `${cellBorders}\\cellx1100`;
+        rtfContent += `${cellBorders}\\cellx4100`;
+        rtfContent += `\\pard\\intbl\\qc ${i} \\cell`;
+        rtfContent += `\\pard\\intbl\\qc ${toRTF(val)} \\cell`;
+        rtfContent += `\\row `;
+    }
+    // Koniec tabuľky a reset odseku
+    rtfContent += `\\pard \\par `;
+
+    rtfContent += `\\par `;
+    rtfContent += `\\fs20 \\u169? ${toRTF(author)} \\fs24\\par `; 
+
+    // Pridáme groupSolutionText do celkového logu riešení (solutionsLog bude vložené neskôr)
+    solutionsLog += groupSolutionText + "\\par ";
+}
+
+// 4. STRANA S RIEŠENIAMI
+rtfContent += `\\page `;
+// Nadpis riešení: zachováme väčší nadpis (fs28) a potom nastavíme jednoduché riadkovanie pre celý výpis
+rtfContent += `\\pard\\sa200\\sl240\\slmult1\\b\\fs28 ${toRTF("KĽÚČ SPRÁVNYCH ODPOVEDÍ")}\\b0\\fs24\\par `;
+
+// Nastavíme jednoduché riadkovanie a štandardnú veľkosť písma pre výpis riešení (fs24 = 12pt)
+rtfContent += `\\pard\\ql\\sl240\\slmult0\\fs24 `; // jednoduché riadkovanie, zarovnanie vľavo
+
+// Výpis riešení (solutionsLog už obsahuje jednotlivé groupSolutionText s \\par za každým riadkom)
+rtfContent += solutionsLog;
+
+// Ukončíme blok riešení a resetujeme odsek
+rtfContent += `\\par\\par `;
+
+
+        // Ukončenie RTF
+        rtfContent += `}`;
+
+        // 5. Stiahnutie súboru
+        const blob = new Blob([rtfContent], {type: "application/rtf"});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = sanitizeFilename(title) + ".rtf";
+        link.href = url;
+        link.click();
+    }
+
+    // Inicializácia
+    loadLocalStorage();
+
+</script>
+
+</body>
+</html>
