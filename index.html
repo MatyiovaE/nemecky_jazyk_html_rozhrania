@@ -89,8 +89,20 @@ fetch("config/password.txt")
     }
   });
 
-  // kontrola hesla cez hash
-  button.addEventListener("click", async () => {
+ // kontrola hesla cez hash
+button.addEventListener("click", async () => {
+  const enteredHash = await sha256(input.value);
+
+  if (enteredHash === PASSWORD_HASH) {
+    overlay.style.display = "none";
+  } else {
+    errorMsg.style.display = "block";
+  }
+});
+
+// spustenie overenia aj klávesom Enter
+input.addEventListener("keydown", async (e) => {
+  if (e.key === "Enter") {
     const enteredHash = await sha256(input.value);
 
     if (enteredHash === PASSWORD_HASH) {
@@ -98,7 +110,9 @@ fetch("config/password.txt")
     } else {
       errorMsg.style.display = "block";
     }
-  });
+  }
+});
+
 </script>
 
 
