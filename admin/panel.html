@@ -1,1 +1,170 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<title>Učiteľský panel</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 20px;
+    line-height: 1.6;
+  }
+  h2 {
+    margin-top: 40px;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 5px;
+  }
+  input, textarea {
+    width: 100%;
+    padding: 10px;
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+  #hash-output, #multi-output {
+    font-family: monospace;
+    background: #f4f4f4;
+    padding: 15px;
+    border-radius: 5px;
+    word-break: break-all;
+  }
+  .box {
+    background: #fafafa;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    margin-bottom: 30px;
+  }
+</style>
+</head>
+<body>
 
+<h1>Učiteľský panel</h1>
+<p>Tento panel slúži na správu hesiel a testovanie prístupu.</p>
+
+<!-- ------------------------------------------------------------ -->
+<!-- RÝCHLE ODKAZY -->
+<!-- ------------------------------------------------------------ -->
+<h2>🔗 Rýchle odkazy</h2>
+<div class="box">
+  <p><a href="../index.html" target="_blank">➡️ Otvoriť hlavnú stránku</a></p>
+  <p><a href="hash_generator.html" target="_blank">➡️ Generátor hashov</a></p>
+  <p><a href="https://github.com/MatyiovaE/nemecky_jazyk_html_rozhrania" target="_blank">➡️ GitHub repository</a></p>
+  <p><a href="https://matyiovae.github.io/nemecky_jazyk_html_rozhrania/" target="_blank">➡️ GitHub Pages verzia</a></p>
+</div>
+
+<!-- ------------------------------------------------------------ -->
+<!-- JEDNODUCHÁ ZMENA HESLA -->
+<!-- ------------------------------------------------------------ -->
+<h2>🔑 Jednoduchá zmena hesla</h2>
+<div class="box">
+  <p>Zadajte nové heslo. Panel automaticky vygeneruje SHA‑256 hash a pripraví obsah pre súbor <code>password.txt</code>.</p>
+
+  <input type="text" id="single-password" placeholder="Nové heslo">
+  <button onclick="generateSingle()">Vygenerovať hash</button>
+
+  <h3>Výsledok (skopírujte do <code>config/password.txt</code>):</h3>
+  <div id="hash-output">(čakám na vstup...)</div>
+</div>
+
+<!-- ------------------------------------------------------------ -->
+<!-- VIAC HESIEL -->
+<!-- ------------------------------------------------------------ -->
+<h2>🔐 Viac hesiel (učiteľ, žiak, hosť...)</h2>
+<div class="box">
+  <p>Zadajte viac hesiel (každé na nový riadok). Panel vytvorí JSON súbor <code>passwords.json</code>.</p>
+
+  <textarea id="multi-passwords" rows="5" placeholder="heslo1&#10;heslo2&#10;heslo3"></textarea>
+  <button onclick="generateMulti()">Vygenerovať JSON</button>
+
+  <h3>Výsledok (skopírujte do <code>config/passwords.json</code>):</h3>
+  <div id="multi-output">(čakám na vstup...)</div>
+</div>
+
+<!-- ------------------------------------------------------------ -->
+<!-- TESTOVACIE NÁSTROJE -->
+<!-- ------------------------------------------------------------ -->
+<h2>🧪 Testovacie nástroje</h2>
+<div class="box">
+  <p>Otestujte, či hash zodpovedá heslu.</p>
+
+  <input type="text" id="test-password" placeholder="Zadajte heslo na test">
+  <input type="text" id="test-hash" placeholder="Zadajte hash na porovnanie">
+
+  <button onclick="testHash()">Otestovať</button>
+
+  <h3>Výsledok:</h3>
+  <div id="test-output">(čakám na vstup...)</div>
+</div>
+
+<script>
+// SHA-256 funkcia
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Jedno heslo
+async function generateSingle() {
+  const pw = document.getElementById("single-password").value.trim();
+  const out = document.getElementById("hash-output");
+
+  if (!pw) {
+    out.textContent = "(zadajte heslo)";
+    return;
+  }
+
+  const hash = await sha256(pw);
+  out.textContent = hash;
+}
+
+// Viac hesiel
+async function generateMulti() {
+  const text = document.getElementById("multi-passwords").value.trim();
+  const out = document.getElementById("multi-output");
+
+  if (!text) {
+    out.textContent = "(zadajte aspoň jedno heslo)";
+    return;
+  }
+
+  const lines = text.split("\n").map(l => l.trim()).filter(l => l !== "");
+  const result = {};
+
+  for (let pw of lines) {
+    result[pw] = await sha256(pw);
+  }
+
+  out.textContent = JSON.stringify(result, null, 2);
+}
+
+// Testovanie
+async function testHash() {
+  const pw = document.getElementById("test-password").value.trim();
+  const hash = document.getElementById("test-hash").value.trim();
+  const out = document.getElementById("test-output");
+
+  if (!pw || !hash) {
+    out.textContent = "(zadajte heslo aj hash)";
+    return;
+  }
+
+  const computed = await sha256(pw);
+
+  out.textContent = (computed === hash)
+    ? "✔️ Heslo zodpovedá hashu"
+    : "❌ Heslo NEzodpovedá hashu";
+}
+</script>
+
+</body>
+</html>
