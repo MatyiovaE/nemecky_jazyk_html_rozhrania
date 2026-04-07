@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buchstabengitter - Lektion 1</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Verdana, sans-serif; 
+            background-color: #f9f9f9; 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: center; 
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        /* Hlavný kontajner */
+        #game-layout {
+            display: flex;
+            flex-wrap: wrap; /* Umožní zalomenie na mobile */
+            gap: 40px;
+            justify-content: center;
+            align-items: flex-start;
+            max-width: 1400px;
+        }
+
+        /* Ľavý stĺpec: Nadpis + Mriežka */
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center; 
+        }
+
+        /* Pravý stĺpec: Tlačidlá + Zoznam slov */
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            /* Nastavením max-width zaistíme, že panel nebude príliš široký, 
+               ale stále sa zmestia 2 stĺpce slov */
+            width: 320px; 
+            padding-top: 20px;
+        }
+
+        h1 { 
+            color: #2c3e50; 
+            margin: 0 0 20px 0; 
+            text-align: center;
+        }
+
+        /* Mriežka */
+        #grid { 
+            display: grid; 
+            grid-template-columns: repeat(17, 35px); 
+            gap: 2px; 
+            background: #2c3e50; 
+            border: 2px solid #2c3e50;
+            border-radius: 5px;
+            padding: 2px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .cell { 
+            width: 35px; height: 35px; 
+            background: #fff; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 20px; 
+            font-weight: normal; 
+            font-family: 'Courier bold', Comic Sans MS, monospace;
+            cursor: pointer; 
+            transition: all 0.1s;
+        }
+        
+        .cell:hover { background: #ecf0f1; }
+        .cell.selected { background: #f1c40f; color: #fff; transform: scale(1.05); }
+        .cell.found { background: #2ecc71 !important; color: white; animation: pop 0.4s; }
+        
+        .cell.hint-flash { animation: flash 0.3s 6 alternate; background: #e74c3c; color: white; }
+        @keyframes flash { from { background: #e74c3c; } to { background: white; color: black; } }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+        /* ZOZNAM SLOV */
+        #word-list {
+            display: grid;
+            /* Tu definujeme 3 stĺpce pre slová v pravom paneli */
+            grid-template-columns: 1fr 1fr 1fr; 
+            gap: 8px;
+            width: 100%;
+        }
+
+        .word-item { 
+            padding: 6px 8px; 
+            background: white; border-radius: 4px; 
+            border-left: 4px solid #3498db; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-size: 0.9em;
+            word-break: break-word; /* Zalomí dlhé slová */
+        }
+        .word-item.done { 
+            text-decoration: line-through; opacity: 0.6; 
+            border-left-color: #2ecc71; background: #e8f5e9; 
+        }
+
+        button { 
+            padding: 12px 20px; border: none; border-radius: 5px; 
+            cursor: pointer; font-size: 16px; font-weight: bold; color: white; margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .btn-hint { background: #3498db; width: 100%; margin-bottom: 20px; }
+        .btn-hint:hover { background: #2980b9; }
+
+        #success-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .success-box {
+            background: white; padding: 40px; border-radius: 10px; text-align: center;
+            border-bottom: 5px solid #2ecc71;
+        }
+        .btn-reset { background: #2ecc71; }
+
+        @media (max-width: 600px) {
+            #grid { grid-template-columns: repeat(17, 8vw); }
+            .cell { width: 8vw; height: 8vw; font-size: 14px; }
+            .left-column { width: 100%; }
+            .right-column { width: 100%; padding-top: 0; }
+            /* Na mobile dáme slová pod seba do 3 stĺpcov */
+            #word-list { grid-template-columns: 1fr 1fr 1fr; } 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-layout">
+        <div class="left-column">
+            <h1>Buchstabengitter - Lektion 1</h1>
+            <div id="grid"></div>
+        </div>
+
+        <div class="right-column">
+            <button class="btn-hint" onclick="game.showHint()">💡 Ukáž nápovedu</button>
+            <div id="word-list"></div>
+        </div>
+			<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+    </div>
+
+    <div id="success-overlay">
+        <div class="success-box">
+            <h2 style="color: #2ecc71; margin-top:0;">Gratulujeme!</h2>
+            <p>Našli ste všetky slová.</p>
+            <button class="btn-reset" onclick="location.reload()">Hrať znova</button>
+        </div>
+    </div>
+
+    <script>
+        const GameData = {
+            grid: [["v","s","b","p","m","t","s","u","S","j","A","h","n","u","n","g","p"],["a","u","f","T","e","n","n","i","s","c","f","s","ü","ß","o","n","b"],["d","p","d",".","F","a","c","o","o","l","h","z","e","a","e","t","y"],["g","e","d","a","u","s","S","w","u","g","z","a","r","e","h","o","w"],["t","r","a","j","ß","s","e","d","J","i","n","y","u","n","c","l","i"],["t","w","r",",","b","e","s","q","a","q","i","e","c","m","s","l","c"],["e","p","r","m","a","r","s","l",",","k","e","b","R","u","a","n","h"],["r","p","h","H","l","e","e","l","k","o","s","g","u","s","t","l","y"],["b","t","a","!","l","t","l","a","l","m","T","e","c","p","t","n","!"],["f","r","F","o","t","n","n","b","a","m","s","B","k","i","r","S","g"],["r","i","G","l","w","i","e","y","r","e","c","i","s","e","o","a","n"],["u","h","i","l","e","p","ß","e","!","n","h","s","a","l","p","x","e"],["S","S","t","a","g","o","i","l","l","a","ü","b","c","e","S","o","h"],["q","-","a","H","n","t","e","l","w","u","s","a","k","n","d","f","c"],["i","T","r","l","u","o","h","o","d","s","s","l","y","k","ö","o","d"],["w","e","r","f","J","F","o","V","b","l","!","d","b","z","l","n","ä"],["e","h","e","s","c","L","a","m","p","e","q","!","u","a","b","q","M"]],
+            words: [{"display":"interessant","clean":"interessant","r":10,"c":5},{"display":"Sporttasche","clean":"Sporttasche","r":12,"c":14},{"display":"Volleyball","clean":"Volleyball","r":15,"c":7},{"display":"Surfbrett","clean":"Surfbrett","r":12,"c":0},{"display":"Schau mal!","clean":"Schaumal!","r":0,"c":8},{"display":"kommen aus","clean":"kommenaus","r":6,"c":9},{"display":"Rucksack","clean":"Rucksack","r":6,"c":12},{"display":"Bis bald!","clean":"Bisbald!","r":9,"c":11},{"display":"Tschüss!","clean":"Tschüss!","r":8,"c":10},{"display":"Ja, klar!","clean":"Ja,klar!","r":4,"c":8},{"display":"Gitarre","clean":"Gitarre","r":10,"c":2},{"display":"Fußball","clean":"Fußball","r":2,"c":4},{"display":"Fahrrad","clean":"Fahrrad","r":9,"c":2},{"display":"T-Shirt","clean":"T-Shirt","r":14,"c":1},{"display":"Mädchen","clean":"Mädchen","r":16,"c":16},{"display":"spielen","clean":"spielen","r":7,"c":13},{"display":"Saxofon","clean":"Saxofon","r":9,"c":15},{"display":"Sessel","clean":"Sessel","r":3,"c":6},{"display":"Ahnung","clean":"Ahnung","r":0,"c":10},{"display":"Hm, ja.","clean":"Hm,ja.","r":7,"c":3},{"display":"heißen","clean":"heißen","r":14,"c":6},{"display":"Hallo!","clean":"Hallo!","r":13,"c":3},{"display":"Tennis","clean":"Tennis","r":1,"c":3},{"display":"Lampe","clean":"Lampe","r":16,"c":5},{"display":"Junge","clean":"Junge","r":15,"c":4},{"display":"super","clean":"super","r":0,"c":1},{"display":"woher","clean":"woher","r":3,"c":16},{"display":"cool","clean":"cool","r":2,"c":6},{"display":"blöd","clean":"blöd","r":16,"c":14},{"display":"Foto","clean":"Foto","r":15,"c":5},{"display":"toll","clean":"toll","r":2,"c":15},{"display":"sein","clean":"sein","r":7,"c":10},{"display":"wer","clean":"wer","r":15,"c":0},{"display":"ich","clean":"ich","r":4,"c":16},{"display":"süß","clean":"süß","r":1,"c":11},{"display":"du","clean":"du","r":2,"c":0}]
+        };
+
+        class WordSearch {
+            constructor(data) {
+                this.grid = data.grid;
+                this.words = data.words;
+                this.foundCount = 0;
+                this.isSelecting = false;
+                this.startCell = null;
+                this.selectedCells = [];
+                this.gridEl = document.getElementById('grid');
+                this.listEl = document.getElementById('word-list');
+                this.init();
+            }
+
+            init() {
+                this.grid.forEach((row, r) => {
+                    row.forEach((char, c) => {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.textContent = char;
+                        cell.dataset.r = r;
+                        cell.dataset.c = c;
+                        cell.addEventListener('mousedown', (e) => this.startSel(r, c, e));
+                        cell.addEventListener('mouseenter', () => this.updateSel(r, c));
+                        cell.addEventListener('mouseup', () => this.endSel());
+                        cell.addEventListener('touchstart', (e) => { e.preventDefault(); this.startSel(r, c); });
+                        this.gridEl.appendChild(cell);
+                    });
+                });
+
+                this.gridEl.addEventListener('touchmove', (e) => {
+                    if(!this.isSelecting) return;
+                    e.preventDefault();
+                    const t = e.touches[0];
+                    const el = document.elementFromPoint(t.clientX, t.clientY);
+                    if(el && el.classList.contains('cell')) {
+                        const r = parseInt(el.dataset.r);
+                        const c = parseInt(el.dataset.c);
+                        this.updateSel(r, c);
+                    }
+                });
+                document.addEventListener('touchend', () => { if(this.isSelecting) this.endSel(); });
+                document.addEventListener('mouseup', () => { if(this.isSelecting) this.endSel(); });
+
+                this.words.forEach((w, i) => {
+                    const el = document.createElement('div');
+                    el.className = 'word-item';
+                    el.textContent = w.display;
+                    el.id = 'word-' + i;
+                    this.listEl.appendChild(el);
+                });
+            }
+
+            startSel(r, c, e) {
+                if(e && e.button !== 0) return;
+                this.isSelecting = true;
+                this.startCell = { r, c };
+                this.updateSel(r, c);
+            }
+
+            updateSel(r, c) {
+                if(!this.isSelecting) return;
+                document.querySelectorAll('.cell.selected').forEach(c => c.classList.remove('selected'));
+                this.selectedCells = [];
+                const r1 = this.startCell.r;
+                const c1 = this.startCell.c;
+                const dr = r - r1;
+                const dc = c - c1;
+                if (dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc)) {
+                    const steps = Math.max(Math.abs(dr), Math.abs(dc));
+                    const stepR = dr === 0 ? 0 : dr / steps;
+                    const stepC = dc === 0 ? 0 : dc / steps;
+                    for(let i=0; i<=steps; i++) {
+                        const nr = r1 + Math.round(i * stepR);
+                        const nc = c1 + Math.round(i * stepC);
+                        const cell = document.querySelector(`.cell[data-r="${nr}"][data-c="${nc}"]`);
+                        if(cell) {
+                            cell.classList.add('selected');
+                            this.selectedCells.push({ r: nr, c: nc, char: cell.textContent });
+                        }
+                    }
+                }
+            }
+
+            endSel() {
+                this.isSelecting = false;
+                const text = this.selectedCells.map(c => c.char).join('');
+                const textRev = this.selectedCells.map(c => c.char).reverse().join('');
+                this.checkWord(text, textRev);
+                document.querySelectorAll('.cell.selected').forEach(c => c.classList.remove('selected'));
+            }
+
+            checkWord(str, strRev) {
+                let foundId = -1;
+                this.words.forEach((w, i) => {
+                    if(!w.found && (w.clean === str || w.clean === strRev)) {
+                        foundId = i;
+                    }
+                });
+                if(foundId !== -1) {
+                    this.words[foundId].found = true;
+                    document.getElementById('word-' + foundId).classList.add('done');
+                    this.selectedCells.forEach(p => {
+                        const cell = document.querySelector(`.cell[data-r="${p.r}"][data-c="${p.c}"]`);
+                        cell.classList.add('found');
+                    });
+                    this.foundCount++;
+                    if(this.foundCount === this.words.length) {
+                        document.getElementById('success-overlay').style.display = 'flex';
+                    }
+                }
+            }
+
+            showHint() {
+                const available = this.words.filter(w => !w.found);
+                if(available.length === 0) return;
+                const rand = available[Math.floor(Math.random() * available.length)];
+                const cell = document.querySelector(`.cell[data-r="${rand.r}"][data-c="${rand.c}"]`);
+                if(cell) {
+                    cell.classList.add('hint-flash');
+                    setTimeout(() => cell.classList.remove('hint-flash'), 1800);
+                }
+            }
+        }
+        const game = new WordSearch(GameData);
+    </script>
+
+</body>
+</html>

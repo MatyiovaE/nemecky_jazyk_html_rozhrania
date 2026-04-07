@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Kvíz</title><style>
+    body{font-family:monospace;margin:20px;background:#f2f2f2;}
+    .question{margin-bottom:30px;padding:15px;background:#fff;border-radius:8px;box-shadow:0 0 5px rgba(0,0,0,0.1);}
+    .btn-group{display:flex;flex-direction:column;gap:10px;max-width:500px;}
+    .btn-option{background:#e0e0e0;border:none;padding:10px 15px;border-radius:6px;cursor:pointer;text-align:left;width:200px;}
+    .btn-option:hover{background:#d0d0d0;}
+    .btn-option:disabled{background:#ccc;cursor:default;}
+    .speak-btn{background:#2196F3;color:white;border:none;border-radius:5px;padding:8px 10px;cursor:pointer;}
+    .speak-btn:hover{background:#1976D2;}
+    .feedback{margin-top:10px;font-weight:bold;}
+    #result{font-size:18px;font-weight:bold;margin-top:30px;color:#0078D4;}
+    </style></head><body><h1>Kvíz</h1><script>
+    let score=0,answered=0,total=0;
+    function check(btn,sel,cor,id){const f=document.getElementById(id);
+    btn.parentElement.querySelectorAll(".btn-option").forEach(b=>b.disabled=true);
+    if(sel===cor){f.textContent="✅ Správne 🙂";f.style.color="green";score++;}
+    else{f.textContent="❌ Nesprávne ☹";f.style.color="red";}
+    answered++;if(answered===total){document.getElementById("result").textContent=
+    "Odpovedal/a si správne na "+score+" z "+total+" otázok. 🎉";}}
+    function speak(text, lang){const u=new SpeechSynthesisUtterance(text);u.lang=lang;speechSynthesis.speak(u);}
+    </script><div class="question">
+  <h2>1. dog</h2>
+  <button class="speak-btn" onclick="speak('dog','en-GB')">🔊 Vypočuť si otázku</button>
+  <div class="btn-group" style="margin-top: 15px;">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,0,0,'f0')">pes</button>
+            <button class="speak-btn" onclick="speak('pes','sk-SK')">🔊</button>
+          </div>
+        
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,1,0,'f0')">mačka</button>
+            <button class="speak-btn" onclick="speak('mačka','sk-SK')">🔊</button>
+          </div>
+        
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,2,0,'f0')">králik</button>
+            <button class="speak-btn" onclick="speak('králik','sk-SK')">🔊</button>
+          </div>
+        </div>
+  <div class="feedback" id="f0"></div>
+</div><div class="question">
+  <h2>2. cat</h2>
+  <button class="speak-btn" onclick="speak('cat','en-GB')">🔊 Vypočuť si otázku</button>
+  <div class="btn-group" style="margin-top: 15px;">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,1,0,'f1')">lev</button>
+            <button class="speak-btn" onclick="speak('lev','sk-SK')">🔊</button>
+          </div>
+        
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,0,0,'f1')">mačka</button>
+            <button class="speak-btn" onclick="speak('mačka','sk-SK')">🔊</button>
+          </div>
+        
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,2,0,'f1')">rys</button>
+            <button class="speak-btn" onclick="speak('rys','sk-SK')">🔊</button>
+          </div>
+        </div>
+  <div class="feedback" id="f1"></div>
+</div><div id="result"></div><script>total=2;</script></body></html>

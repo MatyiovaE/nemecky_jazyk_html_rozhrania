@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor náhodných písmen slovenskej abecedy</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #fafafa; }
+        h1 { color: #333; }
+        .meta-info { color: #777; margin-bottom: 30px; }
+        #big-result { font-size: 8rem; font-weight: bold; color: rgb(0,0,255); min-height: 200px; margin: 40px 0; word-break: break-word; line-height: 1.2;}
+        .gen-btn { background-color: #3498db; color: white; border: none; padding: 20px 40px; font-size: 24px; cursor: pointer; border-radius: 8px; font-weight: bold; margin: 10px;}
+        .gen-btn:hover { background-color: #2980b9; }
+        .history-container { margin-top: 40px; border-top: 2px solid #ddd; padding-top: 20px; text-align: center;}
+        #history-list { font-size: 1.2rem; color: #555; max-width: 800px; margin: 0 auto; line-height: 1.8; }
+        .controls { position: sticky; top: 0; background: #fafafa; padding: 20px; z-index: 100; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor náhodných písmen slovenskej abecedy</h1>
+    <div class="meta-info">Autor: Mgr. Erika Matyiová (2026)</div>
+
+    <div class="controls">
+        <button class="gen-btn" id="generateBtn" onclick="generateRandom()">Generuj náhodný prvok</button>
+    </div>
+
+    <div id="big-result"></div>
+
+    <div class="history-container">
+        <h3>Už vygenerované prvky:</h3>
+        <div id="history-list">Zatiaľ nebolo vygenerované nič.</div>
+    </div>
+
+    <script>
+        // Pôvodné pole prvkov
+        const originalElements = ["A","Á","B","C","Č","D","Ď","E","É","F","G","H","CH","I","Í","J","K","L","Ľ","M","N","Ň","O","Ó","P","Q","R","Ŕ","S","Š","T","Ť","U","Ú","V","W","X","Y","Ý","Z","Ž"];
+        // Pole, z ktorého sa momentálne losuje
+        let availableElements = [...originalElements];
+        // Pole už vyžrebovaných
+        let generatedElements = [];
+
+        function generateRandom() {
+            if (availableElements.length === 0) {
+                alert("Všetky prvky už boli vygenerované! Ak chcete začať znova, resetujte (obnovte) stránku.");
+                document.getElementById('generateBtn').disabled = true;
+                document.getElementById('generateBtn').style.backgroundColor = '#95a5a6';
+                document.getElementById('generateBtn').style.cursor = 'not-allowed';
+                return;
+            }
+
+            // Náhodný index
+            const randomIndex = Math.floor(Math.random() * availableElements.length);
+            
+            // Vybratie a odstránenie zo zoznamu dostupných
+            const selectedElement = availableElements.splice(randomIndex, 1)[0];
+            generatedElements.push(selectedElement);
+
+            // Zobrazenie obrovským písmom
+            document.getElementById('big-result').innerText = selectedElement;
+
+            // Vypísanie do histórie
+            document.getElementById('history-list').innerText = generatedElements.join(', ');
+        }
+    </script>
+</body>
+</html>

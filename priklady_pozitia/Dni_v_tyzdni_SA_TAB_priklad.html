@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dni v týždni - test s krátkymi odpoveďami</title>
+<style>
+  body { font-family: Courier bold, monospace; font-size: 110%; padding: 18px; margin: 0; background-color: #ffffff; }
+  .test-container { max-width: 900px; margin: 0 auto; text-align: center; }
+  
+  .meta { margin-bottom: 20px; }
+  .setup-input-group { margin: 15px auto; max-width: 400px; text-align: left; }
+  .setup-input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+  
+  input[type="text"], input[type="number"] { width: 100%; font-size: 110%; padding: 10px; box-sizing: border-box; text-align: center; border: 1px solid #ccc; border-radius: 4px; }
+  
+  .task { margin: 20px 0; padding: 20px; font-size: 130%; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+  .instructions { font-size: 120%; font-weight: bold; margin-bottom: 20px; }
+  
+  .controls { margin-top: 15px; }
+  
+  #navContainer { margin: 25px auto 10px auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .nav-btn { min-width: 40px; padding: 8px 10px; font-size: 1rem; border: 1px solid #bbb; border-radius: 6px; cursor: pointer; background-color: #e0e0e0; transition: all 0.2s; }
+  .nav-btn:hover { filter: brightness(0.95); }
+  .nav-btn.answered { background-color: #add8e6; border-color: #8cbcd1; }
+  .nav-btn.current { border: 2px solid #333; font-weight: bold; transform: scale(1.1); }
+  
+  #nextBtn { padding: 10px 20px; font-size: 1.1rem; cursor: pointer; border-radius: 6px; border: 1px solid #aaa; background-color: #fff; }
+  #nextBtn:hover { background-color: #eee; }
+  
+  #evalBtn { background-color: #4CAF50; color: white; display: block; margin: 30px auto; padding: 12px 25px; font-size: 1.3rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+  #evalBtn:hover { background-color: #45a049; }
+  
+  #startBtn { padding: 12px 24px; font-size: 1.2rem; cursor: pointer; background-color: #2196F3; color: white; border: none; border-radius: 6px; margin-top: 20px; font-weight: bold; }
+  #startBtn:hover { background-color: #1976D2; }
+
+  .result { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; text-align: left; }
+  .correct { background: #c8e6c9; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
+  .incorrect { background: #ffcdd2; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
+  .row { margin-bottom: 12px; }
+  #answerInput { font-family: Courier bold, monospace; font-size: 1.6rem; line-height: 1.2; padding: 10px; text-align: center; }
+  
+  @media print {
+    header, h1, .meta, .instructions, .controls, #exercise, #navContainer, input, button, #setupScreen { display: none !important; }
+    #result { display: block !important; width: 100% !important; border: none; }
+    body { padding: 0; }
+    .test-container { max-width: 100%; margin: 0; text-align: left; }
+  }
+  .print-button { margin: 20px auto; padding: 10px 15px; font-size: 1.1rem; display: block; }
+</style>
+</head>
+<body>
+  <div class="test-container">
+    <header>
+      <h1>Dni v týždni - test s krátkymi odpoveďami<br>(jedna úloha naraz)</h1>
+    </header>
+
+    <div id="setupScreen">
+      <p class="instructions">Doplň správnu odpoveď (1 slovo). Nedávaj bodku.<br>Dbaj na používanie malých a veľkých písmen.</p>
+      
+      <div class="setup-input-group">
+        <label for="studentName">Meno žiaka:</label>
+        <input id="studentName" type="text" placeholder="Zadajte svoje meno" />
+      </div>
+      
+      <div class="setup-input-group">
+        <label for="userTaskCount">Počet úloh v teste (max 7):</label>
+        <input id="userTaskCount" type="number" min="1" max="7" value="7" />
+      </div>
+      
+      <button id="startBtn" onclick="startTest()">Začať test</button>
+    </div>
+
+    <div id="testScreen" style="display:none;">
+      <div id="exercise"></div>
+      
+      <div class="controls">
+        <button id="nextBtn" onclick="goNext()">Ďalej</button>
+      </div>
+
+      <div id="navContainer"></div>
+      
+      <button id="evalBtn" onclick="evaluateTest()" style="display:none;">Vyhodnotiť</button>
+    </div>
+
+    <div id="result" class="result" style="display:none;"></div>
+    <button id="printBtn" class="print-button" style="display:none" onclick="window.print()">Tlačiť výsledky</button>
+
+    <br><br>
+    <b>Autor:</b> Mgr. Erika Matyiová (2026)
+    <br><br>
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+    <br><br>
+  </div>
+
+  <script>
+    const tasksAll = [{"prompt":"1. deň v týždni je","answers":["pondelok"]},{"prompt":"2. deň v týždni je","answers":["utorok"]},{"prompt":"3. deň v týždni je","answers":["streda"]},{"prompt":"4. deň v týždni je","answers":["štvrtok"]},{"prompt":"5. deň v týždni je","answers":["piatok"]},{"prompt":"6. deň v týždni je","answers":["sobota"]},{"prompt":"7. deň v týždni je","answers":["nedeľa"]}];
+    let tasks = [];
+    let answers = [];
+    let currentIndex = 0;
+
+    function pickRandomSubset(allTasks, count){
+      const pool = allTasks.slice();
+      const out = [];
+      const N = Math.max(1, Math.min(count, pool.length));
+      for (let i=0;i<N;i++){
+        const idx = Math.floor(Math.random()*pool.length);
+        out.push(pool.splice(idx,1)[0]);
+      }
+      return out;
+    }
+
+    function isMultipleAnswers(input) { return /[;,/|]/.test(input); }
+    function normalizePreserveCase(s) {
+      if (!s) return '';
+      s = String(s).trim().replace(/\s+/g, ' ').replace(/\s*([!?.,:;])\s*/g, '$1');
+      return s;
+    }
+
+    function makeFlexibleRegexCaseSensitive(answer) {
+      if (!answer) return null;
+      let esc = String(answer).replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&').replace(/\\\.{3,}/g, '.*').replace(/ /g, '\\\\s+');
+      try { return new RegExp('^' + esc + '$'); } catch (e) { return null; }
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }); }
+
+    // SPUSTENIE TESTU
+    function startTest() {
+      let reqCount = parseInt(document.getElementById('userTaskCount').value, 10);
+      if (isNaN(reqCount) || reqCount < 1) reqCount = 1;
+      if (reqCount > tasksAll.length) reqCount = tasksAll.length;
+
+      tasks = pickRandomSubset(tasksAll, reqCount);
+      answers = new Array(tasks.length).fill('');
+      currentIndex = 0;
+
+      document.getElementById('setupScreen').style.display = 'none';
+      document.getElementById('testScreen').style.display = 'block';
+
+      renderTask(0);
+    }
+
+    // ULOŽENIE AKTUÁLNEJ ODPOVEDE
+    function saveCurrentAnswer() {
+      const inp = document.getElementById('answerInput');
+      if (inp) {
+        answers[currentIndex] = inp.value;
+      }
+    }
+
+    // VYKRESLENIE ÚLOHY
+    function renderTask(index) {
+      currentIndex = index;
+      const task = tasks[currentIndex];
+
+      document.getElementById('exercise').innerHTML = `
+        <div class="task">
+          <div class="row"><strong>${escapeHtml(task.prompt)}</strong></div>
+          <div class="row">
+            <input id="answerInput" type="text" autocomplete="off" value="${escapeHtml(answers[currentIndex])}" />
+          </div>
+        </div>`;
+      
+      const inp = document.getElementById('answerInput');
+      inp.focus();
+      inp.addEventListener('keydown', function(e){
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          if (currentIndex < tasks.length - 1) goNext(); else evaluateTest();
+        }
+      });
+
+      // Zobrazenie / skrytie tlačidiel Ďalej a Vyhodnotiť
+      if (currentIndex < tasks.length - 1) {
+        document.getElementById('nextBtn').style.display = 'inline-block';
+        document.getElementById('evalBtn').style.display = 'none';
+      } else {
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('evalBtn').style.display = 'block'; // Zelené tlačidlo na poslednej úlohe
+      }
+
+      updateNav();
+    }
+
+    // PRECHOD NA ĎALŠIU ÚLOHU
+    function goNext() {
+      saveCurrentAnswer();
+      if (currentIndex < tasks.length - 1) {
+        renderTask(currentIndex + 1);
+      }
+    }
+
+    // SKOK CEZ NAVIGAČNÉ TLAČIDLO
+    function jumpTo(index) {
+      saveCurrentAnswer();
+      renderTask(index);
+    }
+
+    // AKTUALIZÁCIA NAVIGAČNÝCH TLAČIDIEL
+    function updateNav() {
+      const nav = document.getElementById('navContainer');
+      nav.innerHTML = '';
+      for (let i = 0; i < tasks.length; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i + 1;
+        btn.className = 'nav-btn';
+        
+        // Zvýraznenie aktuálnej úlohy
+        if (i === currentIndex) {
+          btn.classList.add('current');
+        }
+        
+        // Zafarbenie zodpovedaných úloh na modro
+        if (answers[i] && answers[i].trim() !== '') {
+          btn.classList.add('answered');
+        }
+        
+        btn.onclick = () => jumpTo(i);
+        nav.appendChild(btn);
+      }
+    }
+
+    // VYHODNOTENIE TESTU
+    function evaluateTest() {
+      saveCurrentAnswer();
+      
+      document.getElementById('testScreen').style.display = 'none';
+      const resultDiv = document.getElementById('result');
+      resultDiv.style.display = 'block';
+
+      let score = 0; 
+      let summary = '';
+      
+      for (let i = 0; i < tasks.length; i++){
+        const t = tasks[i]; 
+        const aRaw = (answers[i] || '').trim();
+        
+        if (isMultipleAnswers(aRaw)) {
+          const aEsc = escapeHtml(aRaw || '(žiadna odpoveď)');
+          summary += `<div class="incorrect"><div><strong>${escapeHtml(t.prompt)}</strong></div><div>Tvoja odpoveď: <em>${aEsc}</em></div><div>Správne odpovede: <strong>${escapeHtml(t.answers.join(' | '))}</strong></div><div><strong>Nesprávne ❌ (viac odpovedí)</strong></div></div><br />`;
+          continue;
+        }
+        
+        const student = normalizePreserveCase(aRaw);
+        const variants = Array.isArray(t.answers) ? t.answers.slice() : [t.answers];
+        let matched = false;
+        
+        for (const cv of variants) {
+          if (!cv) continue;
+          const re = makeFlexibleRegexCaseSensitive(normalizePreserveCase(cv));
+          if (re && re.test(student)) { matched = true; break; }
+        }
+        
+        const aEsc = escapeHtml(aRaw || '(žiadna odpoveď)');
+        if (matched) {
+          score++;
+          summary += `<div class="correct"><div><strong>${escapeHtml(t.prompt)}</strong></div><div>Tvoja odpoveď: <em>${aEsc}</em></div><div>Správne odpovede: <strong>${escapeHtml(t.answers.join(' | '))}</strong></div><div><strong>Správne ✅</strong></div></div><br />`;
+        } else {
+          summary += `<div class="incorrect"><div><strong>${escapeHtml(t.prompt)}</strong></div><div>Tvoja odpoveď: <em>${aEsc}</em></div><div>Správne odpovede: <strong>${escapeHtml(t.answers.join(' | '))}</strong></div><div><strong>Nesprávne ❌</strong></div></div><br />`;
+        }
+      }
+
+      const percent = Math.round((score / tasks.length) * 100);
+      const now = new Date().toLocaleString();
+      const studentName = document.getElementById('studentName').value.trim();
+
+      resultDiv.innerHTML = `
+        <p><strong>Názov testu:</strong> ${escapeHtml(document.title)}</p>
+        <p><strong>Meno žiaka:</strong> ${escapeHtml(studentName)}</p>
+        <p><strong>Bodovanie:</strong> ${score} / ${tasks.length} (${percent}%)</p>
+        <p><strong>Dátum a čas:</strong> ${escapeHtml(now)}</p>
+        <hr />
+        <h3>Vyhodnotenie úloh:</h3>${summary}`;
+      
+      document.getElementById('printBtn').style.display = 'block';
+    }
+
+  </script>
+</body>
+</html>

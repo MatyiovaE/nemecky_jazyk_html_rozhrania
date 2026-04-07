@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8"><title>Test</title><style>body{font-family:monospace;margin:20px;background:#f2f2f2;}.question{margin-bottom:30px;padding:15px;background:#fff;border-radius:8px;box-shadow:0 0 5px rgba(0,0,0,0.1);}.btn-group{display:flex;flex-direction:column;gap:10px;max-width:500px;}.btn-option{background:#e0e0e0;border:none;padding:10px 15px;border-radius:6px;cursor:pointer;text-align:left;width:200px;}.btn-option:hover{background:#d0d0d0;}.btn-option.selected{background:#90caf9;}.feedback{margin-top:10px;font-weight:bold;}#result{font-size:18px;font-weight:bold;margin-top:30px;color:#0078D4;}table{margin-top:15px;border-collapse:collapse;background:#fff;}table td{padding:6px 10px;border:1px solid #ccc;}</style></head><body><h1>Test</h1><label>Meno žiaka: <input type="text" id="studentName"></label><br><br><div id="quiz"></div><button id="evaluateBtn">Vyhodnotiť</button><div id="result"></div><script>const ALL_QUESTIONS = [{"frage":"pes","richtig":"dog","falsch":["cat","mouse"]},{"frage":"mačka","richtig":"cat","falsch":["dog","mouse"]},{"frage":"myš","richtig":"mouse","falsch":["dog","cat"]}]; const TEST_TITLE = "Test"; const NUM_QUESTIONS = 10;
+(function(){
+  // einfache HTML-escape-Funktion in der generierten Seite
+  function escHtml(s){
+    if (s === undefined || s === null) return '';
+    return String(s).replace(/[&<>"']/g, function(ch){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+    });
+  }
+
+  function shuffle(arr){ return arr.slice().sort(()=>Math.random()-0.5); }
+  const selected = shuffle(ALL_QUESTIONS).slice(0, NUM_QUESTIONS);
+  const quizDiv = document.getElementById("quiz");
+  const total = selected.length;
+
+  selected.forEach((q,i)=>{
+    const answers = shuffle([q.richtig].concat(q.falsch || []));
+    const qWrapper = document.createElement('div');
+    qWrapper.className = 'question';
+
+    const h2 = document.createElement('h2');
+    h2.textContent = (i+1) + '. ' + q.frage;
+    qWrapper.appendChild(h2);
+
+    const group = document.createElement('div');
+    group.className = 'btn-group';
+
+    const feedback = document.createElement('div');
+    feedback.className = 'feedback';
+    feedback.id = 'f' + i;
+
+    answers.forEach(ans=>{
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-option';
+      btn.textContent = ans;
+      btn.dataset.correct = q.richtig;
+      btn.addEventListener('click', function(){
+        group.querySelectorAll('.btn-option').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        // save selection on the feedback element
+        feedback.dataset.selected = btn.textContent;
+        feedback.dataset.correct = btn.dataset.correct;
+      });
+      group.appendChild(btn);
+    });
+
+    qWrapper.appendChild(group);
+    qWrapper.appendChild(feedback);
+    quizDiv.appendChild(qWrapper);
+  });
+
+  function evaluate(){
+    let score = 0;
+    const feedbacks = document.querySelectorAll('.feedback');
+    feedbacks.forEach(f=>{
+      const sel = f.dataset.selected;
+      const cor = f.dataset.correct;
+      if(sel){
+        if(sel === cor){
+          f.textContent = "✅ Správne";
+          f.style.color = "green";
+          score++;
+        } else {
+          f.textContent = "❌ Nesprávne (správne: " + cor + ")";
+          f.style.color = "red";
+        }
+      } else {
+        f.textContent = "⚠️ Nezodpovedané";
+        f.style.color = "orange";
+      }
+    });
+
+    const percent = total === 0 ? 0 : Math.round((score / total) * 100);
+    const student = document.getElementById('studentName').value || "(nezadané meno)";
+    const now = new Date();
+    const datetime = now.toLocaleString();
+
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = ''
+      + '<h2>Výsledky</h2>'
+      + '<table>'
+      + '<tr><td><b>Názov testu:</b></td><td>' + escHtml(TEST_TITLE) + '</td></tr>'
+      + '<tr><td><b>Meno žiaka:</b></td><td>' + escHtml(student) + '</td></tr>'
+      + '<tr><td><b>Hodnotenie:</b></td><td>' + escHtml(score) + ' / ' + escHtml(total) + ' (' + escHtml(percent) + '%)</td></tr>'
+      + '<tr><td><b>Dátum a čas:</b></td><td>' + escHtml(datetime) + '</td></tr>'
+      + '</table>'
+      + '<br><i>Pre export použite Ctrl+P → Uložiť ako PDF.</i>';
+  }
+
+  document.getElementById('evaluateBtn').addEventListener('click', evaluate);
+})();
+</script></body></html>

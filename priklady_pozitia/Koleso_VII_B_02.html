@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koleso - VII. B</title>
+    <style>
+        body { font-family: 'Comic Sans MS', cursive; text-align: center; background: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .meta { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+        #startBtn, #nextBtn { background: #27ae60; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 1.1em; margin-top: 10px; font-family: 'Comic Sans MS', cursive; }
+        #wheel-ui { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 700px; }
+        .wheel-box { position: relative; display: flex; align-items: center; margin: 20px; justify-content: center; width: 100%; }
+        canvas { max-width: 100%; height: auto; }
+        .arrow {
+            width: 0;
+            height: 0;
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            border-left: 40px solid #27ae60;
+            margin-right: 15px;
+            z-index: 5;
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.2));
+        }
+        #result-box { margin-top: 50px; display: none; }
+        #winner-text { font-size: 2.5em; font-weight: bold; color: #2980b9; background: #f0f8ff; padding: 20px 40px; border-radius: 10px; border: 3px dashed #2980b9; margin-bottom: 20px; word-break: break-word; }
+    </style>
+</head>
+<body>
+    <div id="intro">
+        <h1>Koleso - VII. B</h1>
+        <div class="meta">Mgr. Erika Matyiová 2026</div>
+        <button id="startBtn" onclick="initWheel()">Štart</button>
+    </div>
+
+    <div id="wheel-ui">
+        <div id="instruction-text" style="font-size: 1.2em; font-weight: bold; margin-bottom: 15px;">Klikni na stred kruhu.</div>
+        <div class="wheel-box" id="wheel-container">
+            <div class="arrow"></div>
+            <canvas id="canvas" width="600" height="600"></canvas>
+        </div>
+        <div id="result-box">
+            <div id="winner-text"></div>
+            <button id="nextBtn" onclick="removeAndReset()">Hotovo</button>
+        </div>
+    </div>
+
+    <script>
+        let items = ["Noel Balogh","Samuel Battyányi","Štefánia Cicuová","Benett Dorkó","Szabolcs Galgán","Imrich Hami","Ladislav Marián Kasinec","Mário Riccardo Lakatoš","Tomáš Lakatoš","Oliver Makó","Theo Popália","Vivien Šaffová","Sebastián Tippan","Noel Tóth","Kinga Vargová","Emma Vasziová"];
+        let colors = [];
+        let angle = 0;
+        let spinning = false;
+        let winnerIdx = -1;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Upravený stred a polomer pre väčšie koleso (600x600)
+        const centerX = 300;
+        const centerY = 300;
+        const radius = 290;
+        const centerBtnRadius = 55;
+
+        function initWheel() {
+            document.getElementById('intro').style.display = 'none';
+            document.getElementById('wheel-ui').style.display = 'flex';
+            generateColors();
+            draw();
+        }
+
+        function generateColors() {
+            colors = [];
+            for(let i=0; i<items.length; i++) {
+                let h = (i * (360 / items.length) + Math.random() * 20) % 360;
+                colors.push('hsl(' + h + ', 75%, 93%)');
+            }
+        }
+
+        function draw() {
+            const n = items.length;
+            const arc = (Math.PI * 2) / n;
+            ctx.clearRect(0,0,600,600);
+
+            items.forEach((text, i) => {
+                const start = angle + i * arc;
+                ctx.fillStyle = colors[i];
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, start, start + arc);
+                ctx.fill();
+                
+                // Čiary (Sýtosť 0.5)
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)'; 
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(start + arc / 2 + Math.PI); 
+                
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle"; 
+                ctx.fillStyle = "#2c3e50";
+                
+                // --- LOGIKA PRE VEĽKOSŤ A ŠÍRKU TEXTU ---
+                let fontSize = Math.min(34, Math.max(12, arc * 140));
+                ctx.font = "bold " + fontSize + "px 'Comic Sans MS'";
+                
+                let maxWidth = 210; // Širší priestor pre väčšie koleso
+                
+                while(ctx.measureText(text).width > maxWidth && fontSize > 10) {
+                    fontSize -= 1;
+                    ctx.font = "bold " + fontSize + "px 'Comic Sans MS'";
+                }
+                
+                let displayText = text;
+                if(ctx.measureText(displayText).width > maxWidth) {
+                   while(ctx.measureText(displayText + "...").width > maxWidth && displayText.length > 0) {
+                       displayText = displayText.slice(0, -1);
+                   }
+                   displayText += "...";
+                }
+
+                // Posunuté ďalej od stredu pre väčšie koleso
+                ctx.fillText(displayText, -270, 2);
+                ctx.restore();
+            });
+
+            // Tieň pre koleso
+            let g = ctx.createRadialGradient(centerX,centerY,150,centerX,centerY,radius);
+            g.addColorStop(0, 'rgba(255,255,255,0)');
+            g.addColorStop(1, 'rgba(0,0,0,0.04)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(centerX,centerY,radius,0,Math.PI*2); ctx.fill();
+
+            // Stredové tlačidlo
+            ctx.beginPath(); ctx.arc(centerX,centerY,centerBtnRadius,0,Math.PI*2);
+            ctx.fillStyle = "#39ff14"; ctx.fill();
+            ctx.strokeStyle = "#27ae60"; ctx.lineWidth = 3; ctx.stroke();
+            ctx.fillStyle = "#000"; ctx.font = "18px 'Comic Sans MS'";
+            ctx.textAlign = "center"; ctx.fillText("Toč 🙂", centerX, centerY + 6);
+        }
+
+        canvas.onclick = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            // Upravený prepočet pre responzívne plátno
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX - centerX;
+            const y = (e.clientY - rect.top) * scaleY - centerY;
+
+            if(Math.sqrt(x*x + y*y) < centerBtnRadius && !spinning && items.length > 0) {
+                spin();
+            }
+        };
+
+        function spin() {
+            spinning = true;
+            document.getElementById('result-box').style.display = 'none';
+            let speed = 0.35 + Math.random() * 0.15;
+            
+            function animate() {
+                angle += speed;
+                speed *= 0.986;
+                draw();
+                if(speed > 0.002) {
+                    requestAnimationFrame(animate);
+                } else {
+                    spinning = false;
+                    const n = items.length;
+                    const arc = (Math.PI * 2) / n;
+                    let norm = (Math.PI - (angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                    winnerIdx = Math.floor(norm / arc);
+                    
+                    document.getElementById('winner-text').innerText = items[winnerIdx];
+                    
+                    // Schovať koleso a inštrukcie
+                    document.getElementById('instruction-text').style.display = 'none';
+                    document.getElementById('wheel-container').style.display = 'none';
+                    // Zobraziť výsledok
+                    document.getElementById('result-box').style.display = 'block';
+                }
+            }
+            animate();
+        }
+
+        function removeAndReset() {
+            items.splice(winnerIdx, 1);
+            colors.splice(winnerIdx, 1);
+            
+            // Schovať výsledok a znova zobraziť koleso a inštrukcie
+            document.getElementById('result-box').style.display = 'none';
+            
+            if(items.length > 0) {
+                document.getElementById('instruction-text').style.display = 'block';
+                document.getElementById('wheel-container').style.display = 'flex';
+                winnerIdx = -1;
+                draw();
+            } else {
+                // Ak nezostali žiadne položky, ukážeme koniec
+                document.getElementById('instruction-text').innerText = "Všetky položky boli vyžrebované!";
+                document.getElementById('instruction-text').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

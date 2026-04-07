@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chemické prvky a ich značky</title>
+    <style>
+        body { font-family: 'Monaco', monospace; background-color: #f9f9f9; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1, h2, h3 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        .meta { text-align: center; color: #7f8c8d; margin-bottom: 20px; font-size: 0.9em; }
+        .setup-area { margin-bottom: 30px; padding: 20px; background-color: #e8f4f8; border-radius: 6px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; margin-top: 10px; }
+        input[type="text"], input[type="number"] { font-family: 'Monaco', monospace; padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        .row-setup { display: flex; gap: 15px; align-items: flex-end; margin-top: 10px; }
+        button { font-family: 'Monaco', monospace; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; font-weight: bold; }
+        .btn-green { background-color: #4CAF50; color: white; width: 100%; display: block; margin-top: 20px;}
+        .btn-green:hover { background-color: #45a049; }
+        .btn-green-inline { background-color: #4CAF50; color: white; }
+        .btn-green-inline:hover { background-color: #45a049; }
+        .btn-blue { background-color: #3498db; color: white; display: block; width: 100%; margin-top: 20px; }
+        .btn-blue:hover { background-color: #2980b9; }
+        .question-block { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed #ccc; }
+        .question-text { font-weight: bold; margin-bottom: 10px; }
+        .answer-input { margin-bottom: 5px; width: 50%; }
+        .feedback { font-size: 0.9em; margin-top: 5px; padding: 5px; border-radius: 3px; display: inline-block;}
+        .correct-bg { background-color: #d4edda !important; }
+        .incorrect-bg { background-color: #f8d7da !important; }
+        .missing-bg { background-color: #ffeeba !important; }
+        .correct-ans-show { background-color: #d4edda; padding: 2px 5px; border-radius: 3px; border: 1px solid #c3e6cb; margin-top: 5px; display: inline-block; font-weight:bold;}
+        .summary { background-color: #f4f4f9; padding: 20px; border-radius: 6px; margin-top: 30px; border: 1px solid #ddd; }
+        .summary p { margin: 5px 0; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chemické prvky a ich značky</h1>
+        <div class="meta">Mgr. Erika Matyiová (2026)</div>
+
+        <div id="setupDiv" class="setup-area">
+            <label for="studentName">Meno žiaka:</label>
+            <input type="text" id="studentName" placeholder="Zadaj svoje meno a priezvisko">
+            
+            <div class="row-setup">
+                <div style="flex:1;">
+                    <label for="numQuestions">Počet úloh (max 10):</label>
+                    <input type="number" id="numQuestions" value="10" min="1" max="10">
+                </div>
+                <div>
+                    <button class="btn-green-inline" onclick="startTest()">Štart</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="testArea" class="hidden">
+            <div id="questionsContainer"></div>
+            <button class="btn-green" onclick="evaluateTest()" id="evalBtn">Vyhodnotiť</button>
+        </div>
+
+        <div id="summaryArea" class="hidden summary">
+            <h2>Výsledok</h2>
+            <p><strong>Názov testu:</strong> Chemické prvky</p>
+            <p><strong>Meno žiaka:</strong> <span id="sumName"></span></p>
+            <p><strong>Bodové a percentuálne hodnotenie:</strong> <span id="sumScore"></span></p>
+            <p><strong>Dátum a čas:</strong> <span id="sumDate"></span></p>
+            <button class="btn-blue" onclick="showDetails()">Detailné výsledky</button>
+        </div>
+        
+        <div class="meta" style="margin-top:40px;">Spracované pomocou UI: Mgr. Erika Matyiová (2026)</div>
+    </div>
+
+    <script>
+        const db = [{"q":"striebro","a":["Ag"]},{"q":"hélium","a":["He"]},{"q":"cín","a":["Sn"]},{"q":"zinok","a":["Zn"]},{"q":"kyslík","a":["O"]},{"q":"jód","a":["I"]},{"q":"chlór","a":["Cl"]},{"q":"vápnik","a":["Ca"]},{"q":"železo","a":["Fe"]},{"q":"mangán","a":["Mn"]}];
+        const numStyle = "numbers";
+        const instructions = "Napíš správnu značku. Rozlišuj malé a veľké písmená.";
+        let currentQuestions = [];
+        let resultsData = [];
+
+        function startTest() {
+            const numReq = parseInt(document.getElementById('numQuestions').value) || 10;
+            const actualNum = Math.min(Math.max(1, numReq), db.length);
+            
+            // Randomize questions
+            let shuffled = [...db].sort(() => 0.5 - Math.random());
+            currentQuestions = shuffled.slice(0, actualNum);
+
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+
+            currentQuestions.forEach((q, index) => {
+                let prefix = numStyle === 'numbers' ? (index + 1) + '.' : String.fromCharCode(65 + index) + '.';
+                
+                let qHtml = `
+                    <div class="question-block" id="qBlock_${index}">
+                        <div class="question-text">${prefix} ${instructions}</div>
+                        <div style="margin-bottom: 8px;">${q.q}</div>
+                        <input type="text" class="answer-input" id="ans_${index}">
+                        <div id="feedback_${index}" class="hidden"></div>
+                    </div>
+                `;
+                container.innerHTML += qHtml;
+            });
+
+            document.getElementById('setupDiv').classList.add('hidden');
+            document.getElementById('testArea').classList.remove('hidden');
+        }
+
+        function evaluateTest() {
+            document.getElementById('evalBtn').classList.add('hidden');
+            
+            let studentName = document.getElementById('studentName').value.trim();
+            if (!studentName) studentName = "XY";
+            
+            let score = 0;
+            resultsData = [];
+
+            currentQuestions.forEach((q, index) => {
+                const inputEl = document.getElementById('ans_' + index);
+                const feedbackEl = document.getElementById('feedback_' + index);
+                const blockEl = document.getElementById('qBlock_' + index);
+                let studentAns = inputEl.value; // intentionally not trimmed strictly, but compared exactly as case sensitive. We will trim spaces around.
+                let rawStudentAns = inputEl.value.trim();
+
+                let isCorrect = q.a.includes(rawStudentAns);
+                let isMissing = rawStudentAns === '';
+
+                feedbackEl.classList.remove('hidden');
+
+                if (isCorrect) {
+                    score++;
+                    inputEl.classList.add('correct-bg');
+                    feedbackEl.innerHTML = "<span style='color: black;'>správna odpoveď</span>";
+                    resultsData.push({ q: q.q, correctA: q.a.join(', '), studentA: rawStudentAns, status: '✓' });
+                } else if (isMissing) {
+                    inputEl.classList.add('missing-bg');
+                    feedbackEl.innerHTML = "<span style='color: black;'>neoznačená odpoveď</span> <br><span class='correct-ans-show'>Správne: " + q.a.join(' alebo ') + "</span>";
+                    resultsData.push({ q: q.q, correctA: q.a.join(', '), studentA: '-', status: '!' });
+                } else {
+                    inputEl.classList.add('incorrect-bg');
+                    feedbackEl.innerHTML = "<span style='color: black;'>nesprávna odpoveď</span> <br><span class='correct-ans-show'>Správne: " + q.a.join(' alebo ') + "</span>";
+                    resultsData.push({ q: q.q, correctA: q.a.join(', '), studentA: rawStudentAns, status: '✗' });
+                }
+                
+                inputEl.readOnly = true;
+            });
+
+            const percentage = Math.round((score / currentQuestions.length) * 100);
+            
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = String(now.getFullYear()).slice(-2);
+            const hours = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const dateStr = day + '.' + month + '.' + year + ', ' + hours + ':' + mins;
+
+            document.getElementById('sumName').innerText = studentName;
+            document.getElementById('sumScore').innerText = score + " / " + currentQuestions.length + " (" + percentage + " %)";
+            document.getElementById('sumDate').innerText = dateStr;
+
+            document.getElementById('summaryArea').classList.remove('hidden');
+        }
+
+        function showDetails() {
+            const studentName = document.getElementById('sumName').innerText;
+            const scoreText = document.getElementById('sumScore').innerText;
+            const dateText = document.getElementById('sumDate').innerText;
+            
+            let tableRows = '';
+            resultsData.forEach((res, i) => {
+                tableRows += `
+                    <tr>
+                        <td>${i+1}. ${res.q}<br><em>(Správne: ${res.correctA})</em></td>
+                        <td style="text-align:center;">${res.studentA} <strong>[${res.status}]</strong></td>
+                    </tr>
+                `;
+            });
+
+            let detailHtml = `
+                <!DOCTYPE html>
+                <html lang="sk">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Detailné výsledky - ${studentName}</title>
+                    <style>
+                        body { font-family: 'Monaco', monospace; padding: 20px; color: #333; }
+                        h1, h2 { text-align: center; }
+                        .info-box { border: 1px solid #ccc; padding: 15px; border-radius: 5px; margin-bottom: 20px; background: #f9f9f9; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+                        th { background-color: #eee; }
+                        .legend { font-size: 0.9em; color: #555; border-top: 1px solid #ccc; padding-top: 10px; }
+                        @media print {
+                            button { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Detailný prehľad</h1>
+                    <div class="info-box">
+                        <p><strong>Názov testu:</strong> Chemické prvky</p>
+                        <p><strong>Meno žiaka:</strong> ${studentName}</p>
+                        <p><strong>Bodové a percentuálne hodnotenie:</strong> ${scoreText}</p>
+                        <p><strong>Dátum a čas:</strong> ${dateText}</p>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Znenie úlohy a správne odpovede</th>
+                                <th>Odpovede žiaka s hodnotením</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+
+                    <div class="legend">
+                        <p><strong>Vysvetlivky symbolov:</strong></p>
+                        <p>✓ = správna odpoveď</p>
+                        <p>✗ = nesprávna odpoveď</p>
+                        <p>! = neoznačená odpoveď</p>
+                    </div>
+                    
+                    <div style="text-align:center; margin-top:30px;">
+                        <button onclick="window.print()" style="font-family:'Monaco', monospace; padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer;">Vytlačiť (Ctrl + P)</button>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            let detailWin = window.open('', '_blank');
+            if(detailWin) {
+                detailWin.document.write(detailHtml);
+                detailWin.document.close();
+            } else {
+                alert('Vyskakovacie okno bolo zablokované. Povoľte prosím vyskakovacie okná pre túto stránku.');
+            }
+        }
+    </script>
+</body>
+</html>

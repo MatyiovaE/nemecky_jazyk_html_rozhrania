@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dni v týždni - doplňovanie</title>
+<style>
+  body{font-family:Courier bold, monospace; font-size: 110%; padding:18px}
+  .meta{margin-bottom:12px}
+  input[type="text"]{width:100%; font-size: 110%; max-width:520px; padding:8px; box-sizing:border-box}
+  .task{margin:14px 0; padding:8px; font-size: 120%; }
+  .instructions { font-size: 120%; font-weight: bold; }
+  .controls{margin-top:10px}
+  .result{margin-top:24px;border-top:1px solid #ddd;padding-top:12px}
+  .correct{background:#c8e6c9;padding:10px;border-radius:6px}
+  .incorrect{background:#ffcdd2;padding:10px;border-radius:6px}
+  .row{margin-bottom:8px}
+  button{padding:8px 12px}
+  /* väčšie písmo pre pole odpovede */
+#answerInput {
+  font-family: Courier bold, monospace;
+  font-size: 1.7rem; /* alebo napr. 20px */
+  line-height: 1.2;
+  padding: 8px 10px;
+}
+
+  /* tlačové štýly: skryť hlavičku, pokyny, meno, ovládacie prvky a vstupy; zobraziť len výsledky */
+  @media print {
+    header, h1, .meta, .instructions, .controls, #exercise, input, button, .preview { display: none !important; }
+    #result { display: block !important; width: 100% !important; }
+    body { padding: 8mm; }
+  }
+  .print-button { margin-left: 6px; padding: 6px 10px; font-size: 0.95rem; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Dni v týždni - doplňovanie</h1>
+  </header>
+
+  <div class="meta">
+    <label for="studentName"><span style="font-weight: bold; font-size: 110%;">Meno žiaka</span></label>
+    <input id="studentName" type="text" placeholder="Zadajte meno." />
+  </div>
+
+  <p class="instructions">Doplň správnu odpoveď (1 slovo). Nedávaj bodku. Dbaj na používanie malých a veľkých písmen.</p>
+
+  <div id="exercise"></div>
+
+  <div class="controls">
+    <button id="nextBtn">Ďalej</button>
+    <button id="evalBtn" style="display:none">Vyhodnotiť</button>
+    <button id="printBtn" class="print-button" style="display:none" onclick="window.print()">Tlačiť výsledky</button>
+  </div>
+
+  <div id="result" class="result"></div>
+
+  <script>
+    // vložené dáta
+    const tasksAll = [{"prompt":"1. deň v týždni je","answers":["pondelok"]},{"prompt":"2. deň v týždni je","answers":["utorok"]},{"prompt":"3. deň v týždni je","answers":["streda"]},{"prompt":"4. deň v týždni je","answers":["štvrtok"]},{"prompt":"5. deň v týždni je","answers":["piatok"]},{"prompt":"6. deň v týždni je","answers":["sobota"]},{"prompt":"7. deň v týždni je","answers":["nedeľa"]}];
+    const countRequested = 7;
+
+    // pomocné
+    function pickRandomSubset(allTasks, count){
+      const pool = allTasks.slice();
+      const out = [];
+      const N = Math.max(1, Math.min(count, pool.length));
+      for (let i=0;i<N;i++){
+        const idx = Math.floor(Math.random()*pool.length);
+        out.push(pool.splice(idx,1)[0]);
+      }
+      return out;
+    }
+
+    // Case sensitive pravidlá pre validáciu odpovedí
+    function isMultipleAnswers(input) {
+      if (!input) return false;
+      return /[;,/|]/.test(input);
+    }
+
+    function normalizePreserveCase(s) {
+      if (!s) return '';
+      s = String(s).trim();
+      s = s.replace(/\s+/g, ' ');
+      s = s.replace(/\s*([!?.,:;])\s*/g, '$1');
+      return s;
+    }
+
+    function makeFlexibleRegexCaseSensitive(answer) {
+      if (!answer) return null;
+      let esc = String(answer).replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      esc = esc.replace(/\\\.{3,}/g, '.*');
+      esc = esc.replace(/ /g, '\\\\s+');
+      try {
+        return new RegExp('^' + esc + '$');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // pri každom načítaní vyberieme nový náhodný subset
+    const tasks = pickRandomSubset(tasksAll, countRequested);
+
+    let index = 0;
+    const answers = [];
+    let score = 0;
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }); }
+
+    function renderTask(task){
+      document.getElementById('exercise').innerHTML = `
+        <div class="task">
+          <div class="row"><strong>${escapeHtml(task.prompt)}</strong></div>
+          <div class="row"><input id="answerInput" type="text" autocomplete="off" /></div>
+        </div>`;
+      const inp = document.getElementById('answerInput');
+      inp.focus();
+      inp.addEventListener('keydown', function(e){
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          if (index < tasks.length) window.nextTask();
+          else window.evaluate();
+        }
+      });
+    }
+
+    function nextTask(){
+      const prev = document.getElementById('answerInput');
+      if (prev) answers.push(prev.value.trim());
+
+      if (index >= tasks.length) return;
+      renderTask(tasks[index]);
+      index++;
+      if (index === tasks.length){
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('evalBtn').style.display = 'inline-block';
+      }
+    }
+
+    function evaluate(){
+      const last = document.getElementById('answerInput');
+      if (last && answers.length < tasks.length) answers.push(last.value.trim());
+
+      score = 0;
+      let summary = '';
+      for (let i=0;i<tasks.length;i++){
+        const t = tasks[i]; // t.prompt, t.answers (array)
+        const aRaw = (answers[i] || '').trim();
+
+        if (isMultipleAnswers(aRaw)) {
+          const aEsc = escapeHtml(aRaw || '(žiadna odpoveď)');
+          summary += `
+            <div class="incorrect">
+              <div><strong>${escapeHtml(t.prompt)}</strong></div>
+              <div>Tvoja odpoveď: <em>${aEsc}</em></div>
+              <div>Správne odpovede: <strong>${escapeHtml(t.answers.join(' | '))}</strong></div>
+              <div><strong>Nesprávne ❌ (viac odpovedí)</strong></div>
+            </div><br />`;
+          continue;
+        }
+
+        const student = normalizePreserveCase(aRaw);
+        const variants = Array.isArray(t.answers) ? t.answers.slice() : [t.answers];
+        let matched = false;
+        for (const cv of variants) {
+          if (!cv) continue;
+          const cvNorm = normalizePreserveCase(cv);
+          const re = makeFlexibleRegexCaseSensitive(cvNorm);
+          if (!re) continue;
+          if (re.test(student)) {
+            matched = true;
+            break;
+          }
+        }
+
+        const aEsc = escapeHtml(aRaw || '(žiadna odpoveď)');
+        if (matched) {
+          score++;
+          summary += `
+            <div class="correct">
+              <div><strong>${escapeHtml(t.prompt)}</strong></div>
+              <div>Tvoja odpoveď: <em>${aEsc}</em></div>
+              <div>Správne odpovede: <strong>${escapeHtml(t.answers.join(' | '))}</strong></div>
+              <div><strong>Správne ✅</strong></div>
+            </div><br />`;
+        } else {
+          summary += `
+            <div class="incorrect">
+              <div><strong>${escapeHtml(t.prompt)}</strong></div>
+              <div>Tvoja odpoveď: <em>${aEsc}</em></div>
+              <div>Správne odpovede: <strong>${escapeHtml(t.answers.join(' | '))}</strong></div>
+              <div><strong>Nesprávne ❌</strong></div>
+            </div><br />`;
+        }
+      }
+
+      const percent = Math.round((score / tasks.length) * 100);
+      const now = new Date().toLocaleString();
+
+      document.getElementById('result').innerHTML = `
+        <p><strong>Názov testu:</strong> ${escapeHtml(document.title)}</p>
+        <p><strong>Meno žiaka:</strong> ${escapeHtml((document.getElementById('studentName').value || '').trim())}</p>
+        <p><strong>Bodovanie:</strong> ${score} / ${tasks.length} (${percent}%)</p>
+        <p><strong>Dátum a čas:</strong> ${escapeHtml(now)}</p>
+        <hr />
+        <h3>Vyhodnotenie úloh:</h3>
+        ${summary}
+      `;
+
+      const ai = document.getElementById('answerInput'); if (ai) ai.disabled = true;
+      document.getElementById('evalBtn').disabled = true;
+
+      // zobraz tlačidlo pre výsledky
+      document.getElementById('printBtn').style.display = 'inline-block';
+    }
+
+    // pripojenie globalne a eventy
+    window.nextTask = nextTask;
+    window.evaluate = evaluate;
+    document.getElementById('nextBtn').addEventListener('click', window.nextTask);
+    document.getElementById('evalBtn').addEventListener('click', window.evaluate);
+
+    // spusti prvu ulohu
+    nextTask();
+  </script>
+  <br><br>
+<b>Autor testu:</b> Mgr. Erika Matyiová (2026)
+<br><br>
+</body>
+</html>
