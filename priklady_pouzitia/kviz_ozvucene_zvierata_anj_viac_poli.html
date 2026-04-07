@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Kvíz - Zvieratá</title><style>
+    body{font-family:monospace;margin:20px;background:#f2f2f2;}
+    .question{margin-bottom:30px;padding:15px;background:#fff;border-radius:8px;box-shadow:0 0 5px rgba(0,0,0,0.1);}
+    .btn-group{display:flex;flex-direction:column;gap:10px;max-width:500px;}
+    .btn-option{background:#e0e0e0;border:none;padding:10px 15px;border-radius:6px;cursor:pointer;text-align:left;width:200px;}
+    .btn-option:hover{background:#d0d0d0;}
+    .btn-option:disabled{background:#ccc;cursor:default;}
+    .speak-btn{background:#2196F3;color:white;border:none;border-radius:5px;padding:8px 10px;cursor:pointer;}
+    .speak-btn:hover{background:#1976D2;}
+    .feedback{margin-top:10px;font-weight:bold;}
+    #result{font-size:18px;font-weight:bold;margin-top:30px;color:#0078D4;}
+    </style></head><body><h1>Zvieratá - kvíz s výberom z viacerých možností</h1><script>
+    let score=0,answered=0,total=0;
+    function check(btn,sel,cor,id){const f=document.getElementById(id);
+    btn.parentElement.querySelectorAll(".btn-option").forEach(b=>b.disabled=true);
+    if(sel===cor){f.textContent="✅ Správne 🙂";f.style.color="green";score++;}
+    else{f.textContent="❌ Nesprávne ☹";f.style.color="red";}
+    answered++;if(answered===total){document.getElementById("result").textContent=
+    "Odpovedal/a si správne na "+score+" z "+total+" otázok. 🎉";}}
+    function speak(text, lang){const u=new SpeechSynthesisUtterance(text);u.lang=lang;speechSynthesis.speak(u);}
+    </script><div class="question">
+  <h2>1. pes</h2>
+  <button class="speak-btn" onclick="speak('pes','sk-SK')">🔊 Vypočuť si otázku</button>
+  <div class="btn-group" style="margin-top: 15px;">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,0,0,'f0')">dog</button>
+            <button class="speak-btn" onclick="speak('dog','en-GB')">🔊</button>
+          </div>
+        
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,1,0,'f0')">cat</button>
+            <button class="speak-btn" onclick="speak('cat','en-GB')">🔊</button>
+          </div>
+        
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,2,0,'f0')">mouse</button>
+            <button class="speak-btn" onclick="speak('mouse','en-GB')">🔊</button>
+          </div>
+        </div>
+  <div class="feedback" id="f0"></div>
+</div><div class="question">
+  <h2>2. mačka</h2>
+  <button class="speak-btn" onclick="speak('mačka','sk-SK')">🔊 Vypočuť si otázku</button>
+  <div class="btn-group" style="margin-top: 15px;">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,1,0,'f1')">dog</button>
+            <button class="speak-btn" onclick="speak('dog','en-GB')">🔊</button>
+          </div>
+        
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,2,0,'f1')">mouse</button>
+            <button class="speak-btn" onclick="speak('mouse','en-GB')">🔊</button>
+          </div>
+        
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,0,0,'f1')">cat</button>
+            <button class="speak-btn" onclick="speak('cat','en-GB')">🔊</button>
+          </div>
+        </div>
+  <div class="feedback" id="f1"></div>
+</div><div class="question">
+  <h2>3. myš</h2>
+  <button class="speak-btn" onclick="speak('myš','sk-SK')">🔊 Vypočuť si otázku</button>
+  <div class="btn-group" style="margin-top: 15px;">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,0,0,'f2')">mouse</button>
+            <button class="speak-btn" onclick="speak('mouse','en-GB')">🔊</button>
+          </div>
+        
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,1,0,'f2')">dog</button>
+            <button class="speak-btn" onclick="speak('dog','en-GB')">🔊</button>
+          </div>
+        
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,2,0,'f2')">cat</button>
+            <button class="speak-btn" onclick="speak('cat','en-GB')">🔊</button>
+          </div>
+        </div>
+  <div class="feedback" id="f2"></div>
+</div><div id="result"></div><script>total=3;</script>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+	</body></html>

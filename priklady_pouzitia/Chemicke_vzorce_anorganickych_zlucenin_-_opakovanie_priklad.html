@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chemické vzorce anorganických zlúčenín - opakovanie</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="initMath()"></script>
+
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fdfdfd; color: #333; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; }
+  body.dark { background: #1a1a1a; color: #f0f0f0; }
+  .top-bar { background: rgba(0,0,0,0.05); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+  
+  .katex { font-size: 1.1em; } 
+  
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; flex: 1; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; }
+  
+  #startScreen { text-align: center; margin-top: 40px; }
+  input.inp { padding: 10px; width: 80%; max-width: 300px; margin: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 5px; }
+  #btnStart { background: #4CAF50; color: white; border: none; padding: 15px 40px; font-size: 1.2rem; border-radius: 50px; margin-top: 20px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s; }
+  #btnStart:hover { transform: scale(1.05); }
+
+  #quizScreen { display: none; flex-direction: column; height: 100%; }
+  .q-box { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; min-height: 25vh; margin-bottom: 20px; padding: 10px; }
+  .q-inst { color: #666; font-style: italic; margin-bottom: 15px; font-size: 1.1rem; }
+  .q-num { color: #888; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 10px; }
+  
+  .q-txt { font-size: 2rem; font-weight: bold; line-height: 1.4; }
+  
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; margin: 0 auto; }
+  @media(max-width:650px){ .opts { grid-template-columns: 1fr; } }
+  
+  .opt-btn { 
+    background: #fff; border: 2px solid #ddd; padding: 20px;
+    font-size: 1.3rem; border-radius: 12px; color: #333; cursor: pointer;
+    min-height: 80px; display: flex; align-items: center; justify-content: center; text-align: center;
+    transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    word-wrap: break-word; overflow-wrap: anywhere;
+  }
+  body.dark .opt-btn { background: #2c2c2c; border-color: #444; color: #fff; }
+  .opt-btn:hover { background: #f5f5f5; transform: translateY(-2px); }
+  body.dark .opt-btn:hover { background: #3a3a3a; }
+  
+  .opt-btn.sel { background: #e3f2fd; border-color: #2196F3; color: #0d47a1; box-shadow: 0 0 0 2px #2196F3 inset; }
+  body.dark .opt-btn.sel { background: #152e42; border-color: #64b5f6; color: #e1f5fe; box-shadow: 0 0 0 2px #64b5f6 inset; }
+
+  .nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 30px; }
+  .nav-btn { width: 35px; height: 35px; border: 1px solid #ccc; background: #eee; border-radius: 4px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 0.9rem; }
+  body.dark .nav-btn { color: #000; }
+  .nav-btn.done { background: #b3e5fc; border-color: #81d4fa; }
+  .nav-btn.act { background: #333; color: white; border-color: #333; transform: scale(1.1); font-weight: bold; }
+  body.dark .nav-btn.act { background: #f0f0f0; color: black; }
+
+  #btnEval { display: none; margin: 30px auto; background: #28a745; color: white; border: none; padding: 15px 50px; font-size: 1.3rem; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+  #btnEval:hover { background-color: #218838; }
+
+  #resScreen { display: none; text-align: center; padding: 20px; }
+  .score-big { font-size: 4rem; margin: 20px; font-weight: 800; }
+  .good { color: #2e7d32; } .bad { color: #c62828; }
+  
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left; background: rgba(255,255,255,0.5); }
+  th, td { border-bottom: 1px solid #ccc; padding: 12px; vertical-align: middle; }
+  .wrong-ans { text-decoration: line-through; color: #c62828; opacity: 0.7; }
+  .right-ans { color: #2e7d32; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div><strong>Chemické vzorce anorganických zlúčenín - opakovanie</strong>, Mgr. Erika Matyiová 2026</div>
+  <button onclick="document.body.classList.toggle('dark')" style="padding:5px 10px;cursor:pointer;">Tmavý režim</button>
+</div>
+
+<div class="container">
+  <div id="startScreen">
+    <h1 style="font-size: 2.5rem; margin-bottom: 10px;">Vitaj v teste 🙂</h1>
+    <p style="color:#666; margin-bottom: 30px;">Zvoľ správnu odpoveď.</p>
+    <input type="text" id="pName" class="inp" placeholder="Zadaj svoje meno">
+    <br>
+    <div style="margin: 20px;">
+        <label>Počet otázok (max <span id="maxQ"></span>): </label>
+        <input type="number" id="pCount" class="inp" style="width: 70px; text-align:center;" min="1" value="1">
+    </div>
+    <button id="btnStart" onclick="startTest()">Spustiť test</button>
+  </div>
+
+  <div id="quizScreen">
+    <div class="q-box">
+      <div class="q-inst" id="qInst"></div>
+      <div class="q-num" id="qNum"></div>
+      <div class="q-txt" id="qTxt"></div>
+    </div>
+    <div class="opts" id="optsBox"></div>
+    <div class="nav" id="navBox"></div>
+    <button id="btnEval" onclick="evalTest()">Vyhodnotiť test</button>
+  </div>
+
+  <div id="resScreen"></div>
+</div>
+
+<script>
+var DB = [{"term":"kyselina sírová","correct":"\\(\\ce{H2SO4}\\)","group":0},{"term":"kyselina chlorovodíková","correct":"\\(\\ce{HCl}\\)","group":0},{"term":"kyselina siričitá","correct":"\\(\\ce{H2SO3}\\)","group":0},{"term":"kyselina uhličitá","correct":"\\(\\ce{H2CO3}\\)","group":0},{"term":"kyselina fosforečná","correct":"\\(\\ce{H3PO4}\\)","group":0},{"term":"uhličitan vápenatý","correct":"\\(\\ce{CaCO3}\\)","group":1},{"term":"síran meďnatý","correct":"\\(\\ce{CuSO4}\\)","group":1},{"term":"chlorid sodný","correct":"\\(\\ce{NaCl}\\)","group":1},{"term":"dusičnan draselný","correct":"\\(\\ce{KNO3}\\)","group":1},{"term":"manganistan draselný","correct":"\\(\\ce{KMnO4}\\)","group":1},{"term":"hydroxid sodný","correct":"\\(\\ce{NaOH}\\)","group":2},{"term":"hydroxid draselný","correct":"\\(\\ce{KOH}\\)","group":2},{"term":"peroxid vodíka","correct":"\\(\\ce{H2O2}\\)","group":2},{"term":"hydroxid vápenatý","correct":"\\(\\ce{Ca(OH)2}\\)","group":2},{"term":"oxid uličitý","correct":"\\(\\ce{CO2}\\)","group":3},{"term":"oxid uhoľnatý","correct":"\\(\\ce{CO}\\)","group":3},{"term":"oxid vápenatý","correct":"\\(\\ce{CaO}\\)","group":3},{"term":"amoniak","correct":"\\(\\ce{NH3}\\)","group":3},{"term":"metán","correct":"\\(\\ce{CH4}\\)","group":3},{"term":"ozón","correct":"\\(\\ce{O3}\\)","group":3}];
+var META = {"title":"Chemické vzorce anorganických zlúčenín - opakovanie","author":"Mgr. Erika Matyiová","year":"2026","instruction":"Zvoľ správnu odpoveď."};
+var testData = [];
+var currIdx = 0;
+var result = { name: '', score: 0 };
+
+function initMath() {
+    renderMathInElement(document.body, {
+        delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\(', right: '\\)', display: false},
+            {left: '\\[', right: '\\]', display: true}
+        ],
+        throwOnError : false
+    });
+}
+
+function renderMath() {
+    if (typeof renderMathInElement === 'function') {
+        renderMathInElement(document.getElementById('quizScreen'), {
+             delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '\\[', right: '\\]', display: true}
+            ],
+            throwOnError: false
+        });
+    }
+}
+
+window.onload = function() {
+  document.getElementById('maxQ').innerText = DB.length;
+  document.getElementById('pCount').max = DB.length;
+  document.getElementById('pCount').value = DB.length;
+};
+
+function shuffle(arr) { return arr.sort(() => Math.random() - 0.5); }
+
+function startTest() {
+  var name = document.getElementById('pName').value.trim();
+  result.name = name || 'Anonym';
+  var cnt = parseInt(document.getElementById('pCount').value);
+  if (cnt < 1) cnt = 1;
+  if (cnt > DB.length) cnt = DB.length;
+
+  var picked = shuffle([...DB]).slice(0, cnt);
+  
+  testData = picked.map(q => {
+    var sameGroupItems = DB.filter(item => item.group === q.group);
+    var others = sameGroupItems.filter(x => x.correct !== q.correct).map(x => x.correct);
+    var uniqueOthers = [...new Set(others)];
+    var dist = shuffle(uniqueOthers).slice(0, 3);
+    var options = shuffle([q.correct, ...dist]);
+    return { term: q.term, correct: q.correct, opts: options, userAns: null };
+  });
+
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('quizScreen').style.display = 'flex';
+  loadQ(0);
+}
+
+function loadQ(idx) {
+  currIdx = idx;
+  var q = testData[idx];
+  
+  document.getElementById('qInst').innerText = META.instruction;
+  document.getElementById('qNum').innerText = 'Otázka ' + (idx+1) + ' / ' + testData.length;
+  
+  document.getElementById('qTxt').innerHTML = q.term;
+  
+  var box = document.getElementById('optsBox');
+  box.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    var btn = document.createElement('div');
+    btn.className = 'opt-btn';
+    if (q.userAns === opt) btn.classList.add('sel');
+    btn.innerHTML = opt;
+    // ZMENA: Posielame aj index tlacidla
+    btn.onclick = function() { setAns(opt, i); };
+    box.appendChild(btn);
+  });
+  
+  renderNav();
+  document.getElementById('btnEval').style.display = (idx === testData.length - 1) ? 'block' : 'none';
+  
+  setTimeout(renderMath, 10);
+}
+
+function setAns(ans, idx) {
+  testData[currIdx].userAns = ans;
+  
+  // ZMENA: Nenačítavame celú otázku cez loadQ(), ale len zmeníme triedu .sel
+  var box = document.getElementById('optsBox');
+  var btns = box.getElementsByClassName('opt-btn');
+  for (var i = 0; i < btns.length; i++) {
+     btns[i].classList.remove('sel');
+     if (i === idx) btns[i].classList.add('sel');
+  }
+  
+  // Aktualizujeme iba navigáciu
+  renderNav(); 
+}
+
+function renderNav() {
+  var box = document.getElementById('navBox');
+  box.innerHTML = '';
+  testData.forEach((q, i) => {
+    var b = document.createElement('div');
+    b.className = 'nav-btn';
+    if (q.userAns) b.classList.add('done');
+    if (i === currIdx) b.classList.add('act');
+    b.innerText = i + 1;
+    b.onclick = function() { loadQ(i); };
+    box.appendChild(b);
+  });
+}
+
+function evalTest() {
+  var score = 0;
+  testData.forEach(q => { if (q.userAns === q.correct) score++; });
+  result.score = score;
+  
+  document.getElementById('quizScreen').style.display = 'none';
+  var resDiv = document.getElementById('resScreen');
+  resDiv.style.display = 'block';
+  
+  var percent = Math.round((score / testData.length) * 100);
+  var colorClass = percent >= 50 ? 'good' : 'bad';
+  
+  var html = '<h2>Výsledok</h2>';
+  html += '<div class="score-big ' + colorClass + '">' + percent + '%</div>';
+  html += '<p><b>Meno:</b> ' + result.name + '</p>';
+  html += '<p><b>Body:</b> ' + score + ' / ' + testData.length + '</p>';
+  html += '<button onclick="showDetails()" style="background:#008CBA; color:white; padding:10px 20px; border:none; border-radius:5px; font-size:1rem; cursor:pointer;">🔍 Detailný prehľad</button>';
+  html += '<br><br><button onclick="location.reload()" style="background:#666; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer;">Spustiť znova</button>';
+  
+  resDiv.innerHTML = html;
+}
+
+function showDetails() {
+  var w = window.open('', '_blank');
+  
+  // Získanie aktuálneho dátumu a času
+  var now = new Date();
+  var d = String(now.getDate()).padStart(2, '0');
+  var m = String(now.getMonth() + 1).padStart(2, '0');
+  var y = now.getFullYear();
+  var h = String(now.getHours()).padStart(2, '0');
+  var min = String(now.getMinutes()).padStart(2, '0');
+  var dateTimeStr = d + '.' + m + '.' + y + ', ' + h + ':' + min;
+
+  // VÝPOČET PERCENT
+  var percent = Math.round((result.score / testData.length) * 100);
+
+  var rows = '';
+  testData.forEach((q, i) => {
+    // Logika pre status (fajka, krizik, vykricnik) a farby riadku
+    var status = '';
+    var rowClass = '';
+    
+    if (q.userAns === q.correct) {
+        status = '✅';
+        rowClass = ''; 
+    } else if (!q.userAns || q.userAns === '') {
+        status = '<span style="color:orange; font-weight:bold; font-size:1.2em">❗</span>';
+        rowClass = 'style="background:#fff9c4"'; // Jemne žltá pre vynechanú
+    } else {
+        status = '❌';
+        rowClass = 'style="background:#fff0f0"'; // Jemne červená pre nesprávnu
+    }
+
+    var uVal = q.userAns ? q.userAns : '<span style="color:#999; font-style:italic;">(bez odpovede)</span>';
+    
+    rows += '<tr ' + rowClass + '>';
+    rows += '<td>' + (i+1) + '. ' + q.term + '</td>';
+    // PREHODENÉ STĹPCE (Správna odpoveď <-> Odpoveď žiaka)
+    rows += '<td><div class="corr-ans">' + q.correct + '</div></td>';
+    rows += '<td><div class="user-ans">' + uVal + '</div></td>';
+    rows += '<td style="font-size:1.5em; text-align:center;">' + status + '</td>';
+    rows += '</tr>';
+  });
+
+  var page = '<!DOCTYPE html><html><head><title>Detaily testu</title>';
+  page += '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">';
+  
+  page += '<script>';
+  page += 'function initMath() {';
+  page += '  renderMathInElement(document.body, {';
+  page += '    delimiters: [';
+  page += '      {left: "$$", right: "$$", display: true},';
+  page += '      {left: "$", right: "$", display: false},';
+  page += '      {left: "\\\\(", right: "\\\\)", display: false},'; 
+  page += '      {left: "\\\[", right: "\\\]", display: true}';
+  page += '    ]';
+  page += '  });';
+  page += '}';
+  page += '<\/script>';
+  
+  page += '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"><\/script>';
+  page += '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"><\/script>';
+  page += '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="initMath()"><\/script>';
+  
+  page += '<style>body{font-family:sans-serif; padding:20px;} table{width:100%; border-collapse:collapse;} td,th{border:1px solid #ccc; padding:10px; vertical-align:top;} .user-ans{font-weight:bold;} .corr-ans{color:green;} </style>';
+  page += '</head><body>';
+  page += '<h3>Detailný prehľad</h3>';
+  page += '<p><b>Názov testu:</b> ' + META.title + '</p>';
+  page += '<p><b>Meno žiaka:</b> ' + result.name + '</p>';
+  page += '<p><b>Počet bodov a percentá:</b> ' + result.score + '/' + testData.length + ', ' + percent + '%</p>';
+  page += '<p><b>Dátum a čas testu:</b> ' + dateTimeStr + '</p>';
+  // PREHODENÉ HLAVIČKY (Správna odpoveď <-> Odpoveď žiaka)
+  page += '<table><thead><tr><th>Otázka</th><th>Správna odpoveď</th><th>Odpoveď žiaka</th><th>Stav</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  page += '</body></html>';
+  w.document.write(page);
+  w.document.close();
+}
+</script>
+</body>
+</html>

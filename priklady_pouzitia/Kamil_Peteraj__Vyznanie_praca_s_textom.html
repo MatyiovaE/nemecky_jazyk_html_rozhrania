@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kamil Peteraj: Vyznanie (práca s textom)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 1400px; margin: auto; background-color: #f9f9f9; color: #333; }
+        .header { text-align: center; margin-bottom: 30px; padding-bottom: 10px; border-bottom: 2px solid #ddd; }
+        h1 { color: #2c3e50; margin-bottom: 5px; }
+        .author { color: #7f8c8d; font-style: italic; }
+        .main-layout { display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap; }
+        .left-column { flex: 2; min-width: 300px; }
+        .right-column { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 20px; }
+        .text-container { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); line-height: 1.8; font-size: 16px; white-space: pre-wrap; }
+        .chunk-item { cursor: pointer; transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+        .chunk-item:hover { box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; position: relative; }
+        .chunk-1 { background-color: #e0e0e0; border: 1px solid #999; padding: 2px 4px; border-radius: 3px; margin: 0 2px; }
+        .chunk-2 { background-color: #f5f5f5; border: 1px solid #999; padding: 2px 4px; border-radius: 3px; margin: 0 2px; }
+        .chunk-used { opacity: 0.4; pointer-events: none; border-style: dashed; }
+        .setup-area { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; }
+        .setup-area input[type="number"] { padding: 8px; width: 60px; margin: 0 10px; }
+        button { background-color: #3498db; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; width: 100%; box-sizing: border-box; transition: background 0.3s;}
+        button:hover { background-color: #2980b9; }
+        .btn-export { background-color: #2ecc71; margin-top: 10px; }
+        .btn-export:hover { background-color: #27ae60; }
+        .btn-info { background-color: #9b59b6; margin-top: 10px; }
+        .btn-info:hover { background-color: #8e44ad; }
+        .groups-container { display: flex; flex-direction: column; gap: 15px; }
+        .group-box { border: 2px solid transparent; border-radius: 8px; padding: 15px; cursor: pointer; transition: 0.3s; opacity: 0.7; display: flex; flex-direction: column; min-height: 100px; }
+        .group-box h3 { margin-top: 0; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 10px; }
+        .group-box.active { border: 3px solid #333; opacity: 1; transform: translateX(-5px); box-shadow: -4px 4px 10px rgba(0,0,0,0.1); }
+        .assigned-item { background: rgba(255,255,255,0.7); padding: 8px; margin-bottom: 8px; border-radius: 4px; border-left: 3px solid #333; font-size: 15px;}
+        .items-list { flex-grow: 1; }
+        @media (max-width: 768px) {
+            .main-layout { flex-direction: column; }
+            .right-column { position: static; width: 100%; }
+            .group-box.active { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Kamil Peteraj: Vyznanie (práca s textom)</h1>
+        <div class="author">Mgr. Erika Matyiová</div>
+    </div>
+    <div class="main-layout">
+        <div class="left-column">
+            <div class="text-container" id="sourceText">Kamil Peteraj
+<b>Vyznanie</b>
+
+Viem, <span class="chunk-item chunk-1" data-original="true" title="Dvojklikom zrušíte označenie">mal si plnú čiapku snov</span>,
+viem, tuším, čo sa stalo s ňou,
+tak príď, v tmavej chodbe stoj a blúď,
+zazvoň, prídem odomknúť...
+
+Príď, <span class="chunk-item chunk-2" data-original="true" title="Dvojklikom zrušíte označenie">klavír spí tu pod prachom</span>,
+príď, zahraj mne a oblakom,
+tak <span class="chunk-item chunk-1" data-original="true" title="Dvojklikom zrušíte označenie">príď, do tej izby podkrovnej,
+veď vieš, vyhnali sme lásku z nej</span>,
+stratená v púpavách,
+stála som tam raz.
+
+Seď, <span class="chunk-item chunk-2" data-original="true" title="Dvojklikom zrušíte označenie">seď a do tmy niečo hraj</span>,
+<span class="chunk-item chunk-1" data-original="true" title="Dvojklikom zrušíte označenie">šum letnej lásky privolaj</span>,
+tak hraj o kvitnutí púpav tých,
+raz, raz a navždy sfúknutých.
+
+Tak príď, do tej izby podkrovnej,
+veď vieš, vyhnali sme lásku z nej.
+
+<span class="chunk-item chunk-2" data-original="true" title="Dvojklikom zrušíte označenie">Vráť láske čas, keď málo vie</span>,
+vráť, <span class="chunk-item chunk-1" data-original="true" title="Dvojklikom zrušíte označenie">nech aj jeseň májom je</span>.
+Vráť, <span class="chunk-item chunk-2" data-original="true" title="Dvojklikom zrušíte označenie">nepočítaj týždne strát</span>,
+vráť, <span class="chunk-item chunk-1" data-original="true" title="Dvojklikom zrušíte označenie">zajtrajšok jej vráť</span>!</div>
+        </div>
+        <div class="right-column">
+            <div class="setup-area">
+                <label for="groupCount"><b>Počet skupín:</b></label>
+                <input type="number" id="groupCount" min="1" max="10" value="2">
+                <button style="margin-top: 15px;" onclick="createGroups()">Vytvoriť pracovné polia</button>
+            </div>
+            <div class="groups-container" id="groupsContainer"></div>
+            <div style="text-align: center; display: flex; flex-direction: column; gap: 5px;">
+                <button class="btn-info" id="showGroupsBtn" style="display:none;" onclick="showOnlyGroups()">Zobraz len skupiny</button>
+                <button class="btn-export" id="exportBtn" style="display:none;" onclick="exportToTxt()">Exportovať výsledky do .txt</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let activeGroupId = null;
+        const colors = ['#ffb3ba', '#ffdfba', '#ffffba', '#baffc9', '#bae1ff', '#e0bbf3', '#f3e8cb', '#ffc4e1', '#d4f0f0', '#ffc8a2'];
+
+        function createGroups() {
+            const count = document.getElementById('groupCount').value;
+            const container = document.getElementById('groupsContainer');
+            container.innerHTML = ''; 
+            if(count < 1) return;
+
+            for(let i = 0; i < count; i++) {
+                const box = document.createElement('div');
+                box.className = 'group-box';
+                box.id = 'group-' + i;
+                box.style.backgroundColor = colors[i % colors.length];
+                box.onclick = () => setActiveGroup('group-' + i);
+                const title = document.createElement('h3');
+                title.innerText = 'Skupina ' + (i + 1);
+                const list = document.createElement('div');
+                list.className = 'items-list';
+                list.id = 'list-' + i;
+                box.appendChild(title);
+                box.appendChild(list);
+                container.appendChild(box);
+            }
+            document.getElementById('exportBtn').style.display = 'block';
+            document.getElementById('showGroupsBtn').style.display = 'block';
+            setActiveGroup('group-0');
+            document.querySelectorAll('.chunk-item').forEach(el => { el.classList.remove('chunk-used'); });
+        }
+
+        function setActiveGroup(id) {
+            document.querySelectorAll('.group-box').forEach(box => { box.classList.remove('active'); });
+            document.getElementById(id).classList.add('active');
+            activeGroupId = id;
+        }
+
+        document.querySelectorAll('.chunk-item').forEach(item => {
+            item.addEventListener('click', function() {
+                if (!activeGroupId) { alert('Najskôr vytvorte skupiny a kliknutím jednu zvoľte.'); return; }
+                if(this.classList.contains('chunk-used')) return; 
+                const groupIndex = activeGroupId.split('-')[1];
+                const targetList = document.getElementById('list-' + groupIndex);
+                const newItem = document.createElement('div');
+                newItem.className = 'assigned-item';
+                newItem.innerText = this.innerText; 
+                targetList.appendChild(newItem);
+                this.classList.add('chunk-used');
+            });
+        });
+
+        function exportToTxt() {
+            const count = document.getElementById('groupCount').value;
+            let exportData = "=== Kamil Peteraj: Vyznanie (práca s textom) | Mgr. Erika Matyiová ===\n\n";
+            for(let i = 0; i < count; i++) {
+                exportData += "--- Skupina " + (i + 1) + " ---\n";
+                const listItems = document.querySelectorAll('#list-' + i + ' .assigned-item');
+                if(listItems.length === 0) { exportData += "(žiadne priradené údaje)\n"; } 
+                else { listItems.forEach(item => { exportData += "- " + item.innerText + "\n"; }); }
+                exportData += "\n";
+            }
+            const blob = new Blob([exportData], { type: "text/plain;charset=utf-8" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Kamil_Peteraj:_Vyznanie_(praca_s_textom)_vysledky.txt";
+            link.click();
+        }
+
+        function showOnlyGroups() {
+            const groupsHtml = document.getElementById('groupsContainer').innerHTML;
+            
+            const htmlContent = '<!DOCTYPE html>\n<html lang="sk"><head><meta charset="UTF-8"><title>Vybrané skupiny - Kamil Peteraj: Vyznanie (práca s textom)</title><style>' +
+                'body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; padding: 30px; background-color: #f9f9f9; } ' +
+                'h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; } ' +
+                '.groups-container { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; justify-content: center; } ' +
+                '.group-box { flex: 0 0 calc(25% - 15px); min-width: 250px; box-sizing: border-box; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); ' +
+                'cursor: default !important; opacity: 1 !important; transform: none !important; border: none !important; } ' +
+                '.group-box h3 { margin-top: 0; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 10px; font-size: 1.2em; } ' +
+                '.assigned-item { background: rgba(255,255,255,0.8); padding: 12px; margin-bottom: 10px; border-radius: 4px; border-left: 4px solid #333; font-size: 1.1em; font-weight: 500;} ' +
+                '@media (max-width: 1200px) { .group-box { flex: 0 0 calc(33.333% - 14px); } } ' +
+                '@media (max-width: 900px) { .group-box { flex: 0 0 calc(50% - 10px); } } ' +
+                '@media (max-width: 600px) { .group-box { flex: 0 0 100%; } } ' +
+                '</style>' +
+                '</head><body>' +
+                '<h1>Kamil Peteraj: Vyznanie (práca s textom) - Rozdelenie do skupín</h1>' +
+                '<div class="groups-container">' + groupsHtml + '</div>' +
+                '</body></html>';
+                
+            const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Kamil_Peteraj:_Vyznanie_(praca_s_textom)_skupiny.html";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

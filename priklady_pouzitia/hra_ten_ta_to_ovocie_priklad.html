@@ -1,0 +1,181 @@
+
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Hra: Triedenie podstatných mien podľa slovenského rodu</title>
+  <style>
+    body { font-family: monospace; font-size: 20px; padding: 20px; background:#f7f7f7; color:#222; }
+    .columns { display: flex; justify-content: center; gap: 5px; margin-top: 20px; }
+    .column { width: 33%; padding: 10px; min-height: 450px; border-radius: 8px; box-sizing: border-box; text-align: center; }
+    .ten { background-color: #cce5ff; font-size: 25px; }
+    .tá { background-color: #f8d7da; font-size: 25px; }
+    .to { background-color: #d4edda; font-size: 25px; }
+    .word-ten { background-color: #99ccff; color: #003366; }
+    .word-tá { background-color: #f5b7b1; color: #641e16; }
+    .word-to { background-color: #a9dfbf; color: #145a32; }
+    .word { padding:5px; margin:5px; border-radius:4px; cursor:default; font-weight:bold; font-size:40px;}
+    #feedback { color:red; font-weight:bold; margin-top:10px; text-align:center; }
+    #current-word.wrong-word { color:red; }
+    #score { font-weight:bold; margin-top:10px; }
+
+    /* 🔹 Veľkosť aktuálneho slova aj v exportovanej hre */
+    #current-word {
+      font-size: 45px;
+      margin-bottom: 10px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    #final, #detailsSection { margin-top:20px; }
+    #detailsTable { width:100%; border-collapse:collapse; margin-top:10px; font-size:18px; }
+    #detailsTable th, #detailsTable td { border:1px solid #ddd; padding:6px; text-align:center; }
+    #detailsTable th { background:#f0f0f0; }
+    .symbolExplain { margin-top:10px; color:#555; }
+
+    @media print {
+      body { background:#fff; color:#000; }
+      input, button, label, #game-area, #feedback, #current-word, #score, .columns { display:none !important; }
+      #final, #detailsSection { display:block !important; }
+      h2 { text-align:center; }
+    }
+  </style>
+</head>
+<body>
+
+<h2>🎯 Triedenie podstatných mien podľa rodu (ten/tá/to)</h2>
+
+<label for="studentName">Meno žiaka:</label>
+<input type="text" id="studentName" placeholder="Zadajte meno žiaka">
+&nbsp;&nbsp;
+<label for="count">Počet položiek v hre:</label>
+<input type="number" id="count" value="10" min="1">
+<button onclick="startGame()">Spustiť hru</button>
+<button id="printBtn" style="display:none;">🖨️ Tlačiť / Exportovať do PDF</button>
+
+<div id="game-area" style="display:none;">
+  <h3 style="text-align:center;">Klikni na správny stĺpec podľa rodu podstatného mena.</h3>
+  <div id="current-word"></div>
+  <div id="feedback"></div>
+
+  <div class="columns">
+    <div class="column ten" onclick="checkAnswer('ten')"><strong>ten</strong><div id="ten-list"></div></div>
+    <div class="column tá" onclick="checkAnswer('tá')"><strong>tá</strong><div id="tá-list"></div></div>
+    <div class="column to" onclick="checkAnswer('to')"><strong>to</strong><div id="to-list"></div></div>
+  </div>
+
+  <div id="score">Skóre: 0</div>
+</div>
+
+<div id="final" style="display:none;"></div>
+<div id="detailsSection" style="display:none;"></div>
+
+<script>
+  const allPairs = [{"word":"slivka","article":"tá"},{"word":"hruška","article":"tá"},{"word":"jablko","article":"to"},{"word":"egreš","article":"ten"},{"word":"ríbezľa","article":"tá"},{"word":"jahoda","article":"tá"},{"word":"malina","article":"tá"},{"word":"moruša","article":"tá"},{"word":"marhuľa","article":"tá"},{"word":"broskyňa","article":"tá"},{"word":"citrón","article":"ten"},{"word":"pomaranč","article":"ten"},{"word":"melón","article":"ten"},{"word":"kivi","article":"to"},{"word":"čučoriedka","article":"tá"},{"word":"brusnica","article":"tá"},{"word":"banán","article":"ten"},{"word":"mandarínka","article":"tá"}];
+  let gamePairs = [];
+  let currentIndex = 0;
+  let score = 0;
+
+  function shuffleArray(array) {
+    return array.sort(() => Math.random() - 0.5);
+  }
+
+  function startGame() {
+    const count = parseInt(document.getElementById('count').value);
+    gamePairs = shuffleArray(allPairs).slice(0, count).map(x => ({
+      ...x, attemptedWrong:false, done:false, userAnswer:null, firstTry:null
+    }));
+
+    currentIndex = 0;
+    score = 0;
+    document.getElementById('ten-list').innerHTML = '';
+    document.getElementById('tá-list').innerHTML = '';
+    document.getElementById('to-list').innerHTML = '';
+    document.getElementById('score').textContent = 'Skóre: 0';
+    document.getElementById('game-area').style.display = 'block';
+    document.getElementById('final').style.display = 'none';
+    document.getElementById('detailsSection').style.display = 'none';
+    document.getElementById('printBtn').style.display = 'none';
+    showNextWord();
+  }
+
+  function showNextWord() {
+    const currentWordDiv = document.getElementById('current-word');
+    const feedbackDiv = document.getElementById('feedback');
+    if (currentIndex < gamePairs.length) {
+      currentWordDiv.textContent = gamePairs[currentIndex].word;
+      currentWordDiv.classList.remove('wrong-word');
+      feedbackDiv.textContent = '';
+    } else {
+      finishGame();
+    }
+  }
+
+  function checkAnswer(selectedArticle) {
+    if (currentIndex >= gamePairs.length) return;
+    const item = gamePairs[currentIndex];
+    const correct = item.article;
+
+    if (item.firstTry === null) item.firstTry = selectedArticle;
+    item.userAnswer = selectedArticle;
+
+    const feedbackDiv = document.getElementById('feedback');
+    const currentWordDiv = document.getElementById('current-word');
+
+    if (selectedArticle === correct) {
+      item.done = true;
+      const wordDiv = `<div class="word word-${selectedArticle}">${item.word}</div>`;
+      document.getElementById(selectedArticle + '-list').innerHTML += wordDiv;
+      if (!item.attemptedWrong) score++;
+      currentIndex++;
+      document.getElementById('score').textContent = `Skóre: ${score}`;
+      feedbackDiv.textContent = '';
+      setTimeout(showNextWord, 300);
+    } else {
+      item.attemptedWrong = true;
+      feedbackDiv.innerHTML = '❌ Nesprávny pokus. Skús znova!';
+      currentWordDiv.classList.add('wrong-word');
+    }
+  }
+
+  function finishGame() {
+    const total = gamePairs.length;
+    const percent = Math.round(score / total * 100);
+    const now = new Date().toLocaleString();
+    const studentName = document.getElementById('studentName').value.trim() || '—';
+
+    const finalDiv = document.getElementById('final');
+    finalDiv.innerHTML =
+      `<div><strong>Meno žiaka:</strong> ${studentName}</div>
+       <div><strong>Názov cvičenia:</strong> Triedenie podstatných mien podľa rodu</div>
+       <div><strong>Skóre:</strong> ${score} / ${total} (${percent} %)</div>
+       <div><strong>Dátum a čas:</strong> ${now}</div>
+       <div style="margin-top:8px;"><button id="detailsBtn">Detailné výsledky</button></div>`;
+    finalDiv.style.display = 'block';
+    document.getElementById('printBtn').style.display = 'inline-block';
+
+    document.getElementById('detailsBtn').addEventListener('click', showDetails);
+    document.getElementById('current-word').textContent = '🎉 Hotovo!';
+  }
+
+  function showDetails() {
+    let html = '<h2>Detailné výsledky</h2>';
+    html += '<table id="detailsTable"><tr><th>Podstatné meno</th><th>Správny rod</th><th>1. odpoveď žiaka</th><th>Výsledok</th></tr>';
+    for (const i of gamePairs) {
+      let sym = (i.attemptedWrong || i.firstTry !== i.article) ? '❌' : '✅';
+      html += `<tr><td>${i.word}</td><td>${i.article}</td><td>${i.firstTry || '—'}</td><td>${sym}</td></tr>`;
+    }
+    html += '</table><div class="symbolExplain">✅ = správne na 1. pokus &nbsp;&nbsp; ❌ = nesprávne na 1. pokus</div>';
+    const details = document.getElementById('detailsSection');
+    details.innerHTML = html;
+    details.style.display = 'block';
+  }
+
+  window.onbeforeprint = () => { try { showDetails(); } catch(e){} };
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+</script>
+
+<br><br><b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

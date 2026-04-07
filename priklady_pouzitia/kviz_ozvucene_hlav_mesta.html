@@ -1,0 +1,149 @@
+<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8"><title>Hlavné mestá</title><style>
+        body{font-family:monospace;margin:20px;background:#f2f2f2;}
+        .question{margin-bottom:30px;padding:15px;background:#fff;border-radius:8px;box-shadow:0 0 5px rgba(0,0,0,0.1);}
+        .btn-group{display:flex;flex-direction:column;gap:10px;max-width:500px;}
+        .btn-option{background:#e0e0e0;border:none;padding:10px 15px;border-radius:6px;cursor:pointer;text-align:left;width:200px;
+                    font-size:18px;font-weight:bold;color:#000;}
+        .btn-option:hover{background:#d0d0d0;}
+        .btn-option:disabled{background:#ccc;cursor:default;color:#000 !important;}
+        .speak-btn{background:#2196F3;color:white;border:none;border-radius:5px;padding:8px 10px;cursor:pointer;}
+        .speak-btn:hover{background:#1976D2;}
+        .feedback{margin-top:10px;font-weight:bold;}
+        #result{font-size:18px;font-weight:bold;margin-top:30px;color:#0078D4;}
+      </style></head><body><h1>Hlavné mestá - ozvučený kvíz s výberom z viacerých možností</h1><script>
+        let score = 0;
+        let answered = 0;
+        let totalQuestions = 5;
+
+        function speak(text, lang) {
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = lang;
+          speechSynthesis.speak(u);
+        }
+
+        function check(btn, index, correctIndex, feedbackId) {
+          const feedback = document.getElementById(feedbackId);
+          // zablokuj všetky možnosti tejto otázky
+          btn.closest(".btn-group").querySelectorAll(".btn-option").forEach(b => b.disabled = true);
+
+          if (index === correctIndex) {
+            btn.style.backgroundColor = '#a5d6a7';
+            btn.style.color = '#1b5e20';
+            feedback.textContent = '✅ Správne 🙂';
+            score++;
+          } else {
+            btn.style.backgroundColor = '#ef9a9a';
+            btn.style.color = '#b71c1c';
+            feedback.textContent = '❌ Nesprávne ☹️';
+          }
+
+          answered++;
+          document.getElementById("result").textContent =
+            'Výsledok: ' + score + ' / ' + totalQuestions;
+        }
+      </script><div class="question">
+          <h2>1. Hlavné mesto Francúzska je</h2>
+          <button class="speak-btn" onclick="speak('Hlavné mesto Francúzska je','sk-SK')">🔊 Vypočuť si otázku</button>
+          <div class="btn-group" style="margin-top: 15px;">
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,0,0,'f0')">Paríž</button>
+                <button class="speak-btn" onclick="speak('Paríž','sk-SK')">🔊</button>
+              </div>
+            
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,2,0,'f0')">Lyon</button>
+                <button class="speak-btn" onclick="speak('Lyon','sk-SK')">🔊</button>
+              </div>
+            
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,1,0,'f0')">Marseille</button>
+                <button class="speak-btn" onclick="speak('Marseille','sk-SK')">🔊</button>
+              </div>
+            </div>
+          <div class="feedback" id="f0"></div>
+        </div><div class="question">
+          <h2>2. Hlavné mesto Nemecka je</h2>
+          <button class="speak-btn" onclick="speak('Hlavné mesto Nemecka je','sk-SK')">🔊 Vypočuť si otázku</button>
+          <div class="btn-group" style="margin-top: 15px;">
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,1,0,'f1')">Hamburg</button>
+                <button class="speak-btn" onclick="speak('Hamburg','sk-SK')">🔊</button>
+              </div>
+            
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,0,0,'f1')">Berlín</button>
+                <button class="speak-btn" onclick="speak('Berlín','sk-SK')">🔊</button>
+              </div>
+            
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,2,0,'f1')">Mníchov</button>
+                <button class="speak-btn" onclick="speak('Mníchov','sk-SK')">🔊</button>
+              </div>
+            </div>
+          <div class="feedback" id="f1"></div>
+        </div><div class="question">
+          <h2>3. Hlavné mesto Talianska je</h2>
+          <button class="speak-btn" onclick="speak('Hlavné mesto Talianska je','sk-SK')">🔊 Vypočuť si otázku</button>
+          <div class="btn-group" style="margin-top: 15px;">
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,2,0,'f2')">Palermo</button>
+                <button class="speak-btn" onclick="speak('Palermo','sk-SK')">🔊</button>
+              </div>
+            
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,0,0,'f2')">Rím</button>
+                <button class="speak-btn" onclick="speak('Rím','sk-SK')">🔊</button>
+              </div>
+            
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,1,0,'f2')">Miláno</button>
+                <button class="speak-btn" onclick="speak('Miláno','sk-SK')">🔊</button>
+              </div>
+            </div>
+          <div class="feedback" id="f2"></div>
+        </div><div class="question">
+          <h2>4. Hlavné mesto Španielska je</h2>
+          <button class="speak-btn" onclick="speak('Hlavné mesto Španielska je','sk-SK')">🔊 Vypočuť si otázku</button>
+          <div class="btn-group" style="margin-top: 15px;">
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,2,0,'f3')">Valencia</button>
+                <button class="speak-btn" onclick="speak('Valencia','sk-SK')">🔊</button>
+              </div>
+            
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,1,0,'f3')">Barcelona</button>
+                <button class="speak-btn" onclick="speak('Barcelona','sk-SK')">🔊</button>
+              </div>
+            
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,0,0,'f3')">Madrid</button>
+                <button class="speak-btn" onclick="speak('Madrid','sk-SK')">🔊</button>
+              </div>
+            </div>
+          <div class="feedback" id="f3"></div>
+        </div><div class="question">
+          <h2>5. Hlavné mesto Rakúska je</h2>
+          <button class="speak-btn" onclick="speak('Hlavné mesto Rakúska je','sk-SK')">🔊 Vypočuť si otázku</button>
+          <div class="btn-group" style="margin-top: 15px;">
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,1,0,'f4')">Linz</button>
+                <button class="speak-btn" onclick="speak('Linz','sk-SK')">🔊</button>
+              </div>
+            
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,2,0,'f4')">Salzburg</button>
+                <button class="speak-btn" onclick="speak('Salzburg','sk-SK')">🔊</button>
+              </div>
+            
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,0,0,'f4')">Viedeň</button>
+                <button class="speak-btn" onclick="speak('Viedeň','sk-SK')">🔊</button>
+              </div>
+            </div>
+          <div class="feedback" id="f4"></div>
+        </div><div id="result"></div>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+	  </html>
