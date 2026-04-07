@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor tajničky - Finálna verzia (Oprava orámovania a zarovnania)</title>
+  <style>
+    body {
+      font-family: Courier bold, monospace;
+      margin: 20px;
+      background-color: #f4f4f9;
+      color: #333;
+    }
+    h1 { text-align: center; color: #444; }
+    
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: "Courier bold", monospace;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 20px;
+      margin-right: 10px;
+      transition: background 0.3s;
+    }
+    button:hover { background-color: #45a049; }
+    button.secondary { background-color: #008CBA; }
+    button.secondary:hover { background-color: #007bb5; }
+
+    /* --- ŠTÝLY PRE NÁHĽAD --- */
+    #output {
+      margin-top: 30px;
+      overflow-x: auto;
+    }
+
+    table.preview-table {
+      border-collapse: collapse;
+      margin: 0 auto;
+      font-family: "Courier bold", monospace;
+      font-weight: bold;
+    }
+
+    .preview-table td {
+      text-align: center;
+      width: 34px;
+      height: 34px;
+      font-size: 18px;
+      box-sizing: border-box;
+    }
+
+    .preview-table td.filled {
+      border: 1px solid #333;
+      background: #fff;
+    }
+    
+    .preview-table td.empty {
+      border: none;
+      background: transparent;
+    }
+
+    .preview-table td.highlight {
+      background-color: #E8E8E8;
+    }
+
+    .preview-table td.row-number {
+      width: auto;
+      text-align: right;
+      padding-right: 10px;
+      border: none;
+    }
+    .preview-table td.definition {
+      width: auto;
+      text-align: left;
+      padding-left: 10px;
+      padding-right: 20px;
+      white-space: nowrap;
+      border: none;
+      font-weight: normal;
+    }
+
+    /* Hrubé orámovanie - len vonkajšie */
+    .border-thick-top { border-top: 3px solid black !important; }
+    .border-thick-bottom { border-bottom: 3px solid black !important; }
+    .border-thick-left { border-left: 3px solid black !important; }
+    .border-thick-right { border-right: 3px solid black !important; }
+
+    /* Horizontálna tajnička v náhľade */
+    .horizontal-puzzle-container {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .puzzle-label {
+      font-weight: bold;
+      font-family: "Courier bold", monospace;
+      font-size: 18px;
+    }
+
+    .instructions {
+      background-color: #e7f3fe;
+      border-left: 6px solid #2196F3;
+      padding: 15px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Generátor tajničky</h1>
+
+  <div class="instructions">
+    <strong>Ako na to:</strong><br>
+    1. Zadajte <strong>Názov krížovky</strong>.<br>
+    2. Do poľa pojmov píšte: <code>Definícia [TAB] Pojem</code> (funguje klávesa Tab).<br>
+    3. Zadajte <strong>Tajničku</strong>.<br>
+    4. Kliknite <strong>Generovať náhľad</strong>.<br>
+    5. Ak je mriežka vyhovujúca, stiahnite si <strong>Pracovný list (.rtf)</strong>.
+  </div>
+
+  <label>Názov krížovky:</label>
+  <input type="text" id="title" value="Moja tajnička" placeholder="Napr. Opakovanie biológie">
+
+  <label>Zoznam pojmov (Definícia[TAB]Pojem):</label>
+  <textarea id="words" rows="8" placeholder="Napr.:&#10;Zviera čo breše&#9;PES&#10;Zviera čo mňauká&#9;MAČKA&#10;Dáva mlieko&#9;KRAVA"></textarea>
+
+  <label>Tajnička:</label>
+  <input type="text" id="puzzle" placeholder="Napr. POLE">
+
+  <div style="margin-top: 20px;">
+    <button onclick="generateGrid()">Generovať náhľad</button>
+    <button class="secondary" onclick="downloadRTF()">Stiahnuť pracovný list (.rtf)</button>
+  </div>
+
+  <div id="output"></div>
+  <div id="error-msg" style="color: red; font-weight: bold; margin-top: 10px; text-align: center;"></div>
+  
+  <br>
+  <div style="font-family: Arial; font-size: 12px; font-weight: normal; text-align: right;">
+    Spracovala pomocou UI: Mgr. Erika Matyiová (2025)
+  </div>
+</div>
+
+<script>
+  let currentGridData = null;
+
+  // --- 1. Obsluha klávesy TAB v textovom poli (nezmenené) ---
+  document.getElementById('words').addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+      this.selectionStart = this.selectionEnd = start + 1;
+    }
+  });
+
+  // --- 2. Spracovanie vstupu a Algoritmus (nezmenené) ---
+  function parseInput() {
+    const rawText = document.getElementById('words').value;
+    const puzzleRaw = document.getElementById('puzzle').value.trim().toUpperCase();
+    
+    if (!rawText || !puzzleRaw) return null;
+
+    const items = rawText.split('\n').map(line => {
+      const parts = line.split('\t');
+      let def = "", word = "";
+      
+      if (parts.length >= 2) {
+        def = parts[0].trim();
+        word = parts[1].trim().toUpperCase();
+      } else {
+        word = parts[0].trim().toUpperCase();
+        def = "???"; 
+      }
+      return { definition: def, word: word };
+    }).filter(item => item.word.length > 0);
+
+    return { items, puzzle: puzzleRaw };
+  }
+
+  function solvePuzzle(targetPuzzle, availableItems) {
+    const letterMap = {};
+    availableItems.forEach((item, index) => {
+      const w = item.word;
+      for (let i = 0; i < w.length; i++) {
+        const char = w[i];
+        if (!letterMap[char]) letterMap[char] = [];
+        if (!letterMap[char].includes(index)) letterMap[char].push(index);
+      }
+    });
+
+    function backtrack(charIndex, usedIndices) {
+      if (charIndex === targetPuzzle.length) return [];
+
+      const targetChar = targetPuzzle[charIndex];
+      let candidates = letterMap[targetChar] || [];
+      
+      candidates = candidates.filter(idx => !usedIndices.has(idx));
+      candidates = candidates.sort(() => Math.random() - 0.5); 
+
+      for (let itemIndex of candidates) {
+        const item = availableItems[itemIndex];
+        const charPositions = [];
+        for(let i=0; i<item.word.length; i++) {
+          if(item.word[i] === targetChar) charPositions.push(i);
+        }
+        const selectedOffset = charPositions[Math.floor(Math.random() * charPositions.length)];
+
+        usedIndices.add(itemIndex);
+        const resultRest = backtrack(charIndex + 1, usedIndices);
+        
+        if (resultRest !== null) {
+          return [{
+            word: item.word,
+            definition: item.definition,
+            offset: selectedOffset
+          }, ...resultRest];
+        }
+        usedIndices.delete(itemIndex);
+      }
+      return null;
+    }
+
+    return backtrack(0, new Set());
+  }
+
+  // --- 3. Generovanie HTML Náhľadu (nezmenené) ---
+  function generateGrid() {
+    const outputDiv = document.getElementById('output');
+    const errorDiv = document.getElementById('error-msg');
+    outputDiv.innerHTML = '';
+    errorDiv.textContent = '';
+
+    try {
+      localStorage.setItem('tajnicka_words', document.getElementById('words').value);
+      localStorage.setItem('tajnicka_puzzle', document.getElementById('puzzle').value);
+      localStorage.setItem('tajnicka_title', document.getElementById('title').value);
+    } catch (e) {}
+
+    const data = parseInput();
+    if (!data || data.items.length === 0) {
+      errorDiv.textContent = 'Prosím, zadajte pojmy a tajničku.';
+      return;
+    }
+
+    const solution = solvePuzzle(data.puzzle, data.items);
+
+    if (!solution) {
+      errorDiv.textContent = `Nepodarilo sa zostaviť tajničku "${data.puzzle}" zo zadaných slov.`;
+      currentGridData = null;
+      return;
+    }
+    
+    currentGridData = { 
+      solution: solution, 
+      title: document.getElementById('title').value, 
+      puzzleWord: data.puzzle 
+    };
+
+    const maxOffset = Math.max(...solution.map(r => r.offset));
+    const table = document.createElement('table');
+    table.classList.add('preview-table');
+
+    solution.forEach((row, idx) => {
+      const tr = document.createElement('tr');
+
+      const numTd = document.createElement('td');
+      numTd.classList.add('row-number');
+      numTd.textContent = (idx + 1) + ".";
+      tr.appendChild(numTd);
+
+      const defTd = document.createElement('td');
+      defTd.classList.add('definition');
+      defTd.textContent = row.definition;
+      tr.appendChild(defTd);
+
+      const padding = maxOffset - row.offset;
+      for (let i = 0; i < padding; i++) {
+        const td = document.createElement('td');
+        td.classList.add('empty');
+        tr.appendChild(td);
+      }
+
+      for (let i = 0; i < row.word.length; i++) {
+        const td = document.createElement('td');
+        td.textContent = row.word[i];
+        td.classList.add('filled');
+
+        if (i === row.offset) {
+          td.classList.add('highlight');
+          td.classList.add('border-thick-left');
+          td.classList.add('border-thick-right');
+          if (idx === 0) td.classList.add('border-thick-top');
+          if (idx === solution.length - 1) td.classList.add('border-thick-bottom');
+        }
+        tr.appendChild(td);
+      }
+      
+      const maxGridWidth = maxOffset + Math.max(...solution.map(r => r.word.length));
+      const currentWidth = padding + row.word.length;
+      for(let i=currentWidth; i<maxGridWidth; i++) {
+         const td = document.createElement('td');
+         td.classList.add('empty');
+         tr.appendChild(td);
+      }
+
+      table.appendChild(tr);
+    });
+
+    outputDiv.appendChild(table);
+
+    const puzzleContainer = document.createElement('div');
+    puzzleContainer.classList.add('horizontal-puzzle-container');
+    
+    const label = document.createElement('div');
+    label.classList.add('puzzle-label');
+    label.textContent = "Tajnička:";
+    puzzleContainer.appendChild(label);
+
+    const puzzleTable = document.createElement('table');
+    puzzleTable.classList.add('preview-table');
+    const ptr = document.createElement('tr');
+    
+    for(let i=0; i<data.puzzle.length; i++) {
+      const ptd = document.createElement('td');
+      ptd.textContent = data.puzzle[i];
+      ptd.classList.add('filled');
+      ptr.appendChild(ptd);
+    }
+    puzzleTable.appendChild(ptr);
+    puzzleContainer.appendChild(puzzleTable);
+    
+    outputDiv.appendChild(puzzleContainer);
+  }
+
+  // --- 4. Funkcia pre RTF s CP1250 mapovaním (FINAL - OPRAVA Ľ) ---
+  
+  const CP1250_MAP = {
+    'Á': "\\'c1", 'á': "\\'e1", 'Ä': "\\'c4", 'ä': "\\'e4", 'Č': "\\'c8", 'č': "\\'e8", 
+    'Ď': "\\'cf", 'ď': "\\'ef", 'É': "\\'c9", 'é': "\\'e9", 'Ě': "\\'cc", 'ě': "\\'ec", 
+    'Í': "\\'cd", 'í': "\\'ed", 
+    // L-varianty sú odstránené a budú riešené cez Unicode escape (\u...)
+    'Ň': "\\'d2", 'ň': "\\'f2", 'Ó': "\\'d3", 'ó': "\\'f3", 'Ô': "\\'d4", 'ô': "\\'f4", 
+    'Ŕ': "\\'a2", 'ŕ': "\\'a3", 'Ř': "\\'d8", 'ř': "\\'f8", 'Š': "\\'8a", 'š': "\\'9a", 
+    'Ť': "\\'8d", 'ť': "\\'9d", 'Ú': "\\'da", 'ú': "\\'fa", 'Ů': "\\'d9", 'ů': "\\'f9", 
+    'Ý': "\\'dd", 'ý': "\\'fd", 'Ž': "\\'8e", 'ž': "\\'9e", 'Ö': "\\'d6", 'ö': "\\'f6", 
+    'Ü': "\\'dc", 'ü': "\\'fc", 'ß': "\\'df"
+  };
+
+  function escapeRTF(str) {
+    if (!str) return "";
+    let result = "";
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      
+      // 1. CP1250 ESCAPE (pre väčšinu SK znakov)
+      if (CP1250_MAP[char]) {
+        result += CP1250_MAP[char];
+      } 
+      // 2. Ošetrenie špeciálnych znakov RTF
+      else if (['{', '}', '\\'].includes(char)) {
+        result += '\\' + char;
+      }
+      // 3. Bežné ASCII znaky
+      else if (char.charCodeAt(0) <= 127) {
+        result += char;
+      }
+      // 4. Unicode escape pre znaky, ktoré v CP1250 chýbajú alebo spôsobujú konflikty (ako L s mäkčeňom)
+      else {
+        let code = char.charCodeAt(0);
+        if (code > 32767) code = code - 65536;
+        result += `\\u${code}?`;
+      }
+    }
+    return result;
+  }
+
+  function downloadRTF() {
+    if (!currentGridData) {
+      alert("Najprv musíte vygenerovať náhľad!");
+      return;
+    }
+
+    const { solution, title, puzzleWord } = currentGridData;
+    const maxOffset = Math.max(...solution.map(r => r.offset));
+    
+    const cellTwips = 510; // 9mm
+    const defColWidth = 3000;
+    const numColWidth = 400;
+    const labelColWidth = 1500;
+
+    let rtf = `{\\rtf1\\ansi\\ansicpg1250\\deff0\\nouicompat\\deflang1051`;
+    rtf += `{\\fonttbl{\\f0\\fnil\\fcharset238 Comic Sans MS;}}`;
+    rtf += `{\\colortbl ;\\red232\\green232\\blue232;}`;
+    rtf += `{\\footer \\pard\\qr\\fs20\\f0 \\chpgn\\ / 2 \\par}`;
+    rtf += `\\viewkind4\\uc1\\pard\\sa200\\sl276\\slmult1\\f0\\fs24\\lang1051`;
+
+    // --- STRANA 1: Pracovný list ---
+    rtf += `\\pard\\qc\\b\\fs36 ${escapeRTF(title)}\\par\\par`;
+    rtf += `\\pard\\ql\\b0\\fs24 `;
+
+    solution.forEach((row, idx) => {
+      rtf += `\\trowd\\trgaph108\\trleft-108\\trrh${cellTwips}`;
+
+      let currentPos = 0;
+
+      // 1. Číslovanie: Spodné zarovnanie (clvertalb)
+      rtf += `\\clvertalb\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\cellx${currentPos + numColWidth}`;
+      currentPos += numColWidth;
+
+      // 2. Definícia: Spodné zarovnanie (clvertalb)
+      rtf += `\\clvertalb\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\cellx${currentPos + defColWidth}`;
+      currentPos += defColWidth;
+
+      // 3. Padding (prázdne polia): Stredné zarovnanie (clvertalc)
+      const padding = maxOffset - row.offset;
+      for(let i=0; i<padding; i++) {
+         rtf += `\\clvertalc\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\cellx${currentPos + cellTwips}`;
+         currentPos += cellTwips;
+      }
+
+      // 4. Mriežka (prázdna): Stredné zarovnanie (clvertalc)
+      for(let i=0; i<row.word.length; i++) {
+        let bTop = `\\clbrdrt\\brdrs\\brdrw10`;
+        let bBot = `\\clbrdrb\\brdrs\\brdrw10`;
+        let bLeft = `\\clbrdrl\\brdrs\\brdrw10`;
+        let bRight = `\\clbrdrr\\brdrs\\brdrw10`;
+        let shading = "";
+
+        if (i === row.offset) {
+          shading = `\\clcbpat1`;
+          bLeft = `\\clbrdrl\\brdrs\\brdrw30`;
+          bRight = `\\clbrdrr\\brdrs\\brdrw30`;
+          if (idx === 0) bTop = `\\clbrdrt\\brdrs\\brdrw30`;
+          if (idx === solution.length - 1) bBot = `\\clbrdrb\\brdrs\\brdrw30`;
+        }
+        
+        rtf += `\\clvertalc${bTop}${bLeft}${bBot}${bRight}${shading}\\cellx${currentPos + cellTwips}`;
+        currentPos += cellTwips;
+      }
+
+      // Obsah buniek: Číslo (pravé), Definícia (ľavé), Mriežka (stredné, prázdne)
+      rtf += `\\pard\\intbl\\qr\\b ${idx+1}. \\cell`; 
+      rtf += `\\pard\\intbl\\ql\\b0 ${escapeRTF(row.definition)} \\cell`;
+      for(let i=0; i<padding; i++) rtf += `\\pard\\intbl \\cell`;
+      for(let i=0; i<row.word.length; i++) rtf += `\\pard\\intbl\\qc \\cell`;
+      rtf += `\\row`;
+    });
+
+    rtf += `\\pard \\par\\par `;
+
+    // Vodorovná tajnička (prázdna, Stredné vertikálne zarovnanie)
+    rtf += `\\trowd\\trgaph108\\trleft-108\\trrh${cellTwips}`;
+    rtf += `\\clvertalb\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\cellx${labelColWidth}`;
+    let tPos = labelColWidth;
+    for(let i=0; i<puzzleWord.length; i++) {
+      rtf += `\\clvertalc\\clbrdrt\\brdrs\\brdrw10\\clbrdrl\\brdrs\\brdrw10\\clbrdrb\\brdrs\\brdrw10\\clbrdrr\\brdrs\\brdrw10`;
+      tPos += cellTwips;
+      rtf += `\\cellx${tPos}`;
+    }
+
+    rtf += `\\pard\\intbl\\ql\\b ${escapeRTF("Tajnička:")} \\cell`;
+    for(let i=0; i<puzzleWord.length; i++) {
+      rtf += `\\pard\\intbl\\qc \\cell`;
+    }
+    rtf += `\\row`;
+    rtf += `\\page`;
+
+    // --- STRANA 2: Riešenie ---
+    rtf += `\\pard\\qc\\b\\fs36 ${escapeRTF("Riešenie")}\\par\\par`;
+    rtf += `\\pard\\ql\\b0\\fs24 `;
+
+    solution.forEach((row, idx) => {
+      rtf += `\\trowd\\trgaph108\\trleft-108\\trrh${cellTwips}`;
+
+      let currentPos = 0;
+      // 1. Číslovanie: Spodné zarovnanie (clvertalb)
+      rtf += `\\clvertalb\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\cellx${currentPos + numColWidth}`;
+      currentPos += numColWidth;
+      // 2. Definícia: Spodné zarovnanie (clvertalb)
+      rtf += `\\clvertalb\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\cellx${currentPos + defColWidth}`;
+      currentPos += defColWidth;
+
+      // 3. Padding (prázdne polia): Stredné zarovnanie (clvertalc)
+      const padding = maxOffset - row.offset;
+      for(let i=0; i<padding; i++) {
+         rtf += `\\clvertalc\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\cellx${currentPos + cellTwips}`;
+         currentPos += cellTwips;
+      }
+
+      // 4. Mriežka (vyplnená): Stredné zarovnanie (clvertalc)
+      for(let i=0; i<row.word.length; i++) {
+        let bTop = `\\clbrdrt\\brdrs\\brdrw10`;
+        let bBot = `\\clbrdrb\\brdrs\\brdrw10`;
+        let bLeft = `\\clbrdrl\\brdrs\\brdrw10`;
+        let bRight = `\\clbrdrr\\brdrs\\brdrw10`;
+        let shading = "";
+
+        if (i === row.offset) {
+          shading = `\\clcbpat1`;
+          bLeft = `\\clbrdrl\\brdrs\\brdrw30`;
+          bRight = `\\clbrdrr\\brdrs\\brdrw30`;
+          if (idx === 0) bTop = `\\clbrdrt\\brdrs\\brdrw30`;
+          if (idx === solution.length - 1) bBot = `\\clbrdrb\\brdrs\\brdrw30`;
+        }
+        
+        rtf += `\\clvertalc${bTop}${bLeft}${bBot}${bRight}${shading}\\cellx${currentPos + cellTwips}`;
+        currentPos += cellTwips;
+      }
+
+      // Obsah buniek: Číslo (pravé), Definícia (ľavé), Písmená (stredné)
+      rtf += `\\pard\\intbl\\qr\\b ${idx+1}. \\cell`;
+      rtf += `\\pard\\intbl\\ql\\b0 ${escapeRTF(row.definition)} \\cell`;
+      for(let i=0; i<padding; i++) rtf += `\\pard\\intbl \\cell`;
+      for(let i=0; i<row.word.length; i++) rtf += `\\pard\\intbl\\qc\\b ${escapeRTF(row.word[i])} \\cell`;
+      rtf += `\\row`;
+    });
+
+    rtf += `\\pard \\par\\par`;
+
+    // Tajnička Riešenie (vyplnená, Stredné vertikálne zarovnanie)
+    rtf += `\\trowd\\trgaph108\\trleft-108\\trrh${cellTwips}`;
+    rtf += `\\clvertalb\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\cellx${labelColWidth}`;
+    tPos = labelColWidth;
+    for(let i=0; i<puzzleWord.length; i++) {
+      rtf += `\\clvertalc\\clbrdrt\\brdrs\\brdrw10\\clbrdrl\\brdrs\\brdrw10\\clbrdrb\\brdrs\\brdrw10\\clbrdrr\\brdrs\\brdrw10`;
+      tPos += cellTwips;
+      rtf += `\\cellx${tPos}`;
+    }
+    rtf += `\\pard\\intbl\\ql\\b ${escapeRTF("Tajnička:")} \\cell`;
+    for(let i=0; i<puzzleWord.length; i++) {
+      rtf += `\\pard\\intbl\\qc\\b ${escapeRTF(puzzleWord[i])} \\cell`;
+    }
+    rtf += `\\row`;
+
+    rtf += `}`;
+
+    const blob = new Blob([rtf], { type: "application/rtf" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Krizovka_${title.replace(/\s+/g, '_')}.rtf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  window.onload = function() {
+    try {
+      if (localStorage.getItem('tajnicka_words')) {
+        document.getElementById('words').value = localStorage.getItem('tajnicka_words');
+      }
+      if (localStorage.getItem('tajnicka_puzzle')) {
+        document.getElementById('puzzle').value = localStorage.getItem('tajnicka_puzzle');
+      }
+      if (localStorage.getItem('tajnicka_title')) {
+        document.getElementById('title').value = localStorage.getItem('tajnicka_title');
+      }
+    } catch(e) {}
+  };
+</script>
+
+</body>
+</html>

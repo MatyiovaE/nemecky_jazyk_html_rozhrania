@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<title>Generátor skloňovania (singulár + plurál)</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f4f8;
+    padding: 20px;
+  }
+  h2 {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  /* vstupy: 2 stĺpce (sing., plur.) */
+  .inputs {
+    max-width: 600px;
+    margin: 0 auto 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .inputs .group-label {
+    grid-column: 1 / -1;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+  .inputs input {
+    width: 100%;
+    padding: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+
+  .buttons {
+    max-width: 600px;
+    margin: 0 auto 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  .buttons button {
+    padding: 10px 14px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+ /* tabuľka: 3 stĺpce */
+table {
+  border-collapse: collapse;
+  margin: 0 auto;
+  width: 50%;
+  height: 60px;
+  table-layout: fixed;    /* zafixuje šírky stĺpcov podľa nasledujúcich pravidiel */
+}
+
+th, td {
+  border: 2px solid #ccc;
+  text-align: center;
+  padding: 2px;
+  font-size: 16px;
+}
+
+th {
+  background-color: white;
+  font-weight: normal;
+}
+
+.white-cell {
+    background-color: white;
+    color: black;
+	font-size: 15px;
+    font-weight: normal;
+  }
+
+/* 1. stĺpec: „pád“ – širší */
+#exerciseTable th:nth-child(1),
+#exerciseTable td:nth-child(1) {
+  width: 150px;
+}
+
+/* 2. stĺpec: singulár */
+#exerciseTable th:nth-child(2),
+#exerciseTable td:nth-child(2) {
+  width: 170px;
+}
+
+/* 3. stĺpec: plurál */
+#exerciseTable th:nth-child(3),
+#exerciseTable td:nth-child(3) {
+  width: 170px;
+}
+
+
+  /* farby podľa pádu */
+  .white   { background-color: white; }  /* N - Sing. */
+  .lightgray   { background-color: #d3d3d3; }  /* N - Pl. */
+  .lightpurple { background-color: #dda0dd; }  /* G */
+  .lightorange { background-color: #ffd580; }  /* D */
+  .darkgreen   { background-color: #3cb371; }  /* A */
+  .lightbrown  { background-color: #deb887; }  /* L */
+  .wheat       { background-color: #fdedce; }  /* I */
+
+  td[data-answer] {
+    font-size: 20px;
+	cursor: pointer;
+    user-select: none;
+    font-weight: bold;
+  }
+
+  .bank {
+    text-align: center;
+    margin: 20px 0;
+  }
+  .bank-item {
+    display: inline-block;
+    padding: 5px 10px;
+	font-size: 18px;
+    margin: 4px;
+    background: #eef;
+    border: 1px solid #99c;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .correct { box-shadow: inset 0 0 0 2px green; }
+  .incorrect { box-shadow: inset 0 0 0 2px red; }
+  .selected { outline: 2px dashed #333; }
+
+  .score {
+    text-align: center;
+    font-size: 18px;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<h2>Skloňovanie – singulár a plurál</h2>
+
+<!-- vstupy -->
+<div class="inputs">
+  <div class="group-label">Nominatív (N)</div>
+  <input id="n_sing" type="text" placeholder="N – sing.">
+  <input id="n_plur" type="text" placeholder="N – plur.">
+
+  <div class="group-label">Genitív (G)</div>
+  <input id="g_sing" type="text" placeholder="G – sing.">
+  <input id="g_plur" type="text" placeholder="G – plur.">
+
+  <div class="group-label">Datív (D)</div>
+  <input id="d_sing" type="text" placeholder="D – sing.">
+  <input id="d_plur" type="text" placeholder="D – plur.">
+
+  <div class="group-label">Akuzatív (A)</div>
+  <input id="a_sing" type="text" placeholder="A – sing.">
+  <input id="a_plur" type="text" placeholder="A – plur.">
+
+  <div class="group-label">Lokál (L)</div>
+  <input id="l_sing" type="text" placeholder="L – sing.">
+  <input id="l_plur" type="text" placeholder="L – plur.">
+
+  <div class="group-label">Inštrumentál (I)</div>
+  <input id="i_sing" type="text" placeholder="I – sing.">
+  <input id="i_plur" type="text" placeholder="I – plur.">
+</div>
+
+<!-- ovládacie tlačidlá -->
+<div class="buttons">
+  <button id="btnGenerate">Generovať cvičenie</button>
+  <button id="btnCheck">Vyhodnotiť</button>
+  <button id="btnReset">Reset</button>
+  <button id="btnClearStorage">Vymazať uložené údaje</button>
+</div>
+
+<div style="text-align:center; margin-bottom: 16px;">
+  <p>Rozmiestni jednotlivé položky do buniek podľa pokynov.<br>
+  Ak chceš svoje rozhodnutie zmeniť, klikni na danú bunku dvakrát a potom pokračuj v priraďovaní.<br>
+  Po ukončení klikni na tlačidlo "Vyhodnotiť".</p>
+  <p><strong>Krok 1:</strong> Klikni na bunku.<br>
+     <strong>Krok 2:</strong> Klikni na položku pod tabuľkou.</p>
+</div>
+<!-- tabuľka -->
+<table id="exerciseTable">
+  <tr>
+    <th>pád</th>
+    <th><strong>singulár</strong></th>
+    <th><strong>plurál</strong></th>
+  </tr>
+  <tr>
+    <td class="white-cell"><strong>nominatív</strong><br>Kto? Čo?<br>(... je to?)</td>
+    <td class="white"   data-key="n_sing" data-answer=""></td>
+    <td class="lightgray"   data-key="n_plur" data-answer=""></td>
+  </tr>
+  <tr>
+    <td class="white-cell"><strong>genitív</strong><br>Koho? Čoho?<br>(Bez/Od ...?)</td>
+    <td class="lightpurple" data-key="g_sing" data-answer=""></td>
+    <td class="lightpurple" data-key="g_plur" data-answer=""></td>
+  </tr>
+  <tr>
+    <td class="white-cell"><strong>datív</strong><br>Komu? Čomu?<br>(... to dám?)</td>
+    <td class="lightorange" data-key="d_sing" data-answer=""></td>
+    <td class="lightorange" data-key="d_plur" data-answer=""></td>
+  </tr>
+  <tr>
+    <td class="white-cell"><strong>akuzatív</strong><br>Koho? Čo?<br>(... vidím?)</td>
+    <td class="darkgreen"   data-key="a_sing" data-answer=""></td>
+    <td class="darkgreen"   data-key="a_plur" data-answer=""></td>
+  </tr>
+  <tr>
+    <td class="white-cell"><strong>lokál</strong><br>O kom? O čom?<br>(... píšem?)</td>
+    <td class="lightbrown"  data-key="l_sing" data-answer=""></td>
+    <td class="lightbrown"  data-key="l_plur" data-answer=""></td>
+  </tr>
+  <tr>
+    <td class="white-cell"><strong>inštrumentál</strong><br>S kým? S čím?<br>(... sa hrám?)</td>
+    <td class="wheat"       data-key="i_sing" data-answer=""></td>
+    <td class="wheat"       data-key="i_plur" data-answer=""></td>
+  </tr>
+</table>
+
+<div class="bank" id="bank"></div>
+<div class="score" id="score"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const table = document.getElementById('exerciseTable');
+  const bank = document.getElementById('bank');
+  const scoreEl = document.getElementById('score');
+  const btnGenerate = document.getElementById('btnGenerate');
+  const btnCheck    = document.getElementById('btnCheck');
+  const btnReset    = document.getElementById('btnReset');
+  const btnClear    = document.getElementById('btnClearStorage');
+  const inputs      = Array.from(document.querySelectorAll('.inputs input'));
+
+  let selectedCell = null;
+
+  // vyber bunku
+  table.addEventListener('click', e => {
+    if (e.target.tagName === 'TD' && e.target.dataset.key) {
+      table.querySelectorAll('td').forEach(td => td.classList.remove('selected'));
+      selectedCell = e.target;
+      selectedCell.classList.add('selected');
+    }
+  });
+
+  // dvojklik – vráti slovo do banky
+  table.addEventListener('dblclick', e => {
+    if (e.target.tagName==='TD' && e.target.dataset.key && e.target.textContent.trim()) {
+      const word = e.target.textContent;
+      e.target.textContent = '';
+      e.target.classList.remove('correct','incorrect','selected');
+      const span = document.createElement('span');
+      span.className = 'bank-item';
+      span.textContent = word;
+      bank.appendChild(span);
+    }
+  });
+
+  // klik na banku – vloženie do bunky
+  bank.addEventListener('click', e => {
+    if (e.target.classList.contains('bank-item') && selectedCell && !selectedCell.textContent.trim()) {
+      selectedCell.textContent = e.target.textContent;
+      e.target.remove();
+      selectedCell.classList.remove('selected');
+      selectedCell = null;
+    }
+  });
+
+  // generovanie cvičenia
+  btnGenerate.addEventListener('click', () => {
+    bank.innerHTML = '';
+    scoreEl.textContent = '';
+    table.querySelectorAll('td[data-key]').forEach(td => {
+      td.textContent = '';
+      td.dataset.answer = document.getElementById(td.dataset.key).value.trim();
+      td.classList.remove('correct','incorrect','selected');
+    });
+    // zozbieraj všetky vstupy
+    const words = inputs
+      .map(i => i.value.trim())
+      .filter(v => v);
+    // premiešaj
+    for (let i = words.length-1; i>0; i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      [words[i], words[j]] = [words[j], words[i]];
+    }
+    // vlož do banky
+    words.forEach(w => {
+      const span = document.createElement('span');
+      span.className = 'bank-item';
+      span.textContent = w;
+      bank.appendChild(span);
+    });
+  });
+
+  // vyhodnotenie
+  btnCheck.addEventListener('click', () => {
+    let correct = 0, total = 0;
+    table.querySelectorAll('td[data-key]').forEach(td => {
+      total++;
+      td.classList.remove('correct','incorrect');
+      if (td.textContent.trim() === td.dataset.answer) {
+        td.classList.add('correct');
+        correct++;
+      } else {
+        td.classList.add('incorrect');
+      }
+    });
+    const pct = total ? (correct/total*100).toFixed(1) : 0;
+    scoreEl.textContent = `Skóre: ${correct} / ${total} (${pct} %)`;
+    scoreEl.style.color = pct>=80 ? 'green' : pct>=50 ? 'orange' : 'red';
+  });
+
+  // reset
+  btnReset.addEventListener('click', () => {
+    bank.innerHTML = '';
+    scoreEl.textContent = '';
+    table.querySelectorAll('td[data-key]').forEach(td => {
+      if (td.textContent.trim()) {
+        const span = document.createElement('span');
+        span.className = 'bank-item';
+        span.textContent = td.textContent;
+        bank.appendChild(span);
+      }
+      td.textContent = '';
+      td.classList.remove('correct','incorrect','selected');
+    });
+  });
+
+  // localStorage pre vstupy
+  inputs.forEach(i => {
+    const saved = localStorage.getItem(i.id);
+    if (saved) i.value = saved;
+    i.addEventListener('input', ()=> localStorage.setItem(i.id, i.value));
+  });
+
+  btnClear.addEventListener('click', () => {
+    inputs.forEach(i => {
+      localStorage.removeItem(i.id);
+      i.value = '';
+    });
+    alert('Uložené údaje boli vymazané.');
+  });
+});
+</script>
+
+</body>
+</html>

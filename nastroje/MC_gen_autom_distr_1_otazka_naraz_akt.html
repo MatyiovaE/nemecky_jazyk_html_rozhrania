@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor MC testu - automatické distraktory</title>
+  <style>
+    body { font-family: 'Monaco', monospace; font-size: 120%; padding: 20px; background-color: #fafafa; }
+    textarea { width: 100%; box-sizing: border-box; border: 1px solid #aaa; padding: 10px; font-family: inherit; }
+    input[type="text"], input[type="number"] { padding: 5px; font-size: 100%; border: 1px solid #aaa; }
+    button { cursor: pointer; padding: 10px 20px; font-size: 100%; font-weight: bold; margin-top: 10px; margin-right: 10px; border-radius: 5px; border: 1px solid #888; background: #e0e0e0; }
+    button:hover { background: #d0d0d0; }
+    
+    .primary-btn { background-color: #4CAF50; color: white; border: none; }
+    .primary-btn:hover { background-color: #45a049; }
+    
+    .project-btn { background-color: #2196F3; color: white; border: none; }
+    .project-btn:hover { background-color: #0b7dda; }
+
+    .settings-group {
+        background-color: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .action-bar { margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    
+    .advanced-section {
+        display: none; background-color: #fff3cd; border: 1px solid #ffeeba; padding: 15px; margin-top: 15px; border-radius: 5px;
+    }
+    
+    h1, h2, h3 { font-family: 'Monaco', monospace; }
+    
+    .divider { border-right: 2px solid #ccc; margin: 0 10px; height: 30px; }
+  </style>
+</head>
+<body>
+
+<h1>Generátor MC testu: automatické distraktory v skupinách</h1>
+  
+  <div class="settings-group">
+      <h2>1. Vstupné údaje a projekt</h2>
+      <p style="font-family: Monaco, monospace; font-size: 0.9em; background: #e8f5e9; padding: 10px; border-radius: 5px;">
+          <strong>Formát:</strong> Pojem[TAB]Definícia<br>
+          <strong>Skupiny:</strong> Oddeľte skupiny zadaní jedným prázdnym riadkom, aby sa distraktory nemiešali.
+      </p>
+      
+      <div class="action-bar">
+          <button class="project-btn" onclick="saveProject()">💾 Uložiť celý projekt (.json)</button>
+          <button class="project-btn" onclick="document.getElementById('importProjectFile').click()">📂 Načítať projekt (.json)</button>
+          <input type="file" id="importProjectFile" style="display:none" onchange="loadProject(this)">
+          
+          <div class="divider"></div>
+
+          <button onclick="exportData()" style="font-size: 0.9em;">⬇️ Uložiť len text (TXT)</button>
+          <button onclick="document.getElementById('importFile').click()" style="font-size: 0.9em;">⬆️ Načítať len text (TXT)</button>
+          <input type="file" id="importFile" style="display:none" onchange="importData(this)">
+      </div>
+
+      <textarea id="inputData" rows="15" placeholder="pes[TAB]Hund&#10;mačka[TAB]Katze&#10;myš[TAB]Maus&#10;hus[TAB]Gans&#10;&#10;pero[TAB]Kugelschreiber&#10;pravítko[TAB]Lineal&#10;nožnice[TAB]Schere&#10;ceruzka[TAB]Bleistift" style="font-size: 122%;"></textarea>
+  </div>
+
+  <div class="settings-group">
+      <h2>2. Nastavenia testu</h2>
+      <b>Autor:</b> <input type="text" id="testAuthor" placeholder="Meno učiteľa" style="width:300px;"><br><br>
+      <b>Rok:</b> <input type="text" id="testYear" value="2026" style="width:100px;"><br><br>
+      <b>Názov testu:</b> <input type="text" id="testTitle" placeholder="Názov testu" style="width:400px;"><br><br>
+      
+      <b>Pokyn pre žiaka:</b> <input type="text" id="testInstruction" value="Zvoľ správny preklad." style="width:400px;" placeholder="Napr. Zvoľ správny preklad"><br><br>
+      
+      <button class="primary-btn" onclick="saveTestAsHTML()">Uložiť test ako HTML</button>
+  </div>
+
+  <button onclick="toggleAdvanced()" style="font-size: 0.9em;">🔧 Pre pokročilých</button>
+  
+  <div id="advancedArea" class="advanced-section">
+      <h3>Rozšírená správa databázy</h3>
+      <p style="font-family: Monaco, monospace; font-size: 0.9em;">Uloženie databázy pre neskoršie doplnenie do iného testu (iba dáta).</p>
+      <button onclick="saveDatabaseForExtension()">Uložiť databázu (.json)</button>
+  </div>
+
+<script>
+// --- LOGIKA GENERÁTORA ---
+
+function normalizeFilename(text) {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9-_ ]/g, "").replace(/\s+/g, "_"); 
+}
+
+function toggleAdvanced() {
+    const el = document.getElementById('advancedArea');
+    el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+}
+
+function parseInputData() {
+    const raw = document.getElementById("inputData").value.trim();
+    if (!raw) return [];
+    
+    // Rozdelíme text podľa prázdnych riadkov pre skupiny
+    const groups = raw.split(/\n\s*\n/);
+    
+    let allQuestions = [];
+    
+    groups.forEach((groupText, groupIndex) => {
+        const lines = groupText.split("\n");
+        lines.forEach(line => {
+            const parts = line.split("\t");
+            if (parts.length >= 2 && parts[0].trim() !== "" && parts[1].trim() !== "") {
+                allQuestions.push({ 
+                    term: parts[0].trim(), 
+                    correct: parts[1].trim(),
+                    group: groupIndex 
+                });
+            }
+        });
+    });
+    
+    return allQuestions;
+}
+
+// --- NOVÁ FUNKCIONALITA: SPRÁVA PROJEKTU (JSON) ---
+function saveProject() {
+    const projectData = {
+        title: document.getElementById("testTitle").value,
+        author: document.getElementById("testAuthor").value,
+        year: document.getElementById("testYear").value,
+        instruction: document.getElementById("testInstruction").value, // Uloženie pokynu
+        content: document.getElementById("inputData").value
+    };
+    
+    const name = projectData.title.trim() || "projekt";
+    const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = normalizeFilename(name) + "_projekt.json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function loadProject(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            // 1. Skúsime prečítať JSON
+            const data = JSON.parse(e.target.result);
+
+            // 2. Overíme, či nejde o databázový súbor (pole []) namiesto projektu
+            if (Array.isArray(data)) {
+                throw new Error("Tento súbor vyzerá ako databáza otázok, nie ako súbor projektu. Skúste použiť Import v sekcii 'Pre pokročilých' alebo uložte celý projekt.");
+            }
+
+            // 3. Načítanie hodnôt do formulára (ak existujú)
+            if(data.title !== undefined) document.getElementById("testTitle").value = data.title;
+            if(data.author !== undefined) document.getElementById("testAuthor").value = data.author;
+            if(data.year !== undefined) document.getElementById("testYear").value = data.year;
+            if(data.instruction !== undefined) document.getElementById("testInstruction").value = data.instruction; // Načítanie pokynu
+            if(data.content !== undefined) document.getElementById("inputData").value = data.content;
+            
+            // 4. Pokus o uloženie do localStorage (v oddelenom bloku, aby nezastavil skript)
+            try {
+                localStorage.setItem("inputData", data.content || "");
+            } catch(storageErr) {
+                console.warn("Nepodarilo sa aktualizovať pamäť prehliadača (localStorage), ale projekt bol načítaný.", storageErr);
+            }
+
+        } catch(err) {
+            alert("Chyba pri načítaní: " + err.message);
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    input.value = "";
+}
+// --------------------------------------------------
+
+// Pôvodný Export / Import TXT (len textové pole)
+function exportData() {
+    const data = document.getElementById("inputData").value;
+    if (!data.trim()) { alert("Žiadne dáta."); return; }
+    const blob = new Blob([data], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "vstup_text.txt";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+function importData(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) { document.getElementById("inputData").value = e.target.result; };
+    reader.readAsText(file);
+    input.value = ""; 
+}
+
+// Export JSON DB (pokročilé)
+function saveDatabaseForExtension() {
+    const questions = parseInputData();
+    if (questions.length === 0) { alert("Chýbajú dáta."); return; }
+    const name = document.getElementById("testTitle").value.trim() || "databaza";
+    const blob = new Blob([JSON.stringify(questions, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = normalizeFilename(name) + "_db.json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// --- HLAVNÉ GENEROVANIE HTML ---
+function saveTestAsHTML() {
+  const title = document.getElementById("testTitle").value.trim() || "Test";
+  const author = document.getElementById("testAuthor").value.trim();
+  const year = document.getElementById("testYear").value.trim();
+  const instruction = document.getElementById("testInstruction").value.trim(); // Získanie pokynu
+  const questions = parseInputData();
+
+  if (questions.length < 4) {
+      if(!confirm("Máte menej ako 4 otázky celkovo. Generovanie náhodných odpovedí nemusí fungovať správne. Pokračovať?")) return;
+  }
+
+  const jsonQ = JSON.stringify(questions);
+  // Pridanie inštrukcie do metadát
+  const jsonMeta = JSON.stringify({ title, author, year, instruction });
+
+  let html = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}</title>
+<style>
+  body { font-family: 'Monaco', monospace; background: #fdfdfd; color: #333; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; }
+  body.dark { background: #1a1a1a; color: #f0f0f0; }
+  .top-bar { background: rgba(0,0,0,0.05); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+  button { cursor: pointer; }
+  #themeBtn { padding: 5px 10px; border: none; background: #ccc; border-radius: 4px; }
+  .container { max-width: 800px; margin: 0 auto; padding: 20px; flex: 1; display: flex; flex-direction: column; }
+  
+  /* Start Screen */
+  #startScreen { text-align: center; margin-top: 40px; }
+  input.inp { padding: 10px; width: 80%; max-width: 300px; margin: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 5px; }
+  #btnStart { background: #4CAF50; color: white; border: none; padding: 15px 40px; font-size: 1.2rem; border-radius: 50px; margin-top: 20px; }
+  #btnStart:hover { transform: scale(1.05); }
+
+  /* Quiz Screen */
+  #quizScreen { display: none; flex-direction: column; height: 100%; }
+  .q-box { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; min-height: 20vh; margin-bottom: 20px; }
+  .q-inst { color: #666; font-style: italic; margin-bottom: 15px; font-size: 1.1rem; }
+  .q-num { color: #888; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 10px; }
+  .q-txt { font-size: 1.8rem; font-weight: bold; }
+  
+.opts { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 15px; 
+  width: 100%; 
+  max-width: 1550px; 
+  margin: 0 auto; 
+}
+  @media(max-width:600px){ .opts { grid-template-columns: 1fr; } }
+  
+  .opt-btn { 
+    background: #fff; 
+    border: 2px solid #ddd; 
+    padding: 25px 10px;
+	font-family: 'Monaco', monospace;
+    font-size: 1.4rem;
+    border-radius: 8px; 
+    color: #333; 
+    transition: 0.2s; 
+	width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 100px;
+  word-wrap: break-word; 
+  overflow-wrap: anywhere; 
+  white-space: normal;
+  line-height: 1.2;
+  }
+  body.dark .opt-btn { background: #333; border-color: #555; color: #fff; }
+  .opt-btn:hover { background: #eee; }
+  body.dark .opt-btn:hover { background: #444; }
+  .opt-btn.sel { background: #e3f2fd; border-color: #2196F3; color: #1565c0; font-weight: bold; }
+  body.dark .opt-btn.sel { background: #1a3b5c; border-color: #4dabf5; color: #fff; }
+
+  /* Nav */
+  .nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin-top: 20px; }
+  
+  .nav-btn { 
+    width: 30px; 
+    height: 30px; 
+    border: 1px solid #ccc; 
+    background: #eee; 
+    border-radius: 4px; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  body.dark .nav-btn { color: #000; }
+  .nav-btn.done { background: #b3e5fc; border-color: #81d4fa; }
+  .nav-btn.act { border: 2px solid #333; transform: scale(1.15); font-weight: bold; }
+  body.dark .nav-btn.act { border-color: #fff; }
+
+  #btnEval { display: none; margin: 20px auto; background: #28a745; color: white; border: none; padding: 15px 40px; font-size: 1.2rem; border-radius: 5px; }
+
+  /* Results */
+  #resScreen { display: none; text-align: center; padding: 20px; }
+  .score-big { font-size: 3rem; margin: 20px; font-weight: bold; }
+  .good { color: green; } .bad { color: red; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left; }
+  th, td { border: 1px solid #aaa; padding: 8px; }
+  .wrong-ans { text-decoration: line-through; color: red; }
+  .right-ans { color: green; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div><strong>${title}</strong>, ${author} ${year}</div>
+  <button id="themeBtn" onclick="toggleTheme()">Tmavý režim</button>
+</div>
+
+<div class="container">
+  <div id="startScreen">
+    <h1>Vitajte v teste</h1>
+    <input type="text" id="pName" class="inp" placeholder="Vaše meno">
+    <br>
+    <label>Počet otázok (max <span id="maxQ"></span>): </label>
+    <input type="number" id="pCount" class="inp" style="width: 60px;" min="1" value="1">
+    <br>
+    <button id="btnStart" onclick="startTest()">Spustiť test</button>
+  </div>
+
+  <div id="quizScreen">
+    <div class="q-box">
+      <div class="q-inst" id="qInst"></div>
+      <div class="q-num" id="qNum"></div>
+      <div class="q-txt" id="qTxt"></div>
+    </div>
+    <div class="opts" id="optsBox"></div>
+    <div class="nav" id="navBox"></div>
+    <button id="btnEval" onclick="evalTest()">Vyhodnotiť test</button>
+  </div>
+
+  <div id="resScreen"></div>
+</div>
+
+<script>
+// DATA INJECTED BY GENERATOR
+var DB = ${jsonQ};
+var META = ${jsonMeta};
+
+var testData = [];
+var currIdx = 0;
+var result = { name: '', score: 0 };
+
+// Init
+window.onload = function() {
+  document.getElementById('maxQ').innerText = DB.length;
+  document.getElementById('pCount').max = DB.length;
+  document.getElementById('pCount').value = DB.length;
+};
+
+function toggleTheme() {
+  document.body.classList.toggle('dark');
+}
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+function startTest() {
+  var name = document.getElementById('pName').value.trim();
+  result.name = name || 'Anonym';
+  var cnt = parseInt(document.getElementById('pCount').value);
+  if (cnt < 1) cnt = 1;
+  if (cnt > DB.length) cnt = DB.length;
+
+  // Prepare questions
+  var picked = shuffle([...DB]).slice(0, cnt);
+  
+  // Generate distractors WITH GROUP LOGIC
+  testData = picked.map(q => {
+    var sameGroupItems = DB.filter(item => item.group === q.group);
+    var others = sameGroupItems
+                   .filter(x => x.correct !== q.correct)
+                   .map(x => x.correct);
+    var uniqueOthers = [...new Set(others)];
+    var dist = shuffle(uniqueOthers).slice(0, 3);
+    var options = shuffle([q.correct, ...dist]);
+    return {
+      term: q.term,
+      correct: q.correct,
+      opts: options,
+      userAns: null
+    };
+  });
+
+  // UI switch
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('quizScreen').style.display = 'flex';
+  
+  loadQ(0);
+}
+
+function loadQ(idx) {
+  currIdx = idx;
+  var q = testData[idx];
+  
+  // Vloženie pokynu pre žiaka
+  document.getElementById('qInst').innerText = META.instruction;
+  
+  document.getElementById('qNum').innerText = 'Otázka ' + (idx+1) + ' / ' + testData.length;
+  document.getElementById('qTxt').innerText = q.term;
+  
+  var box = document.getElementById('optsBox');
+  box.innerHTML = '';
+  q.opts.forEach(opt => {
+    var btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    if (q.userAns === opt) btn.classList.add('sel');
+    btn.innerText = opt;
+    btn.onclick = function() { setAns(opt); };
+    box.appendChild(btn);
+  });
+  
+  renderNav();
+  document.getElementById('btnEval').style.display = (idx === testData.length - 1) ? 'block' : 'none';
+}
+
+function setAns(ans) {
+  testData[currIdx].userAns = ans;
+  loadQ(currIdx);
+}
+
+function renderNav() {
+  var box = document.getElementById('navBox');
+  box.innerHTML = '';
+  testData.forEach((q, i) => {
+    var b = document.createElement('div');
+    b.className = 'nav-btn';
+    if (q.userAns) b.classList.add('done');
+    if (i === currIdx) b.classList.add('act');
+    b.innerText = i + 1;
+    b.onclick = function() { loadQ(i); };
+    box.appendChild(b);
+  });
+}
+
+function evalTest() {
+  var score = 0;
+  testData.forEach(q => { if (q.userAns === q.correct) score++; });
+  result.score = score;
+  
+  document.getElementById('quizScreen').style.display = 'none';
+  var resDiv = document.getElementById('resScreen');
+  resDiv.style.display = 'block';
+  
+  var percent = Math.round((score / testData.length) * 100);
+  var colorClass = percent >= 50 ? 'good' : 'bad';
+  
+  var html = '<h2>Výsledky testu</h2>';
+  html += '<div class="score-big ' + colorClass + '">' + percent + '%</div>';
+  html += '<p>Meno: <b>' + result.name + '</b></p>';
+  html += '<p>Body: ' + score + ' / ' + testData.length + '</p>';
+  html += '<p>Dátum: ' + new Date().toLocaleString() + '</p>';
+  html += '<button onclick="showDetails()" style="background:#008CBA; color:white; padding:10px; border:none; border-radius:5px;">Zobraziť odpovede</button>';
+  html += '<br><br><button onclick="location.reload()" style="background:#666; color:white; padding:10px; border:none; border-radius:5px;">Spustiť znova</button>';
+  
+  resDiv.innerHTML = html;
+}
+
+function showDetails() {
+  var w = window.open('', '_blank');
+  var rows = '';
+  var now = new Date().toLocaleString('sk-SK'); 
+  testData.forEach((q, i) => {
+    var status = '';
+    var uVal = '';
+    
+    if (q.userAns === q.correct) {
+      status = '✅';
+      uVal = '<span class="right-ans">' + q.userAns + '</span>';
+    } else if (q.userAns === null) {
+      status = '⚠️';
+      uVal = '(bez odpovede)';
+    } else {
+      status = '❌';
+      uVal = '<span class="wrong-ans">' + q.userAns + '</span>';
+    }
+    
+    rows += '<tr>';
+    rows += '<td><b>' + (i+1) + '. ' + q.term + '</b><br><small>Správne: ' + q.correct + '</small></td>';
+    rows += '<td>' + uVal + ' <span style="float:right; font-size:1.2em;">' + status + '</span></td>';
+    rows += '</tr>';
+  });
+
+  var page = '<html><head><title>Výsledky</title>';
+  page += '<style>body{font-family:sans-serif; padding:20px;} table{width:100%; border-collapse:collapse;} td,th{border:1px solid #ccc; padding:10px;} .wrong-ans{text-decoration:line-through;color:red;} .right-ans{color:green;font-weight:bold;}</style>';
+  page += '</head><body>';
+  page += '<h2>Detailný prehľad: ' + META.title + '</h2>';
+  page += '<p>Žiak: ' + result.name + '</p>';
+  page += '<p>Dátum a čas: ' + now + '</p>';
+  page += '<table><thead><tr><th>Otázka</th><th>Vaša odpoveď</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  page += '<br><button onclick="window.print()">Vytlačiť</button>';
+  page += '</body></html>';
+  w.document.write(page);
+  w.document.close();
+}
+<\/script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = normalizeFilename(title) + ".html";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Tab support
+document.getElementById("inputData").addEventListener("keydown", function(e) {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    var s = this.selectionStart;
+    this.value = this.value.substring(0, this.selectionStart) + "\t" + this.value.substring(this.selectionEnd);
+    this.selectionEnd = s + 1; 
+  }
+});
+// LocalStorage
+if(localStorage.getItem("inputData")) document.getElementById("inputData").value = localStorage.getItem("inputData");
+document.getElementById("inputData").addEventListener("input", function(){ localStorage.setItem("inputData", this.value); });
+</script>
+
+<div style="margin-top:20px; text-align: center; opacity: 0.6; font-size: 0.8rem;">
+  Spracované pomocou UI | Mgr. Erika Matyiová (2025 - 2026)
+</div>
+
+</body>
+</html>

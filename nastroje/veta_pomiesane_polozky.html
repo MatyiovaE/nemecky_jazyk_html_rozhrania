@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Pomiešanie položiek vo vete</title>
+  <style>
+    body {
+      font-family: Courier bold, monospace;
+      margin: 30px;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      margin-bottom: 20px;
+      font-family: monospace;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+    #output {
+      white-space: pre-wrap;
+      background-color: #f0f0f0;
+      padding: 10px;
+      border: 1px solid #ccc;
+      height: 150px;
+      overflow-y: auto;
+    }
+    #copyStatus {
+      margin-top: 10px;
+      font-weight: bold;
+      color: green;
+      transition: opacity 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <h2>Pomiešanie položiek vo vete</h2>
+  <label for="input"><b>Zadajte vety (jednotlivé položky oddeľte klávesou TAB, každú vetu píšte na nový riadok):</b></label>
+  <div style="height: 5px;"></div>
+  <textarea id="input" placeholder="Hans[TAB]ist[TAB]16 Jahre[TAB]alt[TAB]."></textarea>
+  <br>
+  <button onclick="shuffleSentences()">Pomiešať</button>
+  <button onclick="copyToClipboard()">Kopírovať výstup</button>
+  <h3>Výstup:</h3>
+  <div id="output"></div>
+  <div id="copyStatus"></div>
+
+  <script>
+    // Umožni vloženie znaku TAB do textového poľa
+    document.getElementById('input').addEventListener('keydown', function(e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const textarea = this;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        textarea.value = textarea.value.substring(0, start) + '\t' + textarea.value.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + 1;
+      }
+    });
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function shuffleSentences() {
+      const inputText = document.getElementById('input').value;
+      const lines = inputText.split('\n');
+      const outputLines = lines.map(line => {
+        const items = line.split('\t').filter(item => item.trim() !== '');
+        const shuffled = shuffleArray(items);
+        return shuffled.join(' / ');
+      });
+      document.getElementById('output').textContent = outputLines.join('\n');
+      document.getElementById('copyStatus').textContent = '';
+    }
+
+    function copyToClipboard() {
+      const outputText = document.getElementById('output').textContent;
+      const status = document.getElementById('copyStatus');
+
+      if (!outputText.trim()) {
+        status.textContent = '⚠️ Nie je čo kopírovať.';
+        status.style.color = 'red';
+        fadeOutStatus();
+        return;
+      }
+
+      navigator.clipboard.writeText(outputText).then(() => {
+        status.textContent = '✅ Výstup bol skopírovaný do schránky.';
+        status.style.color = 'green';
+        fadeOutStatus();
+      }).catch(() => {
+        status.textContent = '❌ Nepodarilo sa skopírovať.';
+        status.style.color = 'red';
+        fadeOutStatus();
+      });
+    }
+
+    function fadeOutStatus() {
+      setTimeout(() => {
+        document.getElementById('copyStatus').textContent = '';
+      }, 3000);
+    }
+  </script>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

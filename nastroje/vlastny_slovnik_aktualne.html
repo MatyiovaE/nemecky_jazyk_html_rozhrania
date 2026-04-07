@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <title>Slovník pojmov – hromadné zadávanie s ozvučením</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --c1: #111827; --c2:#1f2937; --c3:#374151;
+      --b:#2563eb; --g:#10b981; --r:#ef4444; --y:#f59e0b;
+      --bg:#f8fafc; --bd:#e5e7eb; --tx:#111827;
+    }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--tx);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+    }
+    .wrap {
+      max-width: 1000px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 12px; }
+    h2 { font-size: 1.1rem; margin: 20px 0 8px; }
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    select, input, button, textarea {
+      font: inherit;
+    }
+    select, input, textarea {
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: white;
+    }
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      resize: vertical;
+      line-height: 1.4;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      background: var(--c3);
+      color: #fff;
+      cursor: pointer;
+    }
+    button.primary { background: var(--b); }
+    button.success { background: var(--g); }
+    button.warn    { background: var(--y); }
+    button.danger  { background: var(--r); }
+    button.ghost   { background: #fff; color: var(--c2); border: 1px solid var(--bd); }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 10px 0;
+    }
+    .hint {
+      color: #374151;
+      font-size: .9rem;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .table th, .table td {
+      padding: 10px;
+      border-bottom: 1px solid var(--bd);
+      vertical-align: top;
+    }
+    .table th {
+      background: #f3f4f6;
+      text-align: left;
+      font-weight: 600;
+    }
+    .empty {
+      padding: 14px;
+      color: #6b7280;
+      background: #fff;
+      border: 1px dashed var(--bd);
+      border-radius: 10px;
+    }
+    .spacer { flex: 1; }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: .85rem;
+    }
+    .file { display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Slovník pojmov – hromadné zadávanie s ozvučením</h1>
+
+    <div class="row">
+      <div>
+        <label for="categorySel"><strong>Kategória</strong></label><br/>
+        <select id="categorySel"></select>
+      </div>
+      <div>
+        <label for="newCat"><strong>Nová kategória</strong></label><br/>
+        <input id="newCat" type="text" placeholder="napr. 7. ročník" />
+      </div>
+      <div class="row">
+        <button class="success" id="addCatBtn">Pridať kategóriu</button>
+        <span class="pill" id="countPill">0 položiek</span>
+      </div>
+    </div>
+
+    <h2>Nastavenie jazyka pre čítanie</h2>
+    <div class="row">
+      <div>
+        <label for="langTerm">Pojem:</label><br/>
+        <select id="langTerm">
+          <option value="sk-SK">Slovenčina</option>
+          <option value="de-DE">Nemčina</option>
+          <option value="en-US">Angličtina</option>
+          <option value="fr-FR">Francúzština</option>
+          <option value="ru-RU">Ruština</option>
+        </select>
+      </div>
+      <div>
+        <label for="langDef">Definícia:</label><br/>
+        <select id="langDef">
+          <option value="sk-SK">Slovenčina</option>
+          <option value="de-DE">Nemčina</option>
+          <option value="en-US">Angličtina</option>
+          <option value="fr-FR">Francúzština</option>
+          <option value="ru-RU">Ruština</option>
+        </select>
+      </div>
+    </div>
+
+    <h2>Hromadné zadávanie</h2>
+    <p class="hint">
+      Formát: každý riadok obsahuje <strong>pojem[TAB]definícia</strong>. Stlačenie klávesy [TAB] vloží do poľa znak tabulátora.
+    </p>
+    <textarea id="bulkInput"
+      placeholder="pojem[TAB]definícia
+pojem2[TAB]definícia2"></textarea>
+    <div class="bar">
+      <button class="primary" id="saveBulkBtn">Uložiť do zoznamu</button>
+      <span class="spacer"></span>
+      <span class="hint">Obsah sa priebežne ukladá do prehliadača (localStorage).</span>
+    </div>
+
+    <h2>Zoznam položiek v kategórii</h2>
+    <div id="listWrap"></div>
+
+    <div class="bar">
+      <button class="ghost" id="genCatHtmlBtn">Vygenerovať HTML pre kategóriu</button>
+      <button class="ghost" id="genAllHtmlBtn">Vygenerovať HTML pre celý zoznam</button>
+      <button class="ghost" id="exportTxtBtn">Export .txt (všetky kategórie)</button>
+      <button class="ghost" id="genMatchCatBtn">Vygenerovať hru (táto kategória)</button>
+      <button class="ghost" id="genMatchAllBtn">Vygenerovať hru (všetky kategórie)</button>
+      <label class="file">
+        <input type="file" id="importTxtInput" accept=".txt" style="display:none">
+        <button class="warn" id="importTxtBtn">Import .txt</button>
+      </label>
+    </div>
+  </div>
+
+  <script>
+    const LS_ENTRIES_KEY = 'dictionaryEntriesV1';
+    const LS_RAW_KEY     = 'dictionaryBulkRawV1';
+    const LS_CATS_KEY    = 'dictionaryCategoriesV1';
+
+    let entries    = loadJSON(LS_ENTRIES_KEY, {});
+    let categories = loadJSON(LS_CATS_KEY, ['7. ročník','8. ročník','9. ročník']);
+    let currentCategory = categories[0];
+
+    function loadJSON(key, fallback){
+      try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
+      catch { return fallback; }
+    }
+    function saveJSON(key, value){
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+    function sortCategory(cat){
+      if(!entries[cat]) return;
+      entries[cat].sort((a,b)=>
+        a.term.localeCompare(b.term,'sk',{sensitivity:'base'})
+      );
+    }
+    function refreshCount(){
+      const cnt = (entries[currentCategory]||[]).length;
+      document.getElementById('countPill').textContent = `${cnt} položiek`;
+    }
+
+    const categorySel    = document.getElementById('categorySel');
+    const newCat         = document.getElementById('newCat');
+    const addCatBtn      = document.getElementById('addCatBtn');
+    const bulkInput      = document.getElementById('bulkInput');
+    const saveBulkBtn    = document.getElementById('saveBulkBtn');
+    const listWrap       = document.getElementById('listWrap');
+    const genCatHtmlBtn  = document.getElementById('genCatHtmlBtn');
+    const genAllHtmlBtn  = document.getElementById('genAllHtmlBtn');
+    const exportTxtBtn   = document.getElementById('exportTxtBtn');
+    const genMatchCatBtn = document.getElementById('genMatchCatBtn');
+    const genMatchAllBtn = document.getElementById('genMatchAllBtn');
+    const importTxtBtn   = document.getElementById('importTxtBtn');
+    const importTxtInput = document.getElementById('importTxtInput');
+    const langTermSel    = document.getElementById('langTerm');
+    const langDefSel     = document.getElementById('langDef');
+
+    function renderCategoryOptions(){
+      categorySel.innerHTML = '';
+      categories.forEach(cat=>{
+        const opt = document.createElement('option');
+        opt.value = cat; opt.textContent = cat;
+        if(cat===currentCategory) opt.selected = true;
+        categorySel.appendChild(opt);
+      });
+    }
+
+    bulkInput.addEventListener('keydown', e=>{
+      if(e.key==='Tab'){
+        e.preventDefault();
+        const s = bulkInput.selectionStart;
+        const e2 = bulkInput.selectionEnd;
+        const v = bulkInput.value;
+        bulkInput.value = v.slice(0,s)+'\t'+v.slice(e2);
+        bulkInput.selectionStart = bulkInput.selectionEnd = s+1;
+        saveRawDebounced();
+      }
+    });
+
+    const savedRaw = localStorage.getItem(LS_RAW_KEY);
+    if(savedRaw!=null) bulkInput.value = savedRaw;
+    let rawTimer;
+    function saveRawDebounced(){
+      clearTimeout(rawTimer);
+      rawTimer = setTimeout(()=> localStorage.setItem(LS_RAW_KEY, bulkInput.value), 200);
+    }
+    bulkInput.addEventListener('input', saveRawDebounced);
+
+    addCatBtn.addEventListener('click', ()=>{
+      const name = newCat.value.trim();
+      if(!name) return;
+      if(!categories.includes(name)){
+        categories.push(name);
+        saveJSON(LS_CATS_KEY, categories);
+        entries[name] = [];
+        saveJSON(LS_ENTRIES_KEY, entries);
+      }
+      currentCategory = name;
+      newCat.value = '';
+      renderCategoryOptions();
+      renderList();
+    });
+
+    categorySel.addEventListener('change', ()=>{
+      currentCategory = categorySel.value;
+      renderList();
+    });
+
+    saveBulkBtn.addEventListener('click', ()=>{
+      const lines = bulkInput.value.split(/\r?\n/);
+      if(!entries[currentCategory]) entries[currentCategory]=[];
+      const bucket = entries[currentCategory];
+      for(const raw of lines){
+        const line = raw.trim();
+        if(!line) continue;
+        const idx = line.indexOf('\t');
+        if(idx===-1) continue;
+        const term = line.slice(0,idx).trim();
+        const def  = line.slice(idx+1).trim();
+        if(term&&def) bucket.push({term,definition:def});
+      }
+      sortCategory(currentCategory);
+      saveJSON(LS_ENTRIES_KEY, entries);
+      renderList();
+    });
+
+    function renderList(){
+      refreshCount();
+      const data = entries[currentCategory]||[];
+      if(data.length===0){
+        listWrap.innerHTML = '<div class="empty">Zatiaľ žiadne položky.</div>';
+        return;
+      }
+      const table = document.createElement('table');
+      table.className='table';
+      table.innerHTML=`
+        <thead>
+          <tr><th style="width:28%">Pojem</th><th>Definícia</th><th style="width:160px">Akcie</th></tr>
+        </thead><tbody></tbody>`;
+      const tbody = table.querySelector('tbody');
+      data.forEach((item,idx)=>{
+        const tr = document.createElement('tr');
+        const termTd = document.createElement('td');
+        const defTd  = document.createElement('td');
+        const actTd  = document.createElement('td');
+        termTd.textContent = item.term;
+        defTd.textContent  = item.definition;
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Upraviť'; editBtn.className='ghost';
+        editBtn.addEventListener('click', ()=> startEditRow(tr, idx));
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Odstrániť'; delBtn.className='danger';
+        delBtn.addEventListener('click', ()=>{
+          entries[currentCategory].splice(idx,1);
+          saveJSON(LS_ENTRIES_KEY, entries);
+          renderList();
+        });
+        actTd.appendChild(editBtn);
+        actTd.appendChild(document.createTextNode(' '));
+        actTd.appendChild(delBtn);
+        tr.appendChild(termTd);
+        tr.appendChild(defTd);
+        tr.appendChild(actTd);
+        tbody.appendChild(tr);
+      });
+      listWrap.innerHTML='';
+      listWrap.appendChild(table);
+    }
+
+    function startEditRow(tr, idx){
+      const data = entries[currentCategory], item = data[idx];
+      tr.innerHTML = '';
+      const termInput = document.createElement('input');
+      termInput.type='text'; termInput.value=item.term; termInput.style.width='100%';
+      const defInput = document.createElement('textarea');
+      defInput.value=item.definition; defInput.style.width='100%'; defInput.rows=2;
+      const tdTerm = document.createElement('td'),
+            tdDef  = document.createElement('td'),
+            tdAct  = document.createElement('td');
+      tdTerm.appendChild(termInput);
+      tdDef.appendChild(defInput);
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent='Uložiť'; saveBtn.className='primary';
+      saveBtn.addEventListener('click', ()=>{
+        const t=termInput.value.trim(), d=defInput.value.trim();
+        if(!t||!d) return;
+        data[idx]={term:t,definition:d};
+        sortCategory(currentCategory);
+        saveJSON(LS_ENTRIES_KEY, entries);
+        renderList();
+      });
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent='Zrušiť'; cancelBtn.className='ghost';
+      cancelBtn.addEventListener('click', ()=> renderList());
+      tdAct.appendChild(saveBtn);
+      tdAct.appendChild(document.createTextNode(' '));
+      tdAct.appendChild(cancelBtn);
+      tr.appendChild(tdTerm);
+      tr.appendChild(tdDef);
+      tr.appendChild(tdAct);
+    }
+
+    function buildViewerHTML(payload, langTerm, langDef){
+      const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      return `<!DOCTYPE html>
+<html lang="sk"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(payload.title)}</title><style>
+  body{font-family:system-ui,sans-serif;margin:20px}
+  h1{font-size:1.3rem;margin-bottom:10px}
+  h2{font-size:1.05rem;margin:16px 0}
+  input{width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:12px}
+  .entry{padding:8px;border:1px solid #e5e7eb;border-radius:8px;margin:6px 0;background:#fff;cursor:pointer}
+  .term{font-weight:600}
+  .def{font-weight:600;color:#374151;margin-top:4px}
+  .icon{cursor:pointer;margin-left:6px;color:#2563eb}
+  .hidden{display:none}
+  .muted{color:#6b7280}
+</style></head><body>
+<h1>${esc(payload.title)}</h1>
+<input id="search" placeholder="Hľadať..." />
+<div id="container">
+${payload.sections.map(sec=>{
+  const items = sec.items.map(it=>`
+  <div class="entry" data-text="${esc((it.term+' '+it.definition).toLowerCase())}">
+    <div class="term">
+      ${esc(it.term)}
+      <span class="icon" onclick="speak('${esc(it.term)}','${langTerm}')">🔊</span>
+    </div>
+    <div class="def">
+      ${esc(it.definition)}
+      <span class="icon" onclick="speak('${esc(it.definition)}','${langDef}')">🔊</span>
+    </div>
+  </div>`).join('') || '<div class="muted">Žiadne položky</div>';
+  return `<h2>${esc(sec.category)}</h2>${items}`;
+}).join('')}
+</div><script>
+function speak(text,lang){
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang=lang; speechSynthesis.speak(u);
+}
+(function(){
+  const q = document.getElementById('search');
+  const entries = Array.from(document.querySelectorAll('.entry'));
+  const container = document.getElementById('container');
+
+  // Vytvorenie tlačidla "Späť"
+  const backBtn = document.createElement('button');
+  backBtn.textContent = 'Späť do slovníka';
+  backBtn.style = 'margin:12px 0;padding:8px 12px;border:none;background:#2563eb;color:white;border-radius:6px;cursor:pointer;display:none;';
+  backBtn.onclick = () => {
+    entries.forEach(e => e.style.display = '');
+    backBtn.style.display = 'none';
+  };
+  container.parentNode.insertBefore(backBtn, container.nextSibling);
+
+  // Vyhľadávanie
+  q.addEventListener('input', () => {
+    const s = q.value.trim().toLowerCase();
+    entries.forEach(e => e.style.display = s ? (e.getAttribute('data-text').includes(s) ? '' : 'none') : '');
+    backBtn.style.display = 'none';
+  });
+
+  // Kliknutie na položku
+  entries.forEach(e => e.addEventListener('click', () => {
+    entries.forEach(x => x.style.display = 'none');
+    e.style.display = '';
+    backBtn.style.display = 'inline-block';
+  }));
+})();
+<\/script></body></html>`;
+    }
+
+function buildMatchGameHTML(payload) {
+  const esc = s => s.replace(/[&<>"]/g, c => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'
+  })[c]);
+
+  return `<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${esc(payload.title)}</title>
+ <style>
+  /* 🌞 Svetlý režim – základné premenné */
+  :root {
+    --bg-color: #f8fafc;
+    --text-color: #111827;
+    --card-bg: #ffffff;
+    --card-border: #cccccc;
+    --active-bg: #e0efff;
+    --control-bg: #2563eb;
+  }
+
+  /* 🌙 Tmavý režim – základné premenné */
+  .dark-mode {
+    --bg-color: #0b2e07;
+    --text-color: #e0f4d7;
+    --card-bg: #062d08;
+    --card-border: #256402;
+    --active-bg: #2a6f07;
+    --control-bg: #1c4d03;
+  }
+
+  body {
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-height: 100vh;
+    box-sizing: border-box;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: monospace;
+  }
+
+  #controlsTop {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  #controlsTop button,
+  #controlsTop label {
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  #controlsTop button {
+    padding: 6px 10px;
+    background: var(--control-bg);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+  }
+
+  #timer {
+    font-weight: bold;
+    min-width: 60px;
+  }
+
+  #game {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 70%;
+    margin: 20px auto;
+  }
+
+  .card {
+    width: 90%;
+    aspect-ratio: 3/2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    background: var(--card-bg);
+    border: 3px solid var(--card-border);
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 1.4rem;
+    text-align: center;
+    white-space: normal;
+    word-break: break-word;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .card.term { }
+  .card.def  { font-weight: bold; }
+
+  /* Svetlý režim – aktívna karta */
+  .card.active {
+    border-color: var(--active-bg);
+    background: var(--active-bg);
+  }
+
+  /* Svetlý režim – nesprávny pár */
+  .card.wrong {
+    background: #fee2e2;
+    border-color: #ef4444;
+  }
+
+  .card.matched {
+    visibility: hidden;
+  }
+
+  /* 🌙 Tmavý režim – základné farby kariet */
+  .dark-mode .card.term {
+    background: #184515 !important;
+  }
+  .dark-mode .card.def {
+    background: var(--card-bg) !important;
+  }
+
+  /* 🌙 Tmavý režim – aktívna karta (pojem) */
+  .dark-mode .card.term.active {
+    background: #2e7d32 !important;
+    border-color: #81c784 !important;
+    color: #fff !important;
+  }
+
+  /* 🌙 Tmavý režim – aktívna karta (definícia) */
+  .dark-mode .card.def.active {
+    background: #146426 !important;
+    border-color: #64b5f6 !important;
+    color: #fff !important;
+  }
+
+  /* 🌙 Tmavý režim – nesprávny pár (pojem aj definícia) */
+  .dark-mode .card.term.wrong,
+  .dark-mode .card.def.wrong {
+    background: #ff4d4d !important;
+    border-color: #ff0000 !important;
+    color: #000 !important;
+  }
+
+  #controls {
+    width: 60%;
+    margin: 10px auto 0;
+  }
+  #controls button {
+    padding: 10px 14px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 6px;
+    background: var(--control-bg);
+    color: #fff;
+    cursor: pointer;
+  }
+#endMessage {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 4rem;
+    font-weight: bold;
+    color: var(--text-color);
+    background: var(--card-bg);
+    padding: 20px 30px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    z-index: 1000;
+    pointer-events: none;
+  }
+</style>
+
+</head>
+<body>
+  <h1>${esc(payload.title)}</h1>
+
+  <div id="controlsTop">
+    <button id="darkToggle">Tmavý režim</button>
+    <label><input type="checkbox" id="timerToggle"/> Časovač</label>
+    <span id="timer" style="display:none">00:00</span>
+    <label>Najlepší čas: <span id="bestTime">--:--</span></label>
+  </div>
+
+  <div id="game"></div>
+  <div id="endMessage"></div>
+
+  <div id="controls">
+    <button id="restart">Reštartovať hru</button>
+  </div>
+
+  <script>
+    const BEST_KEY = 'matchGameBestTime';
+    const bestTimeEl = document.getElementById('bestTime');
+    function loadBestTime() {
+      const v = localStorage.getItem(BEST_KEY);
+      return v !== null ? parseInt(v, 10) : null;
+    }
+    function saveBestTime(ms) {
+      localStorage.setItem(BEST_KEY, String(ms));
+      bestTimeEl.textContent = formatTime(ms);
+    }
+    function formatTime(ms) {
+      const totalSec = Math.floor(ms/1000);
+      const m = Math.floor(totalSec/60);
+      const s = totalSec % 60;
+      return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    }
+    function initBestTimeDisplay() {
+      const bt = loadBestTime();
+      bestTimeEl.textContent = bt !== null ? formatTime(bt) : '--:--';
+    }
+
+    const darkToggle = document.getElementById('darkToggle');
+    darkToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      darkToggle.textContent = document.body.classList.contains('dark-mode')
+        ? 'Svetlý režim' : 'Tmavý režim';
+    });
+
+    const timerToggle = document.getElementById('timerToggle');
+    const timerEl = document.getElementById('timer');
+    let timerInterval, startTime;
+    timerToggle.addEventListener('change', e => {
+      if (e.target.checked) {
+        timerEl.style.display = '';
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 500);
+      } else {
+        clearInterval(timerInterval);
+        timerEl.style.display = 'none';
+      }
+    });
+    function updateTimer() {
+      const diff = Date.now() - startTime;
+      const s = Math.floor(diff / 1000);
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      timerEl.textContent =
+        String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+    }
+
+    const ALL_ITEMS = ${JSON.stringify(payload.items)};
+    function shuffle(a) {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    let firstCard = null, secondCard = null;
+    function startGame() {
+      const msgEl = document.getElementById('endMessage');
+      msgEl.textContent = '';
+      msgEl.style.display = 'none';
+
+      if (timerToggle.checked) {
+        clearInterval(timerInterval);
+        startTime = Date.now();
+        timerEl.textContent = '00:00';
+        timerInterval = setInterval(updateTimer, 500);
+      }
+
+      firstCard = secondCard = null;
+      const pool = shuffle(ALL_ITEMS.slice());
+      const pick = pool.slice(0, Math.min(6, pool.length));
+      const cards = shuffle(pick.flatMap((it, idx) => [
+        { pairId: idx, text: it.term, type: 'term' },
+        { pairId: idx, text: it.definition, type: 'def' }
+      ]));
+
+      const gameEl = document.getElementById('game');
+      gameEl.innerHTML = '';
+      cards.forEach(c => {
+        const d = document.createElement('div');
+        d.className = 'card ' + c.type;
+        d.textContent = c.text;
+        d.dataset.pairId = c.pairId;
+        d.addEventListener('click', () => onCardClick(d));
+        gameEl.appendChild(d);
+      });
+    }
+
+    function onCardClick(el) {
+      if (el.classList.contains('matched') || el.classList.contains('active')) return;
+      el.classList.add('active');
+      if (!firstCard) {
+        firstCard = el;
+        return;
+      }
+      secondCard = el;
+      const isMatch = firstCard.dataset.pairId === secondCard.dataset.pairId;
+      if (isMatch) {
+        firstCard.classList.add('matched');
+        secondCard.classList.add('matched');
+        firstCard.classList.remove('active');
+        secondCard.classList.remove('active');
+        resetSelection();
+        checkEnd();
+      } else {
+        firstCard.classList.add('wrong');
+        secondCard.classList.add('wrong');
+        setTimeout(() => {
+          firstCard.classList.remove('wrong','active');
+          secondCard.classList.remove('wrong','active');
+          resetSelection();
+        }, 500);
+      }
+    }
+
+    function resetSelection() {
+      firstCard = secondCard = null;
+    }
+
+    function checkEnd() {
+      if (!document.querySelector('.card:not(.matched)')) {
+        if (timerToggle.checked) {
+          const elapsed = Date.now() - startTime;
+          const best = loadBestTime();
+          if (best === null || elapsed < best) {
+            saveBestTime(elapsed);
+          }
+        }
+        clearInterval(timerInterval);
+
+        const messages = [
+          "Super! 🙂",
+          "Úžasné! 🙂",
+          "Výborne, len tak ďalej! 🙂",
+          "Kto vie, ten vie 🙂",
+          "To je ono, si veľmi šikovný/šikovná 🙂",
+          "Cvičenie robí majstra 🙂",
+		  "Klobúk dole! 🙂",
+		  "Paráda! 🙂",
+		  "Výborná práca! 🙂",
+          "Zaslúžiš si čokoládu 🙂"
+        ];
+        const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+        const msgEl = document.getElementById('endMessage');
+        msgEl.textContent = randomMsg;
+        msgEl.style.display = 'block';
+      }
+    }
+
+    document.getElementById('restart').addEventListener('click', startGame);
+    window.addEventListener('DOMContentLoaded', () => {
+      initBestTimeDisplay();
+      startGame();
+    });
+  <\/script>
+</body>
+</html>`;
+}
+
+    function downloadFile(filename, content, mime='text/plain'){
+      const blob = new Blob([content], { type: mime });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportTxt(){
+      let out='';
+      categories.forEach(cat=>{
+        out+=`### KATEGÓRIA: ${cat}\n`;
+        (entries[cat]||[]).forEach(it=>{
+          out+=`${it.term}\t${it.definition}\n`;
+        });
+        out+='\n';
+      });
+      return out;
+    }
+    exportTxtBtn.addEventListener('click', ()=>{
+      const txt = exportTxt();
+      downloadFile('slovnik-vsetky-kategorie.txt', txt, 'text/plain;charset=utf-8');
+    });
+    importTxtBtn.addEventListener('click', ()=> importTxtInput.click());
+    importTxtInput.addEventListener('change', async e=>{
+      const file = e.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      parseAndMergeTxt(text);
+      saveJSON(LS_ENTRIES_KEY, entries);
+      saveJSON(LS_CATS_KEY, categories);
+      renderCategoryOptions();
+      renderList();
+      importTxtInput.value = '';
+    });
+    function parseAndMergeTxt(text){
+      const lines = text.split(/\r?\n/);
+      let cat = null;
+      const headerRe = /^###\s*KATEGÓRIA:\s*(.+)$/i;
+      for(const raw of lines){
+        const line = raw.trimEnd();
+        if(!line) continue;
+        const m = line.match(headerRe);
+        if(m){
+          cat = m[1].trim();
+          if(!categories.includes(cat)){
+            categories.push(cat);
+            entries[cat]=[];
+          }
+          continue;
+        }
+        if(!cat) continue;
+        const idx = line.indexOf('\t');
+        if(idx===-1) continue;
+        const term = line.slice(0,idx).trim();
+        const def  = line.slice(idx+1).trim();
+        if(term&&def){
+          entries[cat].push({term,definition:def});
+        }
+      }
+      categories.forEach(c=>sortCategory(c));
+    }
+    function sanitizeFilename(name){
+      return name.replace(/[\\\/:*?"<>|]+/g,'_').replace(/\s+/g,'-');
+    }
+
+    // MINIMÁLNE DOPLNENÉ: sprístupnenie tlačidiel pre generovanie HTML
+    genCatHtmlBtn.addEventListener('click', ()=>{
+      const sections = [{
+        category: currentCategory,
+        items: entries[currentCategory] || []
+      }];
+      const html = buildViewerHTML(
+        { title: `Slovník – ${currentCategory}`, sections },
+        langTermSel.value,
+        langDefSel.value
+      );
+      downloadFile(`${sanitizeFilename(currentCategory)}.html`, html, 'text/html');
+    });
+
+    genAllHtmlBtn.addEventListener('click', ()=>{
+      const sections = categories.map(cat => ({
+        category: cat,
+        items: entries[cat] || []
+      }));
+      const html = buildViewerHTML(
+        { title: 'Slovník – všetky kategórie', sections },
+        langTermSel.value,
+        langDefSel.value
+      );
+      downloadFile('slovnik-vsetky-kategorie.html', html, 'text/html');
+    });
+
+    // PÔVODNÉ LISTENERY NA HRU – NECHÁME BEZ ZMENY
+    genMatchCatBtn.addEventListener('click', ()=>{
+      const items = entries[currentCategory]||[];
+      const html  = buildMatchGameHTML({title:`Hra párovania – ${currentCategory}`, items});
+      downloadFile(`${sanitizeFilename(currentCategory)}-hra-párovania.html`, html, 'text/html');
+    });
+    genMatchAllBtn.addEventListener('click', ()=>{
+      const all = categories.flatMap(cat=>entries[cat]||[]);
+      const html = buildMatchGameHTML({title:'Hra párovania – všetky kategórie', items:all});
+      downloadFile('vsetky-kategorie-hra-párovania.html', html, 'text/html');
+    });
+
+    categories = Array.from(new Set(categories.filter(Boolean)));
+    if(!categories.length) categories=['7. ročník','8. ročník','9. ročník'];
+    categories.forEach(c=>{
+      if(!entries[c]) entries[c]=[];
+      sortCategory(c);
+    });
+    saveJSON(LS_ENTRIES_KEY, entries);
+    saveJSON(LS_CATS_KEY, categories);
+    renderCategoryOptions();
+    renderList();
+  </script>
+   <br><br>
+  &nbsp;&nbsp;<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>

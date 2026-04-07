@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor kvízu s ozvučením</title>
+  <style>
+    body { font-family: Courier bold, monospace; margin: 20px; }
+    textarea, select, button { margin-top: 10px; width: 100%; padding: 8px; font-size: 16px; }
+    .question { margin-bottom: 30px; }
+    .btn-option { padding: 10px; margin: 5px; font-size: 18px; font-weight: bold; color: #000; }
+    .btn-option:hover { background-color: #d0d0d0; }
+    .btn-option:disabled { background-color: #ccc; cursor: default; color: #000 !important; }
+    .speak-btn { margin-left: 10px; cursor: pointer; background: #2196F3; color: white; border: none; border-radius: 5px; padding: 8px 10px; }
+    .speak-btn:hover { background: #1976D2; }
+    .feedback { margin-top: 10px; font-weight: bold; }
+    button { padding: 10px 15px; margin: 5px 5px 15px 0; border: none; border-radius: 5px; cursor: pointer; background-color: #0078D4; color: white; width: 200px; }
+    button:hover { background-color: #005a9e; }
+    #result { font-size: 18px; font-weight: bold; margin-top: 30px; color: #0078D4; }
+	
+	.language-selects {
+  display: flex;
+  align-items: center; /* vertikálne zarovnanie */
+  gap: 1rem;           /* medzera medzi prvkami */
+}
+
+.language-selects label {
+  white-space: nowrap; /* zabráni zalomeniu textu */
+}
+  </style>
+</head>
+<body>
+  <h1>🎓 Generátor kvízu s ozvučením</h1>
+
+  <div class="language-selects">
+  <label for="frageSprache">🔈 Jazyk otázky:</label>
+  <select id="frageSprache">
+    <option value="de-DE">Nemčina</option>
+    <option value="sk-SK">Slovenčina</option>
+    <option value="en-GB">Britská angličtina</option>
+    <option value="en-US">Americká angličtina</option>
+  </select>
+
+  <label for="antwortSprache">🔈 Jazyk odpovedí:</label>
+  <select id="antwortSprache">
+    <option value="de-DE">Nemčina</option>
+    <option value="sk-SK">Slovenčina</option>
+    <option value="en-GB">Britská angličtina</option>
+    <option value="en-US">Americká angličtina</option>
+  </select>
+</div>
+<br><br>
+  <label for="bulkInput">📝 Vstup otázok (oddelené [TAB], každá otázka na nový riadok):</label>
+  <textarea id="bulkInput" rows="10" placeholder="Otázka[TAB]Správna odpoveď[TAB]Nesprávna A[TAB]Nesprávna B[TAB]Nesprávna C"></textarea>
+
+  <button onclick="generateQuiz()">🎯 Generovať kvíz</button>
+
+<br><br>
+  <label for="output">📄 Výstup HTML kvízu:</label>
+  <textarea id="output" rows="15"></textarea>
+  <br>
+  <button onclick="copyOutput()">📋 Kopírovať obsah</button>
+  <button onclick="saveAsHTML()">💾 Uložiť ako HTML</button>
+
+  <script>
+    // načítanie uložených dát
+    window.onload = () => {
+      const savedData = localStorage.getItem("quizBulk");
+      if (savedData) {
+        document.getElementById("bulkInput").value = savedData;
+      }
+    };
+
+    // TTS v editore (len pre demo/test, generovaný kvíz má vlastnú funkciu)
+    function speak(text, lang) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+      speechSynthesis.speak(utterance);
+    }
+
+    function generateQuiz() {
+      const bulkText = document.getElementById("bulkInput").value.trim();
+      localStorage.setItem("quizBulk", bulkText);
+
+      const frageLang = document.getElementById("frageSprache").value;
+      const antwortLang = document.getElementById("antwortSprache").value;
+
+      const lines = bulkText.split("\n").filter(line => line.trim() !== "");
+      // spočítaj platné otázky vopred (aspoň otázka + správna odpoveď)
+      const totalQuestionsPre = lines.reduce((acc, line) => {
+        const parts = line.split("\t").map(p => p.trim()).filter(p => p !== "");
+        return acc + (parts.length >= 2 ? 1 : 0);
+      }, 0);
+
+      let html = `<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8"><title>Kvíz</title><style>
+        body{font-family:monospace;margin:20px;background:#f2f2f2;}
+        .question{margin-bottom:30px;padding:15px;background:#fff;border-radius:8px;box-shadow:0 0 5px rgba(0,0,0,0.1);}
+        .btn-group{display:flex;flex-direction:column;gap:10px;max-width:500px;}
+        .btn-option{background:#e0e0e0;border:none;padding:10px 15px;border-radius:6px;cursor:pointer;text-align:left;width:200px;
+                    font-size:18px;font-weight:bold;color:#000;}
+        .btn-option:hover{background:#d0d0d0;}
+        .btn-option:disabled{background:#ccc;cursor:default;color:#000 !important;}
+        .speak-btn{background:#2196F3;color:white;border:none;border-radius:5px;padding:8px 10px;cursor:pointer;}
+        .speak-btn:hover{background:#1976D2;}
+        .feedback{margin-top:10px;font-weight:bold;}
+        #result{font-size:18px;font-weight:bold;margin-top:30px;color:#0078D4;}
+      </style></head><body><h1>Kvíz</h1>`;
+
+      // vlož skript s pevne nastaveným totalQuestions (žiadna nula!)
+      html += `<script>
+        let score = 0;
+        let answered = 0;
+        let totalQuestions = ${totalQuestionsPre};
+
+        function speak(text, lang) {
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = lang;
+          speechSynthesis.speak(u);
+        }
+
+        function check(btn, index, correctIndex, feedbackId) {
+          const feedback = document.getElementById(feedbackId);
+          // zablokuj všetky možnosti tejto otázky
+          btn.closest(".btn-group").querySelectorAll(".btn-option").forEach(b => b.disabled = true);
+
+          if (index === correctIndex) {
+            btn.style.backgroundColor = '#a5d6a7';
+            btn.style.color = '#1b5e20';
+            feedback.textContent = '✅ Správne 🙂';
+            score++;
+          } else {
+            btn.style.backgroundColor = '#ef9a9a';
+            btn.style.color = '#b71c1c';
+            feedback.textContent = '❌ Nesprávne ☹️';
+          }
+
+          answered++;
+          document.getElementById("result").textContent =
+            'Výsledok: ' + score + ' / ' + totalQuestions;
+        }
+      <\/script>`;
+
+      let validCount = 0;
+
+      lines.forEach((line, i) => {
+        const parts = line.split("\t").map(p => p.trim()).filter(p => p !== "");
+        if (parts.length < 2) return;
+
+        const frage = parts[0];
+        const richtig = parts[1];
+        const falsch = parts.slice(2); // môže byť 0-3
+
+        const antworten = [richtig, ...falsch];
+        const shuffled = antworten
+          .map((text, idx) => {
+            const escaped = text.replace(/'/g, "\\'");
+            return `
+              <div style="display:flex;gap:10px;align-items:center;">
+                <button class="btn-option" onclick="check(this,${idx},0,'f${i}')">${text}</button>
+                <button class="speak-btn" onclick="speak('${escaped}','${antwortLang}')">🔊</button>
+              </div>
+            `;
+          })
+          .sort(() => Math.random() - 0.5);
+
+        html += `<div class="question">
+          <h2>${validCount + 1}. ${frage}</h2>
+          <button class="speak-btn" onclick="speak('${frage.replace(/'/g, "\\'")}','${frageLang}')">🔊 Vypočuť si otázku</button>
+          <div class="btn-group" style="margin-top: 15px;">${shuffled.join("")}</div>
+          <div class="feedback" id="f${i}"></div>
+        </div>`;
+
+        validCount++;
+      });
+
+      html += `<div id="result"></div>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+	  </html>`;
+      document.getElementById("output").value = html;
+    }
+
+    async function copyOutput() {
+      const outputField = document.getElementById("output");
+      const text = outputField.value;
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          outputField.select();
+          outputField.setSelectionRange(0, text.length);
+          document.execCommand("copy");
+        }
+        alert("✅ Obsah sa skopíroval!");
+      } catch (e) {
+        // posledný fallback
+        outputField.select();
+        outputField.setSelectionRange(0, text.length);
+        document.execCommand("copy");
+        alert("✅ Obsah sa skopíroval!");
+      }
+    }
+
+    function saveAsHTML() {
+      const outputField = document.getElementById("output");
+      const blob = new Blob([outputField.value], { type: "text/html" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "kviz_.html";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+    }
+  </script>
+
+  <script>
+    // Zachytávanie klávesy TAB vo vnútri textarea
+    const textarea = document.getElementById('bulkInput');
+    textarea.addEventListener('keydown', function(e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        this.value = this.value.substring(0, start) + '\t' + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 1;
+      }
+    });
+  </script>
+  <br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

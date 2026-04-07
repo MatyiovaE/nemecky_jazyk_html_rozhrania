@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor MC testu - automatické distraktory (prírodné vedy)</title>
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"></script>
+  
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      ignoredClasses: ['code-ex'],
+      delimiters: [
+          {left: '$$', right: '$$', display: true},
+          {left: '$', right: '$', display: false},
+          {left: '\\(', right: '\\)', display: false},
+          {left: '\\[', right: '\\]', display: true}
+      ]
+    });"></script>
+
+  <style>
+    body { font-family: 'Monaco', monospace; font-size: 105%; padding: 20px; background-color: #fafafa; color: #333; }
+    textarea { width: 100%; box-sizing: border-box; border: 1px solid #aaa; padding: 10px; font-family: 'Monaco', 'Consolas', monospace; font-size: 1.1em; }
+    input[type="text"], input[type="number"] { padding: 8px; font-size: 100%; border: 1px solid #aaa; border-radius: 4px; }
+    
+    /* Tlačidlá */
+    button { cursor: pointer; padding: 6px 12px; font-size: 0.9em; font-weight: 500; margin-top: 5px; margin-right: 5px; border-radius: 4px; border: 1px solid #ccc; background: #f0f0f0; transition: background 0.2s; }
+    button:hover { background: #e0e0e0; }
+    .primary-btn { background-color: #4CAF50; color: white; border: none; font-weight: bold; padding: 10px 20px; }
+    .primary-btn:hover { background-color: #45a049; }
+    .project-btn { background-color: #2196F3; color: white; border: none; }
+    .project-btn:hover { background-color: #0b7dda; }
+
+    /* Layout */
+    .settings-group { background-color: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .action-bar { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .advanced-section { display: none; background-color: #fff3cd; border: 1px solid #ffeeba; padding: 15px; margin-top: 15px; border-radius: 5px; }
+    .divider { border-right: 1px solid #ccc; margin: 0 5px; height: 25px; }
+
+    /* Toolbar pre formátovanie */
+    .editor-toolbar {
+        background: #eee;
+        padding: 5px;
+        border: 1px solid #aaa;
+        border-bottom: none;
+        border-radius: 5px 5px 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+    }
+    .editor-toolbar button { margin: 0; padding: 5px 10px; font-size: 0.9em; }
+    .tool-group { display: flex; gap: 2px; border-right: 1px solid #ccc; padding-right: 5px; margin-right: 5px; align-items: center; }
+    .tool-group:last-child { border: none; }
+    .tool-label { font-size: 0.75em; color: #666; margin-right: 5px; font-weight: bold; text-transform: uppercase; }
+    
+    /* Pomocník */
+    .helper-box {
+        background: #e3f2fd;
+        border: 1px solid #bbdefb;
+        padding: 10px;
+        margin-bottom: 10px;
+        font-size: 0.9em;
+        border-radius: 4px;
+    }
+    .code-ex { font-family: monospace; font-size: 120%; background: rgba(255,255,255,0.7); padding: 2px 4px; border-radius: 3px; color: #d32f2f; }
+    
+    /* Pre renderovanie v pomocníkovi */
+    .helper-box b { color: black; font-weight: bold; }
+
+    h1, h2, h3 { font-family: 'Segoe UI', sans-serif; margin-top: 0; }
+  </style>
+</head>
+<body>
+
+<h1>Generátor MC testu: automatické distraktory (prírodné vedy)</h1>
+  
+  <div class="settings-group">
+      <h2>1. Vstupné údaje</h2>
+      <button onclick="toggleHelp()" style="margin-left:auto;">❓ Ťahák a pomoc</button>
+      <div class="editor-toolbar">
+          <div class="tool-group">
+              <button onclick="insertTag('<b>', '</b>')" title="Tučné písmo"><b>B</b></button>
+              <button onclick="insertTag('<i>', '</i>')" title="Kurzíva"><i>I</i></button>
+              <button onclick="insertTag('<u>', '</u>')" title="Podčiarknuté"><u>U</u></button>
+              <button onclick="insertTag('<span style=\'color:red\'>', '</span>')" style="color:red">Farba</button>
+              <button onclick="insertTag('<span style=\'background-color:yellow\'>', '</span>')" style="background:yellow">Zvýraznenie pozadia</button>
+          </div>
+
+          <div class="tool-group" style = "border:none; margin-left: 20px;">
+              <span class="tool-label">Mat</span>
+              <button onclick="insertTag('$$^{', '}$$')" title="Mocnina: $$^{}$$">xⁿ</button>
+              <button onclick="insertTag('$$\\sqrt{', '}$$')" title="Odmocnina: $$\sqrt{}$$">√</button>
+              <button onclick="insertTag('$$\\sqrt[', ']{}$$')" title="Vyššia odmocnina: $$\sqrt[]{}$$">ⁿ√</button>
+              <button onclick="insertTag('$$_{', '}$$')" title="Dolný index: $$_{}$$">xₙ</button>
+              <button onclick="insertTag('$$\\frac{', '}{}$$')" title="Zlomok: $$\frac{}{}$$">zlomok</button>
+              <button onclick="insertTag('$$x = \\frac{', '}{}$$')" title="Rovnica: $$x = \frac{}{}$$">rovnica so zlomkom</button>
+          </div>
+
+          <div class="tool-group" style = "border:none; margin-left: 20px;">
+              <span class="tool-label">Chem</span>
+              <button onclick="insertTag('\\(\\ce{', '}\\)')" title="Chemický vzorec: \(\ce{}\)">chemický vzorec</button>
+              <button onclick="insertTag('\\(\\ce{', ' -> }\\)')" title="Chemická rovnica: \(\ce{ ->}\)">chemická rovnica \(\ce{\to}\)</button>
+          </div>
+          
+          
+
+          <div style="flex-basis: 100%; height: 1px; background: #ddd; margin: 2px 0;"></div>
+          
+          <div class="tool-group" style="border:none;">
+              <span class="tool-label">Grécke písmená</span>
+              <button onclick="insertTag('α', '')" title="alfa">α</button>
+              <button onclick="insertTag('β', '')" title="beta">β</button>
+              <button onclick="insertTag('γ', '')" title="gama">γ</button>
+              <button onclick="insertTag('δ', '')" title="delta">δ</button>
+              <button onclick="insertTag('ε', '')" title="epsilon">ε</button>
+              <button onclick="insertTag('λ', '')" title="lamda">λ</button>
+              <button onclick="insertTag('μ', '')" title="mikro/mí">μ</button>
+              <button onclick="insertTag('π', '')" title="pí">π</button>
+              <button onclick="insertTag('ρ', '')" title="ró">ρ</button>
+              <button onclick="insertTag('σ', '')" title="sigma">σ</button>
+              <button onclick="insertTag('φ', '')" title="fí">φ</button>
+              <button onclick="insertTag('ω', '')" title="omega">ω</button>
+              <button onclick="insertTag('Δ', '')" title="Delta">Δ</button>
+              <button onclick="insertTag('Σ', '')" title="Sigma">Σ</button>
+              <button onclick="insertTag('Ω', '')" title="Omega">Ω</button>
+          </div>
+		   <div class="tool-group" style="border:none;">
+              <span class="tool-label">Iné symboly</span>
+              <button onclick="insertTag('&infin;', '')" title="nekonečno">&infin;</button> 
+		<button onclick="insertTag('&lt;', '')" title="menší (&lt;)">&lt;</button>
+        <button onclick="insertTag('&gt;', '')" title="väčší (&gt;)">&gt;</button>
+        <button onclick="insertTag('&le;', '')" title="menší alebo rovný (&le;)">&le;</button>
+<button onclick="insertTag('&ne;', '')" title="nerovná sa (&ne;)">&ne;</button>
+        <button onclick="insertTag('&equiv;', '')" title="ekvivalentné (&equiv;)">&equiv;</button>
+        <button onclick="insertTag('&asymp;', '')" title="približne (&asymp;)">&asymp;</button>
+<button onclick="insertTag('&plusmn;', '')" title="plus-mínus (&plusmn;)">&plusmn;</button>
+        <button onclick="insertTag('&times;', '')" title="krát (&times;)">&times;</button>
+        <button onclick="insertTag('&divide;', '')" title="delené (&divide;)">&divide;</button>
+        <button onclick="insertTag('&middot;', '')" title="stredový bod (&middot;)">&middot;</button>		
+
+<button onclick="insertTag('&isin;', '')" title="patrí do (&isin;)">&isin;</button>
+        <button onclick="insertTag('&notin;', '')" title="nepatrí do (&notin;)">&notin;</button>
+        <button onclick="insertTag('&subset;', '')" title="podmnožina (&subset;)">&subset;</button>
+        <button onclick="insertTag('&supset;', '')" title="nadmnožina (&supset;)">&supset;</button>
+        <button onclick="insertTag('&subseteq;', '')" title="podmnožina alebo rovná (&subseteq;)">&subseteq;</button>
+        <button onclick="insertTag('&supseteq;', '')" title="nadmnožina alebo rovná (&supseteq;)">&supseteq;</button>
+        <button onclick="insertTag('&empty;', '')" title="prázdna množina (&empty;)">&empty;</button>
+
+        <button onclick="insertTag('&not;', '')" title="negácia (&not;)">&not;</button>
+        <button onclick="insertTag('&and;', '')" title="logické AND (&and;)">&and;</button>
+        <button onclick="insertTag('&or;', '')" title="logické OR (&or;)">&or;</button>
+        <button onclick="insertTag('&rArr;', '')" title="implikácia (&rArr;)">&rArr;</button>
+        <button onclick="insertTag('&hArr;', '')" title="ekvivalencia (&hArr;)">&hArr;</button>
+
+        <button onclick="insertTag('&sum;', '')" title="súčet (&sum;)">&sum;</button>
+        <button onclick="insertTag('&prod;', '')" title="súčin (&prod;)">&prod;</button>
+        <button onclick="insertTag('&int;', '')" title="integrál (&int;)">&int;</button>
+        <button onclick="insertTag('&part;', '')" title="parciálna derivácia (&part;)">&part;</button>
+  
+          </div>
+      </div>
+
+      <div id="helpBox" class="helper-box" style="display:none;">
+          <strong>Rýchly ťahák pre prírodné vedy:</strong><br>
+          <ul>
+		   <li><strong>Matematika:</strong>
+                  <br>Zlomok: <span class="code-ex">$$\frac{<span style="color: #1865a0; background-color: #ffffff;">1</span>}{<span style="color: #1865a0; background-color: #ffffff;">2</span>}$$</span> &emsp;&rarr;&nbsp; <b>\(\frac{1}{2}\)</b>
+                  <br>Mocnina alebo horný index: <span class="code-ex">$$<span style="color: #1865a0; background-color: #ffffff;">x</span>^<span style="color: #1865a0; background-color: #ffffff;">2</span>$$</span> &emsp;&rarr;&nbsp; <b>\(x^2\)</b>
+				  <br>Dolný index: <span class="code-ex">$$<span style="color: #1865a0; background-color: #ffffff;">y</span>_<span style="color: #1865a0; background-color: #ffffff;">1</span>$$</span> &emsp;&rarr;&nbsp; <b>\(y_1\)</b>
+                  <br>Odmocnina: <span class="code-ex">$$\sqrt{<span style="color: #1865a0; background-color: #ffffff;">x</span>}$$</span> &emsp;&rarr;&nbsp; <b>\(\sqrt{x}\)</b>
+                  <br>Vyššia odmocnina: <span class="code-ex">$$\sqrt[<span style="color: #1865a0; background-color: #ffffff;">4</span>]{<span style="color: #1865a0; background-color: #ffffff;">625</span>}$$</span> &emsp;&rarr;&nbsp; <b>\(\sqrt[4]{625}\)</b>
+				  <br>Rovnica so zlomkom: <span class="code-ex">$$<span style="color: #1865a0; background-color: #ffffff;">x</span> = \frac{<span style="color: #1865a0; background-color: #ffffff;">-b</span>}{<span style="color: #1865a0; background-color: #ffffff;">2a</span>}$$</span> &emsp;&rarr;&nbsp; <b>$\displaystyle x = \frac{-b}{2a}$</b>
+		
+              </li>
+			  <br>
+              <li><strong>Chémia:</strong>
+                  <br>Chemický vzorec vody: <span class="code-ex">\(\ce{<span style="color: #1865a0; background-color: #ffffff;">H2O</span>}\)</span> &emsp;&rarr;&nbsp; <b>\(\ce{H2O}\)</b>
+                  <br>Chemická rovnica: <span class="code-ex">\(\ce{<span style="color: #1865a0; background-color: #ffffff;">H2SO4</span> -> <span style="color: #1865a0; background-color: #ffffff;">2H+</span> + <span style="color: #1865a0; background-color: #ffffff;">SO4^2-</span>}\)</span> &emsp;&rarr;&nbsp; <b>\(\ce{H2SO4 -> 2H+ + SO4^2-}\)</b>
+              </li>
+             <br>
+              <li><strong>Dôležité:</strong> Všetky kódy píšte do jedného riadku. Nepoužívajte Enter uprostred rovnice.</li>
+          </ul>
+      </div>
+
+      <textarea id="inputData" rows="15" placeholder="Kyselina sírová[TAB]\(\ce{H2SO4}\)&#10;Pytagorova veta[TAB]$$a^2 + b^2 = c^2$$&#10;Tučné slovo[TAB]Toto je <b>tučné</b> písmo&#10;&#10;Voda[TAB]\(\ce{H2O}\)&#10;Oxid uhličitý[TAB]\(\ce{CO2}\)"></textarea>
+
+      <div class="action-bar" style="margin-top: 10px;">
+          <button class="project-btn" onclick="saveProject()">💾 Uložiť projekt (.json)</button>
+          <button class="project-btn" onclick="document.getElementById('importProjectFile').click()">📂 Načítať projekt</button>
+          <input type="file" id="importProjectFile" style="display:none" onchange="loadProject(this)">
+          
+          <div class="divider"></div>
+
+          <button onclick="exportData()" style="font-size: 0.9em;">⬇️ TXT</button>
+          <button onclick="document.getElementById('importFile').click()" style="font-size: 0.9em;">⬆️ TXT</button>
+          <input type="file" id="importFile" style="display:none" onchange="importData(this)">
+      </div>
+  </div>
+
+  <div class="settings-group">
+      <h2>2. Nastavenia testu</h2>
+      <div style="display:flex; gap: 20px; flex-wrap:wrap;">
+        <div><b>Autor:</b><br> <input type="text" id="testAuthor" placeholder="Meno učiteľa" style="width:250px;"></div>
+        <div><b>Rok:</b><br> <input type="text" id="testYear" value="2026" style="width:80px;"></div>
+        <div><b>Názov testu:</b><br> <input type="text" id="testTitle" placeholder="Názov testu" style="width:300px;"></div>
+      </div>
+      <br>
+      <b>Pokyn pre žiaka:</b> <input type="text" id="testInstruction" value="Zvoľ správnu odpoveď." style="width:100%; max-width:600px;"><br><br>
+      
+      <button class="primary-btn" onclick="saveTestAsHTML()">🚀 Vygenerovať a uložiť test (HTML)</button>
+  </div>
+
+  <button onclick="toggleAdvanced()" style="font-size: 0.9em;">🔧 Pre pokročilých</button>
+  
+  <div id="advancedArea" class="advanced-section">
+      <h3>Rozšírená správa databázy</h3>
+      <button onclick="saveDatabaseForExtension()">Uložiť čistú databázu (.json)</button>
+  </div>
+
+<script>
+// --- POMOCNÉ FUNKCIE PRE EDITOR ---
+
+function insertTag(startTag, endTag) {
+    const textarea = document.getElementById("inputData");
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const before = text.substring(0, start);
+    const after  = text.substring(end, text.length);
+    const selection = text.substring(start, end);
+    
+    // Vloženie tagov okolo výberu
+    textarea.value = before + startTag + selection + endTag + after;
+    
+    // Vrátenie kurzora / výberu na logické miesto
+    if (start === end) {
+        textarea.selectionStart = start + startTag.length;
+        textarea.selectionEnd = start + startTag.length;
+    } else {
+        textarea.selectionStart = end + startTag.length + endTag.length;
+        textarea.selectionEnd = end + startTag.length + endTag.length;
+    }
+    textarea.focus();
+    
+    // Uloženie do pamäte
+    localStorage.setItem("inputData", textarea.value);
+}
+
+function toggleHelp() {
+    const el = document.getElementById('helpBox');
+    el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+}
+
+// --- LOGIKA GENERÁTORA ---
+
+function normalizeFilename(text) {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9-_ ]/g, "").replace(/\s+/g, "_"); 
+}
+
+function toggleAdvanced() {
+    const el = document.getElementById('advancedArea');
+    el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+}
+
+function parseInputData() {
+    const raw = document.getElementById("inputData").value.trim();
+    if (!raw) return [];
+    
+    const groups = raw.split(/\n\s*\n/);
+    let allQuestions = [];
+    
+    groups.forEach((groupText, groupIndex) => {
+        const lines = groupText.split("\n");
+        lines.forEach(line => {
+            const parts = line.split("\t");
+            if (parts.length >= 2 && parts[0].trim() !== "" && parts[1].trim() !== "") {
+                allQuestions.push({ 
+                    term: parts[0].trim(), 
+                    correct: parts[1].trim(),
+                    group: groupIndex 
+                });
+            }
+        });
+    });
+    
+    return allQuestions;
+}
+
+// --- SPRÁVA PROJEKTU ---
+function saveProject() {
+    const projectData = {
+        title: document.getElementById("testTitle").value,
+        author: document.getElementById("testAuthor").value,
+        year: document.getElementById("testYear").value,
+        instruction: document.getElementById("testInstruction").value,
+        content: document.getElementById("inputData").value
+    };
+    
+    const name = projectData.title.trim() || "projekt";
+    const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = normalizeFilename(name) + "_projekt.json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function loadProject(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (Array.isArray(data)) throw new Error("Toto je databáza, nie projekt.");
+
+            if(data.title !== undefined) document.getElementById("testTitle").value = data.title;
+            if(data.author !== undefined) document.getElementById("testAuthor").value = data.author;
+            if(data.year !== undefined) document.getElementById("testYear").value = data.year;
+            if(data.instruction !== undefined) document.getElementById("testInstruction").value = data.instruction;
+            if(data.content !== undefined) document.getElementById("inputData").value = data.content;
+            
+            try { localStorage.setItem("inputData", data.content || ""); } catch(e){}
+
+        } catch(err) {
+            alert("Chyba: " + err.message);
+        }
+    };
+    reader.readAsText(file);
+    input.value = "";
+}
+
+function exportData() {
+    const data = document.getElementById("inputData").value;
+    const blob = new Blob([data], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "data.txt";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function importData(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) { document.getElementById("inputData").value = e.target.result; };
+    reader.readAsText(file);
+    input.value = ""; 
+}
+
+function saveDatabaseForExtension() {
+    const questions = parseInputData();
+    const blob = new Blob([JSON.stringify(questions, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "db.json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// --- GENERÁTOR S PODPOROU KATEX A HTML ---
+function saveTestAsHTML() {
+  const title = document.getElementById("testTitle").value.trim() || "Test";
+  const author = document.getElementById("testAuthor").value.trim();
+  const year = document.getElementById("testYear").value.trim();
+  const instruction = document.getElementById("testInstruction").value.trim();
+  const questions = parseInputData();
+
+  if (questions.length < 4) {
+      if(!confirm("Menej ako 4 otázky. Pokračovať?")) return;
+  }
+
+  const jsonQ = JSON.stringify(questions);
+  const jsonMeta = JSON.stringify({ title, author, year, instruction });
+
+  let html = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"><\/script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"><\/script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="initMath()"><\/script>
+
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fdfdfd; color: #333; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; }
+  body.dark { background: #1a1a1a; color: #f0f0f0; }
+  .top-bar { background: rgba(0,0,0,0.05); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+  
+  .katex { font-size: 1.1em; } 
+  
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; flex: 1; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; }
+  
+  #startScreen { text-align: center; margin-top: 40px; }
+  input.inp { padding: 10px; width: 80%; max-width: 300px; margin: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 5px; }
+  #btnStart { background: #4CAF50; color: white; border: none; padding: 15px 40px; font-size: 1.2rem; border-radius: 50px; margin-top: 20px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s; }
+  #btnStart:hover { transform: scale(1.05); }
+
+  #quizScreen { display: none; flex-direction: column; height: 100%; }
+  .q-box { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; min-height: 25vh; margin-bottom: 20px; padding: 10px; }
+  .q-inst { color: #666; font-style: italic; margin-bottom: 15px; font-size: 1.1rem; }
+  .q-num { color: #888; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 10px; }
+  
+  .q-txt { font-size: 2rem; font-weight: bold; line-height: 1.4; }
+  
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; margin: 0 auto; }
+  @media(max-width:650px){ .opts { grid-template-columns: 1fr; } }
+  
+  .opt-btn { 
+    background: #fff; border: 2px solid #ddd; padding: 20px;
+    font-size: 1.3rem; border-radius: 12px; color: #333; cursor: pointer;
+    min-height: 80px; display: flex; align-items: center; justify-content: center; text-align: center;
+    transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    word-wrap: break-word; overflow-wrap: anywhere;
+  }
+  body.dark .opt-btn { background: #2c2c2c; border-color: #444; color: #fff; }
+  .opt-btn:hover { background: #f5f5f5; transform: translateY(-2px); }
+  body.dark .opt-btn:hover { background: #3a3a3a; }
+  
+  .opt-btn.sel { background: #e3f2fd; border-color: #2196F3; color: #0d47a1; box-shadow: 0 0 0 2px #2196F3 inset; }
+  body.dark .opt-btn.sel { background: #152e42; border-color: #64b5f6; color: #e1f5fe; box-shadow: 0 0 0 2px #64b5f6 inset; }
+
+  .nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 30px; }
+  .nav-btn { width: 35px; height: 35px; border: 1px solid #ccc; background: #eee; border-radius: 4px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 0.9rem; }
+  body.dark .nav-btn { color: #000; }
+  .nav-btn.done { background: #b3e5fc; border-color: #81d4fa; }
+  .nav-btn.act { background: #333; color: white; border-color: #333; transform: scale(1.1); font-weight: bold; }
+  body.dark .nav-btn.act { background: #f0f0f0; color: black; }
+
+  #btnEval { display: none; margin: 30px auto; background: #28a745; color: white; border: none; padding: 15px 50px; font-size: 1.3rem; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+  #btnEval:hover { background-color: #218838; }
+
+  #resScreen { display: none; text-align: center; padding: 20px; }
+  .score-big { font-size: 4rem; margin: 20px; font-weight: 800; }
+  .good { color: #2e7d32; } .bad { color: #c62828; }
+  
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left; background: rgba(255,255,255,0.5); }
+  th, td { border-bottom: 1px solid #ccc; padding: 12px; vertical-align: middle; }
+  .wrong-ans { text-decoration: line-through; color: #c62828; opacity: 0.7; }
+  .right-ans { color: #2e7d32; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div><strong>${title}</strong>, ${author} ${year}</div>
+  <button onclick="document.body.classList.toggle('dark')" style="padding:5px 10px;cursor:pointer;">Tmavý režim</button>
+</div>
+
+<div class="container">
+  <div id="startScreen">
+    <h1 style="font-size: 2.5rem; margin-bottom: 10px;">Vitaj v teste 🙂</h1>
+    <p style="color:#666; margin-bottom: 30px;">${instruction}</p>
+    <input type="text" id="pName" class="inp" placeholder="Zadaj svoje meno">
+    <br>
+    <div style="margin: 20px;">
+        <label>Počet otázok (max <span id="maxQ"></span>): </label>
+        <input type="number" id="pCount" class="inp" style="width: 70px; text-align:center;" min="1" value="1">
+    </div>
+    <button id="btnStart" onclick="startTest()">Spustiť test</button>
+  </div>
+
+  <div id="quizScreen">
+    <div class="q-box">
+      <div class="q-inst" id="qInst"></div>
+      <div class="q-num" id="qNum"></div>
+      <div class="q-txt" id="qTxt"></div>
+    </div>
+    <div class="opts" id="optsBox"></div>
+    <div class="nav" id="navBox"></div>
+    <button id="btnEval" onclick="evalTest()">Vyhodnotiť test</button>
+  </div>
+
+  <div id="resScreen"></div>
+</div>
+
+<script>
+var DB = ${jsonQ};
+var META = ${jsonMeta};
+var testData = [];
+var currIdx = 0;
+var result = { name: '', score: 0 };
+
+function initMath() {
+    renderMathInElement(document.body, {
+        delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\\\(', right: '\\\\)', display: false},
+            {left: '\\\\[', right: '\\\\]', display: true}
+        ],
+        throwOnError : false
+    });
+}
+
+function renderMath() {
+    if (typeof renderMathInElement === 'function') {
+        renderMathInElement(document.getElementById('quizScreen'), {
+             delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\\\(', right: '\\\\)', display: false},
+                {left: '\\\\[', right: '\\\\]', display: true}
+            ],
+            throwOnError: false
+        });
+    }
+}
+
+window.onload = function() {
+  document.getElementById('maxQ').innerText = DB.length;
+  document.getElementById('pCount').max = DB.length;
+  document.getElementById('pCount').value = DB.length;
+};
+
+function shuffle(arr) { return arr.sort(() => Math.random() - 0.5); }
+
+function startTest() {
+  var name = document.getElementById('pName').value.trim();
+  result.name = name || 'Anonym';
+  var cnt = parseInt(document.getElementById('pCount').value);
+  if (cnt < 1) cnt = 1;
+  if (cnt > DB.length) cnt = DB.length;
+
+  var picked = shuffle([...DB]).slice(0, cnt);
+  
+  testData = picked.map(q => {
+    var sameGroupItems = DB.filter(item => item.group === q.group);
+    var others = sameGroupItems.filter(x => x.correct !== q.correct).map(x => x.correct);
+    var uniqueOthers = [...new Set(others)];
+    var dist = shuffle(uniqueOthers).slice(0, 3);
+    var options = shuffle([q.correct, ...dist]);
+    return { term: q.term, correct: q.correct, opts: options, userAns: null };
+  });
+
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('quizScreen').style.display = 'flex';
+  loadQ(0);
+}
+
+function loadQ(idx) {
+  currIdx = idx;
+  var q = testData[idx];
+  
+  document.getElementById('qInst').innerText = META.instruction;
+  document.getElementById('qNum').innerText = 'Otázka ' + (idx+1) + ' / ' + testData.length;
+  
+  document.getElementById('qTxt').innerHTML = q.term;
+  
+  var box = document.getElementById('optsBox');
+  box.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    var btn = document.createElement('div');
+    btn.className = 'opt-btn';
+    if (q.userAns === opt) btn.classList.add('sel');
+    btn.innerHTML = opt;
+    // ZMENA: Posielame aj index tlacidla
+    btn.onclick = function() { setAns(opt, i); };
+    box.appendChild(btn);
+  });
+  
+  renderNav();
+  document.getElementById('btnEval').style.display = (idx === testData.length - 1) ? 'block' : 'none';
+  
+  setTimeout(renderMath, 10);
+}
+
+function setAns(ans, idx) {
+  testData[currIdx].userAns = ans;
+  
+  // ZMENA: Nenačítavame celú otázku cez loadQ(), ale len zmeníme triedu .sel
+  var box = document.getElementById('optsBox');
+  var btns = box.getElementsByClassName('opt-btn');
+  for (var i = 0; i < btns.length; i++) {
+     btns[i].classList.remove('sel');
+     if (i === idx) btns[i].classList.add('sel');
+  }
+  
+  // Aktualizujeme iba navigáciu
+  renderNav(); 
+}
+
+function renderNav() {
+  var box = document.getElementById('navBox');
+  box.innerHTML = '';
+  testData.forEach((q, i) => {
+    var b = document.createElement('div');
+    b.className = 'nav-btn';
+    if (q.userAns) b.classList.add('done');
+    if (i === currIdx) b.classList.add('act');
+    b.innerText = i + 1;
+    b.onclick = function() { loadQ(i); };
+    box.appendChild(b);
+  });
+}
+
+function evalTest() {
+  var score = 0;
+  testData.forEach(q => { if (q.userAns === q.correct) score++; });
+  result.score = score;
+  
+  document.getElementById('quizScreen').style.display = 'none';
+  var resDiv = document.getElementById('resScreen');
+  resDiv.style.display = 'block';
+  
+  var percent = Math.round((score / testData.length) * 100);
+  var colorClass = percent >= 50 ? 'good' : 'bad';
+  
+  var html = '<h2>Výsledok</h2>';
+  html += '<div class="score-big ' + colorClass + '">' + percent + '%</div>';
+  html += '<p><b>Meno:</b> ' + result.name + '</p>';
+  html += '<p><b>Body:</b> ' + score + ' / ' + testData.length + '</p>';
+  html += '<button onclick="showDetails()" style="background:#008CBA; color:white; padding:10px 20px; border:none; border-radius:5px; font-size:1rem; cursor:pointer;">🔍 Detailný prehľad</button>';
+  html += '<br><br><button onclick="location.reload()" style="background:#666; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer;">Spustiť znova</button>';
+  
+  resDiv.innerHTML = html;
+}
+
+function showDetails() {
+  var w = window.open('', '_blank');
+  
+  // Získanie aktuálneho dátumu a času
+  var now = new Date();
+  var d = String(now.getDate()).padStart(2, '0');
+  var m = String(now.getMonth() + 1).padStart(2, '0');
+  var y = now.getFullYear();
+  var h = String(now.getHours()).padStart(2, '0');
+  var min = String(now.getMinutes()).padStart(2, '0');
+  var dateTimeStr = d + '.' + m + '.' + y + ', ' + h + ':' + min;
+
+  // VÝPOČET PERCENT
+  var percent = Math.round((result.score / testData.length) * 100);
+
+  var rows = '';
+  testData.forEach((q, i) => {
+    // Logika pre status (fajka, krizik, vykricnik) a farby riadku
+    var status = '';
+    var rowClass = '';
+    
+    if (q.userAns === q.correct) {
+        status = '✅';
+        rowClass = ''; 
+    } else if (!q.userAns || q.userAns === '') {
+        status = '<span style="color:orange; font-weight:bold; font-size:1.2em">❗</span>';
+        rowClass = 'style="background:#fff9c4"'; // Jemne žltá pre vynechanú
+    } else {
+        status = '❌';
+        rowClass = 'style="background:#fff0f0"'; // Jemne červená pre nesprávnu
+    }
+
+    var uVal = q.userAns ? q.userAns : '<span style="color:#999; font-style:italic;">(bez odpovede)</span>';
+    
+    rows += '<tr ' + rowClass + '>';
+    rows += '<td>' + (i+1) + '. ' + q.term + '</td>';
+    // PREHODENÉ STĹPCE (Správna odpoveď <-> Odpoveď žiaka)
+    rows += '<td><div class="corr-ans">' + q.correct + '</div></td>';
+    rows += '<td><div class="user-ans">' + uVal + '</div></td>';
+    rows += '<td style="font-size:1.5em; text-align:center;">' + status + '</td>';
+    rows += '</tr>';
+  });
+
+  var page = '<!DOCTYPE html><html><head><title>Detaily testu</title>';
+  page += '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">';
+  
+  page += '<script>';
+  page += 'function initMath() {';
+  page += '  renderMathInElement(document.body, {';
+  page += '    delimiters: [';
+  page += '      {left: "$$", right: "$$", display: true},';
+  page += '      {left: "$", right: "$", display: false},';
+  page += '      {left: "\\\\\\\\(", right: "\\\\\\\\)", display: false},'; 
+  page += '      {left: "\\\\\\\[", right: "\\\\\\\]", display: true}';
+  page += '    ]';
+  page += '  });';
+  page += '}';
+  page += '<\\/script>';
+  
+  page += '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"><\\/script>';
+  page += '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"><\\/script>';
+  page += '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="initMath()"><\\/script>';
+  
+  page += '<style>body{font-family:sans-serif; padding:20px;} table{width:100%; border-collapse:collapse;} td,th{border:1px solid #ccc; padding:10px; vertical-align:top;} .user-ans{font-weight:bold;} .corr-ans{color:green;} </style>';
+  page += '</head><body>';
+  page += '<h3>Detailný prehľad</h3>';
+  page += '<p><b>Názov testu:</b> ' + META.title + '</p>';
+  page += '<p><b>Meno žiaka:</b> ' + result.name + '</p>';
+  page += '<p><b>Počet bodov a percentá:</b> ' + result.score + '/' + testData.length + ', ' + percent + '%</p>';
+  page += '<p><b>Dátum a čas testu:</b> ' + dateTimeStr + '</p>';
+  // PREHODENÉ HLAVIČKY (Správna odpoveď <-> Odpoveď žiaka)
+  page += '<table><thead><tr><th>Otázka</th><th>Správna odpoveď</th><th>Odpoveď žiaka</th><th>Stav</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  page += '</body></html>';
+  w.document.write(page);
+  w.document.close();
+}
+<\/script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = normalizeFilename(title) + ".html";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+// Tab support
+document.getElementById("inputData").addEventListener("keydown", function(e) {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    var s = this.selectionStart;
+    this.value = this.value.substring(0, this.selectionStart) + "\t" + this.value.substring(this.selectionEnd);
+    this.selectionEnd = s + 1; 
+  }
+});
+// LocalStorage
+if(localStorage.getItem("inputData")) document.getElementById("inputData").value = localStorage.getItem("inputData");
+document.getElementById("inputData").addEventListener("input", function(){ localStorage.setItem("inputData", this.value); });
+</script>
+
+<div style="margin-top:20px; text-align: center; opacity: 0.6; font-size: 0.8rem;">
+  Spracované pomocou UI | Mgr. Erika Matyiová (2025 - 2026) | V2.0 Math+Chem
+</div>
+
+</body>
+</html>

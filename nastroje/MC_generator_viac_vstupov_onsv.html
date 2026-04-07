@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor testov s výberom odpovede (MC)</title>
+  <style>
+    body { font-family: Courier bold, monospace; margin: 20px; background: #f4f4f4; }
+    h1 { color: #333; }
+    .frage-block { background: #fff; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    .frage-block label { font-weight: bold; display: block; margin-top: 10px; }
+    .frage-block input { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    .frage-block input.frage { background-color: #fff9c4; }
+    .frage-block input.richtig { background-color: #c8e6c9; }
+    .frage-block input.falsch { background-color: #f8bbd0; }
+    button { padding: 10px 15px; margin: 5px 5px 15px 0; border: none; border-radius: 5px; cursor: pointer; background-color: #0078D4; color: white; }
+    button:hover { background-color: #005a9e; }
+    textarea { width: 100%; height: 260px; font-family: monospace; padding: 10px; border-radius: 6px; border: 1px solid #ccc; background: #fff; }
+    input[type="number"], input[type="text"] { padding: 6px; margin: 5px 0 15px 0; border-radius: 5px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>🧠 Generátor testov s výberom odpovede (MC)</h1>
+
+  <label for="testTitle">📌 Názov testu:</label>
+  <input type="text" id="testTitle" placeholder="Zadajte názov testu.">
+
+  <label for="numQuestions">🔢 Počet otázok v teste:</label>
+  <input type="number" id="numQuestions" min="1" value="10">
+
+  <div id="fragen-container"></div>
+  <button onclick="addFrage()">➕ Pridať otázku</button>
+  <button onclick="generateQuiz()">🎯 Generovať kvíz</button>
+  <button onclick="copyOutput()">📋 Kopírovať obsah</button>
+  <button onclick="saveAsHTML()">💾 Uložiť ako HTML</button>
+  <h2>💡 Vygenerovaný HTML kód:</h2>
+  <textarea id="output"></textarea>
+
+  <script>
+  const fragenContainer = document.getElementById("fragen-container");
+  const outputField = document.getElementById("output");
+
+  window.onload = () => {
+    const savedData = localStorage.getItem("quizData");
+    if (savedData) {
+      const parsed = JSON.parse(savedData);
+      parsed.forEach(data => {
+        const block = document.createElement("div");
+        block.className = "frage-block";
+        block.innerHTML = `
+          <label>Znenie otázky:</label><input type="text" class="frage frage" value="${data.frage}">
+          <label>Správna odpoveď:</label><input type="text" class="richtig richtig" value="${data.richtig}">
+          <label>Nesprávna odpoveď A:</label><input type="text" class="falsch falsch" value="${data.falsch[0] || ''}">
+          <label>Nesprávna odpoveď B:</label><input type="text" class="falsch falsch" value="${data.falsch[1] || ''}">
+          <label>Nesprávna odpoveď C:</label><input type="text" class="falsch falsch" value="${data.falsch[2] || ''}">
+        `;
+        fragenContainer.appendChild(block);
+      });
+    } else {
+      addFrage();
+    }
+  };
+
+  function addFrage() {
+    const block = document.createElement("div");
+    block.className = "frage-block";
+    block.innerHTML = `
+      <label>Znenie otázky:</label><input type="text" class="frage frage">
+      <label>Správna odpoveď:</label><input type="text" class="richtig richtig">
+      <label>Nesprávna odpoveď A:</label><input type="text" class="falsch falsch">
+      <label>Nesprávna odpoveď B:</label><input type="text" class="falsch falsch">
+      <label>Nesprávna odpoveď C:</label><input type="text" class="falsch falsch">
+    `;
+    fragenContainer.appendChild(block);
+    saveBlocks();
+  }
+
+  function saveBlocks() {
+    const blocks = document.querySelectorAll(".frage-block");
+    const data = Array.from(blocks).map(block => {
+      return {
+        frage: block.querySelector(".frage").value,
+        richtig: block.querySelector(".richtig").value,
+        falsch: Array.from(block.querySelectorAll(".falsch")).map(f => f.value)
+      };
+    });
+    localStorage.setItem("quizData", JSON.stringify(data));
+  }
+
+  fragenContainer.addEventListener("input", saveBlocks);
+
+  function generateQuiz() {
+    const blocks = document.querySelectorAll(".frage-block");
+    const testTitle = document.getElementById("testTitle").value || "Test";
+    const numQuestions = parseInt(document.getElementById("numQuestions").value) || blocks.length;
+
+    // zozbieraj otázky
+    let allQuestions = [];
+    blocks.forEach(block => {
+      const frage = (block.querySelector(".frage").value || "").trim();
+      const richtig = (block.querySelector(".richtig").value || "").trim();
+      const falschInputs = block.querySelectorAll(".falsch");
+      const falsch = Array.from(falschInputs).map(f => (f.value || "").trim()).filter(f => f !== "");
+      if (frage && richtig) {
+        allQuestions.push({frage, richtig, falsch});
+      }
+    });
+
+    // ak nie sú otázky, nevygeneruj nič
+    if (allQuestions.length === 0) {
+      alert("Prosím, zadaj aspoň jednu platnú otázku (znenie + správna odpoveď).");
+      return;
+    }
+
+    // Bezpeiliche Einbettung: JSON.stringify testTitle und allQuestions
+    const embeddedTitle = JSON.stringify(testTitle);
+    const embeddedQuestions = JSON.stringify(allQuestions);
+
+    const htmlHead = [
+      '<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8"><title>',
+      escapeHtml(testTitle),
+      '</title><style>',
+      'body{font-family:monospace;margin:20px;background:#f2f2f2;}',
+      '.question{margin-bottom:30px;padding:15px;background:#fff;border-radius:8px;box-shadow:0 0 5px rgba(0,0,0,0.1);}',
+      '.btn-group{display:flex;flex-direction:column;gap:10px;max-width:500px;}',
+      '.btn-option{background:#e0e0e0;border:none;padding:10px 15px;border-radius:6px;cursor:pointer;text-align:left;width:200px;}',
+      '.btn-option:hover{background:#d0d0d0;}',
+      '.btn-option.selected{background:#90caf9;}',
+      '.feedback{margin-top:10px;font-weight:bold;}',
+      '#result{font-size:18px;font-weight:bold;margin-top:30px;color:#0078D4;}',
+      'table{margin-top:15px;border-collapse:collapse;background:#fff;}',
+      'table td{padding:6px 10px;border:1px solid #ccc;}',
+      '</style></head><body><h1>',
+      escapeHtml(testTitle),
+      '</h1><label>Meno žiaka: <input type="text" id="studentName"></label><br><br>',
+      '<div id="quiz"></div>',
+      '<button id="evaluateBtn">Vyhodnotiť</button>',
+      '<div id="result"></div>'
+    ].join('');
+
+    const htmlScriptStart = '<script>';
+    const htmlScriptEnd = '<\/script></body></html>';
+
+    // Daten sicher eingebettet in die generierte Seite
+    const scriptData = 'const ALL_QUESTIONS = ' + embeddedQuestions + '; const TEST_TITLE = ' + embeddedTitle + '; const NUM_QUESTIONS = ' + numQuestions + ';';
+
+    const scriptCore = `
+(function(){
+  // einfache HTML-escape-Funktion in der generierten Seite
+  function escHtml(s){
+    if (s === undefined || s === null) return '';
+    return String(s).replace(/[&<>"']/g, function(ch){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+    });
+  }
+
+  function shuffle(arr){ return arr.slice().sort(()=>Math.random()-0.5); }
+  const selected = shuffle(ALL_QUESTIONS).slice(0, NUM_QUESTIONS);
+  const quizDiv = document.getElementById("quiz");
+  const total = selected.length;
+
+  selected.forEach((q,i)=>{
+    const answers = shuffle([q.richtig].concat(q.falsch || []));
+    const qWrapper = document.createElement('div');
+    qWrapper.className = 'question';
+
+    const h2 = document.createElement('h2');
+    h2.textContent = (i+1) + '. ' + q.frage;
+    qWrapper.appendChild(h2);
+
+    const group = document.createElement('div');
+    group.className = 'btn-group';
+
+    const feedback = document.createElement('div');
+    feedback.className = 'feedback';
+    feedback.id = 'f' + i;
+
+    answers.forEach(ans=>{
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-option';
+      btn.textContent = ans;
+      btn.dataset.correct = q.richtig;
+      btn.addEventListener('click', function(){
+        group.querySelectorAll('.btn-option').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        // save selection on the feedback element
+        feedback.dataset.selected = btn.textContent;
+        feedback.dataset.correct = btn.dataset.correct;
+      });
+      group.appendChild(btn);
+    });
+
+    qWrapper.appendChild(group);
+    qWrapper.appendChild(feedback);
+    quizDiv.appendChild(qWrapper);
+  });
+
+  function evaluate(){
+    let score = 0;
+    const feedbacks = document.querySelectorAll('.feedback');
+    feedbacks.forEach(f=>{
+      const sel = f.dataset.selected;
+      const cor = f.dataset.correct;
+      if(sel){
+        if(sel === cor){
+          f.textContent = "✅ Správne";
+          f.style.color = "green";
+          score++;
+        } else {
+          f.textContent = "❌ Nesprávne (správne: " + cor + ")";
+          f.style.color = "red";
+        }
+      } else {
+        f.textContent = "⚠️ Nezodpovedané";
+        f.style.color = "orange";
+      }
+    });
+
+    const percent = total === 0 ? 0 : Math.round((score / total) * 100);
+    const student = document.getElementById('studentName').value || "(nezadané meno)";
+    const now = new Date();
+    const datetime = now.toLocaleString();
+
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = ''
+      + '<h2>Výsledky</h2>'
+      + '<table>'
+      + '<tr><td><b>Názov testu:</b></td><td>' + escHtml(TEST_TITLE) + '</td></tr>'
+      + '<tr><td><b>Meno žiaka:</b></td><td>' + escHtml(student) + '</td></tr>'
+      + '<tr><td><b>Hodnotenie:</b></td><td>' + escHtml(score) + ' / ' + escHtml(total) + ' (' + escHtml(percent) + '%)</td></tr>'
+      + '<tr><td><b>Dátum a čas:</b></td><td>' + escHtml(datetime) + '</td></tr>'
+      + '</table>'
+      + '<br><i>Pre export použite Ctrl+P → Uložiť ako PDF.</i>';
+  }
+
+  document.getElementById('evaluateBtn').addEventListener('click', evaluate);
+})();
+`;
+
+    // skladanie výstupu
+    outputField.value = htmlHead + htmlScriptStart + scriptData + scriptCore + htmlScriptEnd;
+  }
+
+  function copyOutput() {
+    outputField.select();
+    document.execCommand("copy");
+    alert("✅ Obsah sa skopíroval!");
+  }
+
+  function saveAsHTML() {
+    const blob = new Blob([outputField.value], { type: "text/html" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "kviz_.html";
+    link.click();
+  }
+
+  // pomocná funkcia na únik HTML
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    })[s]);
+  }
+  </script>
+  <br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>

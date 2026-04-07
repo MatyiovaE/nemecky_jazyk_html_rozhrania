@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor kvízov s hlasovým výstupom</title>
+  <style>
+    body { font-family: Courier bold, monospace; margin: 20px; background: #f4f4f4; }
+    h1 { color: #333; }
+    .frage-block { background: #fff; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    .frage-block label { font-weight: bold; display: block; margin-top: 10px; }
+    .frage-block input { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    .frage-block input.frage { background-color: #fff9c4; }
+    .frage-block input.richtig { background-color: #c8e6c9; }
+    .frage-block input.falsch { background-color: #f8bbd0; }
+    button { padding: 10px 15px; margin: 5px 5px 15px 0; border: none; border-radius: 5px; cursor: pointer; background-color: #0078D4; color: white; }
+    button:hover { background-color: #005a9e; }
+
+    .speak-btn { background-color: #2196F3; color: white; border: none; border-radius: 5px; padding: 8px 10px; cursor: pointer; }
+    .speak-btn:hover { background-color: #1976D2; }
+    textarea { width: 100%; height: 250px; font-family: monospace; padding: 10px; border-radius: 6px; border: 1px solid #ccc; background: #fff; }
+    select { padding: 8px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>🧠 Generátor kvízov s hlasovým výstupom</h1>
+  <label for="frageSprache">🔧 Jazyk otázok:</label>
+  <select id="frageSprache">
+    <option value="de-DE">Nemčina</option>
+    <option value="sk-SK">Slovenčina</option>
+    <option value="en-GB">Britská angličtina</option>
+	<option value="en-US">Americká angličtina</option>
+  </select>
+
+  <label for="antwortSprache">🔧 Jazyk odpovedí:</label>
+  <select id="antwortSprache">
+    <option value="de-DE">Nemčina</option>
+    <option value="sk-SK">Slovenčina</option>
+    <option value="en-GB">Britská angličtina</option>
+	<option value="en-US">Americká angličtina</option>
+  </select>
+
+  <div id="fragen-container"></div>
+  <button onclick="addFrage()">➕ Pridať otázku</button>
+  <button onclick="generateQuiz()">🎯 Generovať kvíz</button>
+  <button onclick="copyOutput()">📋 Kopírovať obsah</button>
+  <button onclick="saveAsHTML()">💾 Uložiť ako HTML</button>
+  <h2>💡 Vygenerovaný HTML kód:</h2>
+  <textarea id="output"></textarea>
+
+  <script>
+  const fragenContainer = document.getElementById("fragen-container");
+  const outputField = document.getElementById("output");
+
+  window.onload = () => {
+    const savedData = localStorage.getItem("quizData");
+    if (savedData) {
+      const parsed = JSON.parse(savedData);
+      parsed.forEach(data => {
+        const block = document.createElement("div");
+        block.className = "frage-block";
+        block.innerHTML = `
+          <label>Znenie otázky:</label><input type="text" class="frage frage" value="${data.frage}">
+          <label>Správna odpoveď:</label><input type="text" class="richtig richtig" value="${data.richtig}">
+          <label>Nesprávna odpoveď A:</label><input type="text" class="falsch falsch" value="${data.falsch[0] || ''}">
+          <label>Nesprávna odpoveď B:</label><input type="text" class="falsch falsch" value="${data.falsch[1] || ''}">
+          <label>Nesprávna odpoveď C:</label><input type="text" class="falsch falsch" value="${data.falsch[2] || ''}">
+        `;
+        fragenContainer.appendChild(block);
+      });
+    } else {
+      addFrage();
+    }
+  };
+
+  function addFrage() {
+    const block = document.createElement("div");
+    block.className = "frage-block";
+    block.innerHTML = `
+      <label>Znenie otázky:</label><input type="text" class="frage frage">
+      <label>Správna odpoveď:</label><input type="text" class="richtig richtig">
+      <label>Nesprávna odpoveď A:</label><input type="text" class="falsch falsch">
+      <label>Nesprávna odpoveď B:</label><input type="text" class="falsch falsch">
+      <label>Nesprávna odpoveď C:</label><input type="text" class="falsch falsch">
+    `;
+    fragenContainer.appendChild(block);
+    saveBlocks();
+  }
+
+  function saveBlocks() {
+    const blocks = document.querySelectorAll(".frage-block");
+    const data = Array.from(blocks).map(block => {
+      return {
+        frage: block.querySelector(".frage").value,
+        richtig: block.querySelector(".richtig").value,
+        falsch: Array.from(block.querySelectorAll(".falsch")).map(f => f.value)
+      };
+    });
+    localStorage.setItem("quizData", JSON.stringify(data));
+  }
+
+  fragenContainer.addEventListener("input", saveBlocks);
+
+  function generateQuiz() {
+    const blocks = document.querySelectorAll(".frage-block");
+    const frageLang = document.getElementById("frageSprache").value;
+    const antwortLang = document.getElementById("antwortSprache").value;
+
+    let html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Kvíz</title><style>
+    body{font-family:monospace;margin:20px;background:#f2f2f2;}
+    .question{margin-bottom:30px;padding:15px;background:#fff;border-radius:8px;box-shadow:0 0 5px rgba(0,0,0,0.1);}
+    .btn-group{display:flex;flex-direction:column;gap:10px;max-width:500px;}
+    .btn-option{background:#e0e0e0;border:none;padding:10px 15px;border-radius:6px;cursor:pointer;text-align:left;width:200px;}
+    .btn-option:hover{background:#d0d0d0;}
+    .btn-option:disabled{background:#ccc;cursor:default;}
+    .speak-btn{background:#2196F3;color:white;border:none;border-radius:5px;padding:8px 10px;cursor:pointer;}
+    .speak-btn:hover{background:#1976D2;}
+    .feedback{margin-top:10px;font-weight:bold;}
+    #result{font-size:18px;font-weight:bold;margin-top:30px;color:#0078D4;}
+    </style></head><body><h1>Kvíz</h1>`;
+
+    html += `<script>
+    let score=0,answered=0,total=0;
+    function check(btn,sel,cor,id){const f=document.getElementById(id);
+    btn.parentElement.querySelectorAll(".btn-option").forEach(b=>b.disabled=true);
+    if(sel===cor){f.textContent="✅ Správne 🙂";f.style.color="green";score++;}
+    else{f.textContent="❌ Nesprávne ☹";f.style.color="red";}
+    answered++;if(answered===total){document.getElementById("result").textContent=
+    "Odpovedal/a si správne na "+score+" z "+total+" otázok. 🎉";}}
+    function speak(text, lang){const u=new SpeechSynthesisUtterance(text);u.lang=lang;speechSynthesis.speak(u);}
+    <\/script>`;
+
+    let validCount = 0;
+
+    blocks.forEach((block, i) => {
+      const frage = block.querySelector(".frage").value.trim();
+      const richtig = block.querySelector(".richtig").value.trim();
+      const falschInputs = block.querySelectorAll(".falsch");
+      const falsch = Array.from(falschInputs).map(f => f.value.trim()).filter(f => f !== "");
+      if (!frage || !richtig) return;
+
+      const antworten = [richtig, ...falsch];
+      const shuffled = antworten.map((text, idx) => {
+        const escaped = text.replace(/'/g, "\\'");
+        return `
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-option" onclick="check(this,${idx},0,'f${i}')">${text}</button>
+            <button class="speak-btn" onclick="speak('${escaped}','${antwortLang}')">🔊</button>
+          </div>
+        `;
+      }).sort(() => Math.random() - 0.5);
+
+      html += `<div class="question">
+  <h2>${validCount + 1}. ${frage}</h2>
+  <button class="speak-btn" onclick="speak('${frage.replace(/'/g, "\\'")}','${frageLang}')">🔊 Vypočuť si otázku</button>
+  <div class="btn-group" style="margin-top: 15px;">${shuffled.join("")}</div>
+  <div class="feedback" id="f${i}"></div>
+</div>`;
+
+      validCount++;
+    });
+
+    html += `<div id="result"></div><script>total=${validCount};<\/script>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+	</body></html>`;
+    outputField.value = html;
+  }
+
+  function copyOutput() {
+    outputField.select();
+    document.execCommand("copy");
+    alert("✅ Obsah sa skopíroval!");
+  }
+
+  function saveAsHTML() {
+    const blob = new Blob([outputField.value], { type: "text/html" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "kviz_.html";
+    link.click();
+  }
+</script>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

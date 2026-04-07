@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Špeciálne znaky</title>
+  <style>
+    body {
+      font-family: Courier bold, monospace;
+      padding: 20px;
+    }
+    #container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    button {
+      padding: 5px 5px;
+	  font-size: 22px;
+      cursor: pointer;
+	  }
+	 button.pridat {
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #add-section {
+      margin-top: 20px;
+    }
+    input {
+      margin-right: 10px;
+      padding: 5px;
+    }
+	 #output-section {
+      margin-top: 30px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      font-size: 22px;
+      padding: 10px;
+    }
+    button.copy-output {
+      margin-top: 10px;
+      padding: 8px 12px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+	#message {
+  color: green;
+  background-color: #e6ffe6;
+  padding: 10px;
+  border: 1px solid green;
+  border-radius: 5px;
+  display: none;
+}
+
+  </style>
+</head>
+<body>
+
+  <h1>Zadávanie špeciálnych znakov klikaním</h1>
+  <div id="container"></div>
+
+  <div id="add-section">
+    <input type="text" id="newChar" placeholder="Znak alebo text">
+    <input type="text" id="newDesc" placeholder="Popis (tooltip)">
+    <button class="pridat" onclick="addCharacter()">Pridať nové tlačidlo (len dočasne, po obnovení stránky sa vymaže)</button>
+  </div>
+
+<div id="output-section">
+    <h3>Výstup</h3>
+    <textarea id="outputField" placeholder="Sem sa budú vkladať znaky."></textarea>
+    <br>
+    <button class="copy-output" onclick="copyOutput()">Kopírovať výstup</button>
+  </div>
+<div id="message" style="margin-top: 15px; font-weight: bold;"></div>
+
+  <script>
+    let characters = [
+{ char: '·', desc: 'oddeľovač' },
+{ char: '*', desc: 'hviezdička' },
+{ char: '^s', desc: 'pevná medzera' },
+{ char: '^t', desc: 'tabulátor' },
+{ char: '^w', desc: 'klasická medzera' },
+{ char: '©', desc: 'copyright' },
+{ char: '|', desc: 'zvislá čiara' },
+{ char: '\'', desc: '' },
+{ char: ';', desc: '' },
+{ char: '"', desc: '' },
+{ char: '+', desc: '' },
+{ char: '-', desc: '' },
+{ char: '×', desc: 'krát' },
+{ char: '÷', desc: 'deleno' },
+{ char: '=', desc: '' },
+{ char: '#', desc: 'mriežka' },
+{ char: '%', desc: '' },
+{ char: '&', desc: '' },
+{ char: '@', desc: 'zavináč' },
+{ char: '\\', desc: '' },
+{ char: '\/', desc: '' },
+{ char: '&nbsp;', desc: '' },
+{ char: '[', desc: '' },
+{ char: ']', desc: '' },
+{ char: '<', desc: '' },
+{ char: '>', desc: '' },
+{ char: '~', desc: 'tilda' },
+{ char: '{', desc: '' },
+{ char: '}', desc: '' },
+{ char: 'â', desc: '' },
+{ char: 'Â', desc: '' },
+{ char: 'ä', desc: '' },
+{ char: 'Ä', desc: '' },
+{ char: 'ç', desc: '' },
+{ char: '\u025B', desc: 'otvorené e' },
+{ char: '\u0259', desc: 'nemé e' },
+{ char: 'è', desc: '' },
+{ char: 'È', desc: '' },
+{ char: 'ë', desc: '' },
+{ char: 'Ë', desc: '' },
+{ char: 'î', desc: '' },
+{ char: 'ï', desc: '' },
+{ char: 'ň', desc: '' },
+{ char: 'ŋ', desc: '' },
+{ char: 'ɲ', desc: '' },
+{ char: 'ö', desc: '' },
+{ char: 'Ö', desc: '' },
+{ char: 'ő', desc: '' },
+{ char: 'Ő', desc: '' },
+{ char: 'ô', desc: '' },
+{ char: 'Ô', desc: '' },
+{ char: 'ß', desc: '' },
+{ char: 'ü', desc: '' },
+{ char: 'Ü', desc: '' },
+{ char: 'ù', desc: '' },
+{ char: 'û', desc: '' },
+    ];
+
+ function showMessage(text) {
+  const msg = document.getElementById('message');
+  msg.textContent = text;
+  msg.style.display = 'block';
+  setTimeout(() => {
+    msg.style.display = 'none';
+  }, 3000);
+}
+
+function renderButtons() {
+  const container = document.getElementById('container');
+  container.innerHTML = '';
+  characters.sort((a, b) => a.char.localeCompare(b.char));
+  characters.forEach(({ char, desc }) => {
+    const btn = document.createElement('button');
+    btn.textContent = char;
+    btn.title = desc;
+    btn.onclick = () => {
+      navigator.clipboard.writeText(char);
+      showMessage(`Skopírované: ${char}`);
+      document.getElementById('outputField').value += char;
+    };
+    container.appendChild(btn);
+  });
+}
+
+function addCharacter() {
+  const charInput = document.getElementById('newChar');
+  const descInput = document.getElementById('newDesc');
+  const char = charInput.value.trim();
+  const desc = descInput.value.trim();
+  if (char) {
+    characters.push({ char, desc: desc || 'Bez popisu' });
+    charInput.value = '';
+    descInput.value = '';
+    renderButtons();
+  }
+}
+
+function copyOutput() {
+  const output = document.getElementById('outputField').value;
+  if (output) {
+    navigator.clipboard.writeText(output);
+    showMessage('Výstup skopírovaný do schránky!');
+  } else {
+    showMessage('Výstup je prázdny.');
+  }
+}
+
+renderButtons();
+
+  </script>
+  <br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

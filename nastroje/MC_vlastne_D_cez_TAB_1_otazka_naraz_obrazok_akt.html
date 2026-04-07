@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor MC testu - Obrázkové zadania s textom</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; color: #333; }
+    h1, h2, h3 { color: #2c3e50; }
+    
+    input[type="text"], input[type="number"], textarea { padding: 8px; font-size: 100%; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; }
+    button { cursor: pointer; padding: 10px 20px; font-size: 100%; font-weight: bold; margin-top: 5px; border-radius: 4px; border: 1px solid #888; background: #e0e0e0; }
+    button:hover { background: #d0d0d0; }
+    
+    .primary-btn { background-color: #4CAF50; color: white; border: none; }
+    .primary-btn:hover { background-color: #45a049; }
+    
+    .add-btn { background-color: #2196F3; color: white; border: none; font-size: 1.1em; padding: 12px 25px; display: block; margin: 20px auto; width: 100%; max-width: 300px;}
+    .add-btn:hover { background-color: #1976D2; }
+
+    .danger-btn { background-color: #ff5252; color: white; border: none; padding: 5px 10px; font-size: 0.9em; margin-left: 10px;}
+    .danger-btn:hover { background-color: #e04848; }
+
+    .settings-group {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .action-bar { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end;}
+    
+    /* Styles for the Question Editor */
+    #questionsContainer { margin-bottom: 10px; }
+    .question-card {
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: flex-start;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .img-upload-section {
+        flex: 1;
+        min-width: 250px;
+        text-align: center;
+        background: #f4f4f4;
+        padding: 10px;
+        border-radius: 5px;
+        border: 2px dashed #ccc;
+    }
+    .img-preview {
+        max-width: 100%;
+        height: 150px;
+        object-fit: contain;
+        margin-bottom: 10px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        background: #ddd;
+    }
+    .inputs-section {
+        flex: 2;
+        min-width: 300px;
+    }
+    .input-row { margin-bottom: 10px; }
+    .input-row label { display: block; font-weight: bold; margin-bottom: 5px;}
+    .input-row input { width: 95%; }
+    .input-row textarea { width: 95%; resize: vertical; }
+    
+    .correct-label { color: darkgreen; }
+    .distractor-label { color: darkred; }
+    .instruction-label { color: #004085; }
+    
+    .html-hint { font-size: 0.8em; color: #666; margin-top: 2px; font-weight: normal; }
+    .html-tag { background: #eee; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+
+  </style>
+</head>
+<body>
+<h1>Generátor MC testu (Obrázky + HTML text)</h1>
+  
+  <h2>Vstupné údaje</h2>
+  <div style="background: #eef; padding: 15px; border-radius: 5px; margin-bottom: 15px; font-size: 0.95em;">
+      <strong>Inštrukcie:</strong><br>
+      1. Vyplňte textové zadanie (voliteľné) - podporuje HTML značky.<br>
+      2. Nahrajte obrázok (bude zobrazený pod textom).<br>
+      3. Vyplňte správnu odpoveď a 1 až 3 nesprávne možnosti.<br>
+  </div>
+  
+  <div class="action-bar">
+      <button class="secondary-btn" onclick="exportData()">⬇️ Zálohovať dáta (JSON)</button>
+      <button class="secondary-btn" onclick="document.getElementById('importFile').click()">⬆️ Obnoviť dáta</button>
+      <input type="file" id="importFile" style="display:none" onchange="importData(this)">
+  </div>
+
+  <div id="questionsContainer">
+      </div>
+
+  <button class="add-btn" onclick="addQuestionRow()">➕ Pridať novú otázku</button>
+  <br>
+
+  <div class="settings-group">
+      <h3>Nastavenia testu</h3>
+      <b>Autor testu:</b> <input type="text" id="testAuthor" placeholder="napr. Mgr. Ján Novák" style="width:300px;"><br><br>
+      <b>Rok:</b> <input type="text" id="testYear" placeholder="2025" style="width:100px;"><br><br>
+      <b>Nadpis testu:</b> <input type="text" id="testTitle" placeholder="napr. Poznávanie rastlín" style="width:300px;"><br><br>
+  </div>
+
+  <button class="primary-btn" style="font-size: 1.2em; padding: 15px 30px;" onclick="saveTestAsHTML()">💾 Uložiť test ako HTML</button>
+
+<script>
+// --- Logika Generátora ---
+
+let questionsData = [];
+
+function normalizeFilename(text) {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9-_ ]/g, "").replace(/\s+/g, "_"); 
+}
+
+function fileToBase64(file, callback) {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => callback(reader.result);
+    reader.onerror = (error) => console.error('Error: ', error);
+}
+
+function addQuestionRow(data = null) {
+    const container = document.getElementById("questionsContainer");
+    const id = Date.now() + Math.random().toString(16).slice(2);
+    
+    const div = document.createElement("div");
+    div.className = "question-card";
+    div.id = "card_" + id;
+    
+    // Default values
+    let imgSrc = "";
+    let correct = "";
+    let instruction = "";
+    let d1 = "", d2 = "", d3 = "";
+
+    if (data) {
+        imgSrc = data.image || "";
+        correct = data.correct || "";
+        instruction = data.instruction || "";
+        const dists = data.answers || [];
+        d1 = dists[0] || "";
+        d2 = dists[1] || "";
+        d3 = dists[2] || "";
+    }
+
+    div.innerHTML = `
+        <div class="img-upload-section">
+            <div style="font-weight:bold; margin-bottom:5px;">Obrázok zadania</div>
+            <img src="${imgSrc || ''}" class="img-preview" id="preview_${id}" style="display: ${imgSrc ? 'block' : 'none'}">
+            <input type="file" accept="image/*" onchange="handleImageUpload(this, '${id}')">
+            <input type="hidden" class="base64-input" id="base64_${id}" value="${imgSrc}">
+        </div>
+        <div class="inputs-section">
+            <div class="input-row">
+                <label class="instruction-label">Textové zadanie / Inštrukcia (HTML):</label>
+                <textarea class="inp-instruction" rows="2" placeholder='Napr.: Vyberte &lt;b&gt;správny&lt;/b&gt; názov pre...'>${instruction}</textarea>
+                <div class="html-hint">Povolené: <span class="html-tag">&lt;b&gt;</span> <span class="html-tag">&lt;i&gt;</span> <span class="html-tag">&lt;u&gt;</span> <span class="html-tag">&lt;span style="..."&gt;</span></div>
+            </div>
+            <hr style="border-top: 1px dashed #ccc; margin: 10px 0;">
+            <div class="input-row">
+                <label class="correct-label">Správna odpoveď:</label>
+                <input type="text" class="inp-correct" value="${correct}" placeholder="napr. Dub letný">
+            </div>
+            <div class="input-row">
+                <label class="distractor-label">Distraktor 1:</label>
+                <input type="text" class="inp-d1" value="${d1}" placeholder="Nesprávna možnosť">
+            </div>
+            <div class="input-row">
+                <label class="distractor-label">Distraktor 2:</label>
+                <input type="text" class="inp-d2" value="${d2}" placeholder="Nesprávna možnosť (voliteľné)">
+            </div>
+            <div class="input-row">
+                <label class="distractor-label">Distraktor 3:</label>
+                <input type="text" class="inp-d3" value="${d3}" placeholder="Nesprávna možnosť (voliteľné)">
+            </div>
+            <div style="text-align:right; margin-top:10px;">
+                <button class="danger-btn" onclick="removeQuestion('${id}')">🗑️ Odstrániť otázku</button>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(div);
+    div.scrollIntoView({behavior: "smooth", block: "center"});
+}
+
+function handleImageUpload(input, id) {
+    if (input.files && input.files[0]) {
+        fileToBase64(input.files[0], (base64) => {
+            document.getElementById(`preview_${id}`).src = base64;
+            document.getElementById(`preview_${id}`).style.display = "block";
+            document.getElementById(`base64_${id}`).value = base64;
+        });
+    }
+}
+
+function removeQuestion(id) {
+    if(confirm("Naozaj chcete odstrániť túto otázku?")) {
+        document.getElementById("card_" + id).remove();
+    }
+}
+
+function gatherData() {
+    const cards = document.querySelectorAll(".question-card");
+    const extractedData = [];
+    
+    cards.forEach(card => {
+        const image = card.querySelector(".base64-input").value;
+        const instruction = card.querySelector(".inp-instruction").value;
+        const correct = card.querySelector(".inp-correct").value.trim();
+        const d1 = card.querySelector(".inp-d1").value.trim();
+        const d2 = card.querySelector(".inp-d2").value.trim();
+        const d3 = card.querySelector(".inp-d3").value.trim();
+        
+        const answers = [d1, d2, d3].filter(a => a !== "");
+
+        if (correct) { 
+            extractedData.push({
+                image: image,
+                instruction: instruction,
+                correct: correct,
+                answers: answers
+            });
+        }
+    });
+    return extractedData;
+}
+
+function exportData() {
+    const data = gatherData();
+    if (data.length === 0) { alert("Žiadne dáta na export."); return; }
+    
+    const exportObj = {
+        meta: {
+            author: document.getElementById("testAuthor").value,
+            year: document.getElementById("testYear").value,
+            title: document.getElementById("testTitle").value
+        },
+        questions: data
+    };
+
+    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; 
+    a.download = "zaloha_test_" + new Date().toISOString().slice(0,10) + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function importData(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const json = JSON.parse(e.target.result);
+            document.getElementById("questionsContainer").innerHTML = "";
+            if(json.meta) {
+                document.getElementById("testAuthor").value = json.meta.author || "";
+                document.getElementById("testYear").value = json.meta.year || "";
+                document.getElementById("testTitle").value = json.meta.title || "";
+            }
+            const qList = json.questions || [];
+            qList.forEach(q => addQuestionRow(q));
+            alert("Dáta boli úspešne načítané (" + qList.length + " otázok).");
+        } catch(err) {
+            alert("Chyba pri čítaní súboru. Uistite sa, že ide o správny JSON.");
+        }
+    };
+    reader.readAsText(file);
+    input.value = ""; 
+}
+
+function saveTestAsHTML() {
+  const testTitleInput = document.getElementById("testTitle").value.trim();
+  const testTitle = testTitleInput || "Test";
+  const testAuthor = document.getElementById("testAuthor").value.trim();
+  const testYear = document.getElementById("testYear").value.trim();
+  const numberingType = "numeric";
+  
+  const allQuestions = gatherData();
+
+  if (allQuestions.length === 0) {
+      alert("Zadajte prosím aspoň jednu otázku so správnou odpoveďou.");
+      return;
+  }
+  
+  let safeFileName = testTitleInput ? normalizeFilename(testTitleInput) + ".html" : "MC_test_obrazky.html";
+
+  // --- HTML CONTENT ---
+  let htmlContent = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${testTitle}</title>
+  <style>
+    :root { 
+        --bg-light:#fdfdfd; --text-light:#333; 
+        --bg-dark:#1a1a1a; --text-dark:#f0f0f0; 
+        --accent: #4CAF50;
+    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding:0; margin:0; background:var(--bg-light); color:var(--text-light); transition:0.3s; display: flex; flex-direction: column; min-height: 100vh; }
+    body.dark-mode { background:var(--bg-dark); color:var(--text-dark); }
+    
+    .top-bar { padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.05); }
+    #themeToggle { padding:6px 12px; border:none; border-radius:4px; background:#ddd; cursor:pointer; }
+    
+    .container { max-width: 800px; margin: 0 auto; padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
+    
+    #startScreen { text-align: center; margin-top: 50px; }
+    .start-input { display: block; margin: 15px auto; width: 80%; max-width: 300px; padding: 10px; font-size: 1.1rem; border: 1px solid #ccc; border-radius: 5px; }
+    #startBtn { padding: 15px 40px; font-size: 1.3rem; background-color: var(--accent); color: white; border: none; cursor: pointer; border-radius: 50px; transition: transform 0.1s; }
+    #startBtn:hover { transform: scale(1.05); }
+
+    #quizInterface { display: none; flex-direction: column; height: 100%; }
+    
+    .question-area {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .q-number { font-size: 1.2rem; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+    
+    .q-instruction {
+        margin: 10px 0 15px 0;
+        font-size: 1.15rem;
+        max-width: 700px;
+        line-height: 1.5;
+    }
+
+    .image-container {
+        width: 100%;
+        max-width: 600px;
+        min-height: 200px; /* Aby element neskakoval ak nie je obrazok */
+        background: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+    body.dark-mode .image-container { background: #333; border-color: #555; }
+    
+    .q-image {
+        width: 100%;
+        max-height: 400px;
+        object-fit: contain;
+        display: block;
+    }
+    
+    .options-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        width: 100%;
+        max-width: 600px; 
+        margin: 0 auto 10px auto; 
+    }
+    @media (max-width: 600px) { .options-grid { grid-template-columns: 1fr; } }
+
+    .opt-btn {
+        background: #fff;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        padding: 15px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #333;
+        font-weight: 500;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    body.dark-mode .opt-btn { background: #2a2a2a; border-color: #555; color: #fff; }
+    
+    .opt-btn:hover { background: #f0f0f0; transform: translateY(-2px); }
+    body.dark-mode .opt-btn:hover { background: #333; }
+
+    .opt-btn.selected {
+        background: #e3f2fd;
+        border-color: #2196F3;
+        color: #0d47a1;
+        box-shadow: 0 0 0 2px #2196F3 inset;
+    }
+    body.dark-mode .opt-btn.selected { background: #152a3d; color: #64b5f6; }
+
+    .nav-bar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+        padding-top: 5px;
+        margin-bottom: 20px;
+    }
+    .nav-btn {
+        width: 35px;
+        height: 35px;
+        border-radius: 5px;
+        border: none;
+        background: #e0e0e0;
+        color: #555;
+        font-weight: bold;
+        cursor: pointer;
+        font-family: monospace;
+        font-size: 0.9rem;
+    }
+    .nav-btn.answered {
+        background: #FFD700;
+        color: #000;
+    }
+    .nav-btn.active {
+        border: 2px solid #000;
+        transform: scale(1.1);
+    }
+    body.dark-mode .nav-btn.active { border-color: #fff; }
+
+    .submit-container { width: 100%; text-align: center; margin-top: 10px; height: 60px; }
+    #submitBtn {
+        background-color: #28a745;
+        color: white;
+        padding: 15px 40px;
+        font-size: 1.3rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        display: none;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    #submitBtn:hover { background-color: #218838; }
+
+    #resultsScreen { display: none; padding: 20px; }
+    .detail-btn { background-color: #008CBA; color: white; border: none; padding: 10px 20px; font-size: 1rem; cursor: pointer; border-radius: 4px; margin-top: 15px; }
+
+    .user-wrong { color: red; text-decoration: line-through; }
+    .correct-ans { color: green; font-weight: bold; }
+    .keyboard-hint { font-size: 0.8rem; color: #888; margin-top: 10px; text-align: center;}
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+      <div>
+         <strong>${testTitle}</strong>
+         <span style="font-size: 0.8em; margin-left: 10px; opacity: 0.7;">
+             ${testAuthor ? testAuthor : ''} ${testYear ? '| ' + testYear : ''}
+         </span>
+      </div>
+      <button id="themeToggle">🌙 Tmavý režim</button>
+  </div>
+
+  <div class="container">
+      
+      <div id="startScreen">
+        <h1>Vitajte v teste</h1>
+        <p>Nastavte si parametre a začnite.</p>
+        
+        <input type="text" id="inputName" class="start-input" placeholder="Meno a priezvisko">
+        <label>Počet otázok (max ${allQuestions.length}):</label>
+        <input type="number" id="inputCount" class="start-input" value="${allQuestions.length}" min="1" max="${allQuestions.length}">
+        
+        <button id="startBtn" onclick="startTest()">Spustiť test</button>
+      </div>
+
+      <div id="quizInterface">
+          <div class="question-area">
+              <div class="q-number" id="qNumberDisplay">Otázka 1</div>
+              
+              <div id="qInstructionDisplay" class="q-instruction"></div>
+
+              <div class="image-container" id="imgContainer">
+                  <img id="qImageDisplay" class="q-image" src="" alt="Zadanie">
+              </div>
+          </div>
+          
+          <div class="options-grid" id="optionsContainer">
+          </div>
+          
+          <div class="nav-bar" id="navContainer">
+          </div>
+
+          <div class="submit-container">
+             <button id="submitBtn" onclick="evaluateTest()">Vyhodnotiť test</button>
+          </div>
+          
+          <div class="keyboard-hint">Tip: Na prepínanie otázok môžete použiť šípky ⬅️ a ➡️ na klávesnici.</div>
+      </div>
+
+      <div id="resultsScreen"></div>
+
+  </div>
+
+<script>
+    const originalQuestions = ${JSON.stringify(allQuestions)};
+    const numberingType = "${numberingType}";
+    const testTitleName = "${testTitle}";
+    
+    let questions = [];
+    let currentQIndex = 0;
+    let resultData = { name: '', score: 0, percent: 0, date: '' };
+
+    function shuffle(a) { 
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    function getQuestionPrefix(index) {
+       return numberingType === 'alpha' ? String.fromCharCode(65 + index) + '.' : (index + 1) + '.';
+    }
+
+    function startTest() {
+        const nameInput = document.getElementById('inputName').value.trim();
+        resultData.name = nameInput || 'Žiak';
+        
+        let count = parseInt(document.getElementById('inputCount').value);
+        if (!count || count < 1) count = 1;
+        if (count > originalQuestions.length) count = originalQuestions.length;
+
+        const picked = shuffle([...originalQuestions]).slice(0, count);
+        
+        questions = picked.map(q => {
+            const opts = shuffle([q.correct, ...q.answers]);
+            return {
+                image: q.image,
+                instruction: q.instruction, 
+                correct: q.correct,
+                opts: opts,
+                userAnswer: null
+            };
+        });
+
+        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('quizInterface').style.display = 'flex';
+        renderNav();
+        loadQuestion(0);
+        
+        // Setup Keyboard Navigation
+        document.addEventListener('keydown', handleKeyboardNav);
+    }
+    
+    function handleKeyboardNav(e) {
+        if (document.getElementById('quizInterface').style.display === 'none') return;
+        
+        if (e.key === "ArrowRight") {
+            if (currentQIndex < questions.length - 1) loadQuestion(currentQIndex + 1);
+        } else if (e.key === "ArrowLeft") {
+            if (currentQIndex > 0) loadQuestion(currentQIndex - 1);
+        }
+    }
+
+    function loadQuestion(index) {
+        currentQIndex = index;
+        const q = questions[index];
+        
+        document.getElementById('qNumberDisplay').textContent = "Úloha " + (index + 1) + " / " + questions.length;
+        
+        // Render Text instruction with HTML
+        const instrEl = document.getElementById('qInstructionDisplay');
+        if (q.instruction) {
+            instrEl.innerHTML = q.instruction;
+            instrEl.style.display = 'block';
+        } else {
+            instrEl.innerHTML = '';
+            instrEl.style.display = 'none';
+        }
+
+        // Render Image
+        const imgEl = document.getElementById('qImageDisplay');
+        const imgCont = document.getElementById('imgContainer');
+        if (q.image) {
+            imgEl.src = q.image;
+            imgCont.style.display = 'flex';
+        } else {
+            imgCont.style.display = 'none';
+        }
+
+        const container = document.getElementById('optionsContainer');
+        container.innerHTML = '';
+        
+        q.opts.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.textContent = opt;
+            if (q.userAnswer === opt) {
+                btn.classList.add('selected');
+            }
+            btn.onclick = () => selectAnswer(opt);
+            container.appendChild(btn);
+        });
+
+        updateNavHighlight();
+
+        const submitBtn = document.getElementById('submitBtn');
+        if (index === questions.length - 1) {
+            submitBtn.style.display = 'inline-block';
+        } else {
+            submitBtn.style.display = 'none';
+        }
+    }
+
+    function selectAnswer(answer) {
+        questions[currentQIndex].userAnswer = answer;
+        const opts = document.getElementById('optionsContainer').children;
+        Array.from(opts).forEach(btn => {
+            if (btn.textContent === answer) btn.classList.add('selected');
+            else btn.classList.remove('selected');
+        });
+        renderNav(); 
+    }
+
+    function renderNav() {
+        const navContainer = document.getElementById('navContainer');
+        navContainer.innerHTML = '';
+        questions.forEach((q, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'nav-btn';
+            btn.textContent = (i + 1);
+            if (q.userAnswer !== null) btn.classList.add('answered');
+            btn.onclick = () => loadQuestion(i);
+            navContainer.appendChild(btn);
+        });
+        updateNavHighlight();
+    }
+
+    function updateNavHighlight() {
+        const navBtns = document.querySelectorAll('.nav-btn');
+        navBtns.forEach((btn, i) => {
+            if (i === currentQIndex) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+    }
+
+    function evaluateTest() {
+        // Remove listener so arrows dont work on results
+        document.removeEventListener('keydown', handleKeyboardNav);
+        
+        document.getElementById('quizInterface').style.display = 'none';
+        const resScreen = document.getElementById('resultsScreen');
+        resScreen.style.display = 'block';
+
+        let score = 0;
+        questions.forEach(q => {
+            q.isCorrect = (q.userAnswer === q.correct);
+            if (q.isCorrect) score++;
+        });
+
+        resultData.score = score;
+        resultData.percent = Math.round((score / questions.length) * 100);
+        resultData.date = new Date().toLocaleString('sk-SK');
+
+        resScreen.innerHTML = \`
+            <div style="text-align:center;">
+                <h2>Výsledky testu</h2>
+                <div style="font-size: 3rem; margin: 20px 0; color: \${resultData.percent >= 50 ? 'green' : 'red'};">
+                    \${resultData.percent} %
+                </div>
+                <p><strong>Meno:</strong> \${resultData.name}</p>
+                <p><strong>Body:</strong> \${score} / \${questions.length}</p>
+                <p><strong>Dátum:</strong> \${resultData.date}</p> <button class="detail-btn" onclick="openDetailedResults()">Zobraziť detailné odpovede</button>
+                <br><br>
+                <button class="detail-btn" style="background:#666;" onclick="location.reload()">Spustiť znova</button>
+            </div>
+        \`;
+    }
+
+    function openDetailedResults() {
+       const win = window.open('', '_blank');
+       let rows = '';
+       
+       questions.forEach((q, i) => {
+          const qPrefix = getQuestionPrefix(i);
+          let symbol = '', uAns = '';
+          if (q.userAnswer === null) {
+             symbol = '⚠️'; uAns = '<span style="color:#c27e00">(bez odpovede)</span>';
+          } else if (q.isCorrect) {
+             symbol = '✅'; uAns = q.userAnswer;
+          } else {
+             symbol = '❌'; uAns = '<span class="user-wrong">' + q.userAnswer + '</span>';
+          }
+          
+          let imgHTML = q.image ? \`<img src="\${q.image}" style="max-width:150px; max-height:100px; margin-top:5px;">\` : '';
+          let instrHTML = q.instruction ? \`<div style="font-style:italic; margin-bottom:5px;">\${q.instruction}</div>\` : '';
+
+          rows += \`<tr>
+             <td><b>\${qPrefix}</b><br>\${instrHTML}\${imgHTML}<br><br>Správna odpoveď: <span class="correct-ans">\${q.correct}</span></td>
+             <td>\${uAns}<br><br><span style="font-size:1.5em">\${symbol}</span></td>
+          </tr>\`;
+       });
+
+       const content = \`
+         <html><head><title>Výsledky - \${resultData.name}</title>
+         <style>
+             body { font-family: sans-serif; padding: 20px; }
+             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+             th, td { border: 1px solid #999; padding: 10px; vertical-align: top; }
+             th { background: #eee; text-align: left; }
+             .user-wrong { color: red; text-decoration: line-through; }
+             .correct-ans { color: green; font-weight: bold; }
+             @media print { button { display: none; } }
+         </style>
+         </head><body>
+         <h2>Detailný prehľad: \${testTitleName}</h2>
+         <p>
+            Žiak: \${resultData.name} | 
+            Body: \${resultData.score}/\${questions.length} (\${resultData.percent}%) | 
+            Dátum: \${resultData.date}
+         </p>
+         <table>
+           <thead><tr><th style="width:60%">Zadanie</th><th>Vaša odpoveď</th></tr></thead>
+           <tbody>\${rows}</tbody>
+         </table>
+         <br><button onclick="window.print()">🖨️ Vytlačiť</button>
+         </body></html>
+       \`;
+       
+       win.document.write(content);
+       win.document.close();
+    }
+
+    const themeBtn = document.getElementById('themeToggle');
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        themeBtn.textContent = '☀️ Svetlý režim';
+    }
+    themeBtn.onclick = () => {
+        const isDark = document.body.classList.toggle('dark-mode');
+        themeBtn.textContent = isDark ? '☀️ Svetlý režim' : '🌙 Tmavý režim';
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    };
+<\/script>
+<div style="margin-top:auto; padding: 20px; text-align: center; opacity: 0.6; font-size: 0.8rem;">
+  Spracované pomocou UI: Mgr. Erika Matyiová (2026)
+</div>
+</body>
+</html>`;
+
+  const blob = new Blob([htmlContent], { type: "text/html" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = safeFileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+window.addEventListener("load", () => {
+    addQuestionRow();
+});
+
+</script>
+ <br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>
