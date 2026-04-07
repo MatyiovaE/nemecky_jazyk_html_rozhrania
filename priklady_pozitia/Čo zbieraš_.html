@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(title)}</title>
+<style>
+  body { font-family: Courier bold, monospace; font-size: 110%; padding: 20px; text-align: center; }
+  .task { margin: 20px auto; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; max-width: 600px; }
+  input[type="text"] { font-size: 1.4rem; padding: 10px; width: 80%; text-align: center; }
+  .nav-btn { margin: 5px; padding: 8px; cursor: pointer; border: 1px solid #ccc; }
+  .current { background: #333; color: #fff; font-weight: bold; }
+  .answered { background: #add8e6; }
+  .correct { background: #c8e6c9; padding: 10px; margin: 5px; border-radius: 5px; text-align: left; }
+  .incorrect { background: #ffcdd2; padding: 10px; margin: 5px; border-radius: 5px; text-align: left; }
+  #evalBtn { background: #4CAF50; color: white; padding: 15px 30px; font-size: 1.2rem; border: none; cursor: pointer; margin-top: 20px; }
+  @media print { .no-print { display: none !important; } }
+</style>
+</head>
+<body>
+  <h1>${escapeHtml(title)}</h1>
+  <div id="setupScreen">
+    <p></p>
+    <p>Meno: <input id="studentName" type="text" style="width:200px"></p>
+    <button onclick="startTest()">Začať test</button>
+  </div>
+
+  <div id="testScreen" style="display:none">
+    <div id="exercise"></div>
+    <div id="navContainer" style="margin-top:20px"></div>
+    <button id="evalBtn" onclick="evaluateTest()" style="display:none">Vyhodnotiť</button>
+  </div>
+
+  <div id="result" style="display:none"></div>
+  <button class="no-print" id="printBtn" style="display:none; margin: 20px auto;" onclick="window.print()">Tlačiť výsledky</button>
+
+  <script>
+    const tasks = ${JSON.stringify(allTasks)};
+    let studentAnswers = new Array(tasks.length).fill('');
+    let currentIndex = 0;
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+    function startTest() {
+      document.getElementById('setupScreen').style.display = 'none';
+      document.getElementById('testScreen').style.display = 'block';
+      renderTask(0);
+    }
+
+    function renderTask(idx) {
+      currentIndex = idx;
+      const t = tasks[idx];
+      document.getElementById('exercise').innerHTML = `
+        <div class="task">
+          <p><strong>${escapeHtml(t.prompt)}</strong></p>
+          <input id="answerInput" type="text" value="${escapeHtml(studentAnswers[idx])}" autocomplete="off">
+        </div>`;
+      
+      const inp = document.getElementById('answerInput');
+      inp.focus();
+      inp.oninput = (e) => { studentAnswers[currentIndex] = e.target.value; updateNav(); };
+      inp.onkeydown = (e) => { if(e.key === 'Enter') { if(currentIndex < tasks.length-1) renderTask(currentIndex+1); else evaluateTest(); } };
+
+      document.getElementById('evalBtn').style.display = (idx === tasks.length - 1) ? 'inline-block' : 'none';
+      updateNav();
+    }
+
+    function updateNav() {
+      const nav = document.getElementById('navContainer');
+      nav.innerHTML = '';
+      tasks.forEach((_, i) => {
+        const btn = document.createElement('button');
+        btn.innerText = i + 1;
+        btn.className = 'nav-btn' + (i === currentIndex ? ' current' : '') + (studentAnswers[i] ? ' answered' : '');
+        btn.onclick = () => { studentAnswers[currentIndex] = document.getElementById('answerInput').value; renderTask(i); };
+        nav.appendChild(btn);
+      });
+    }
+
+    function evaluateTest() {
+      if(document.getElementById('answerInput')) studentAnswers[currentIndex] = document.getElementById('answerInput').value;
+      document.getElementById('testScreen').style.display = 'none';
+      const resDiv = document.getElementById('result');
+      resDiv.style.display = 'block';
+      
+      let score = 0;
+      let html = '<h3>Výsledky:</h3>';
+      
+      tasks.forEach((t, i) => {
+        const student = studentAnswers[i].trim().toLowerCase().replace(/\s+/g, ' ');
+        let correct = false;
+        
+        for (let ans of t.answers) {
+          let pattern = ans.toLowerCase().replace(/\.{3,}/g, '.*').replace(/[.*+?^$${}()|[\]\\]/g, (m) => m === '.*' ? '.*' : '\\' + m);
+          let re = new RegExp('^' + pattern + '$');
+          if (re.test(student)) { correct = true; break; }
+        }
+
+        if(correct) { score++; html += `<div class="correct">✅ ${escapeHtml(t.prompt)} -> ${escapeHtml(studentAnswers[i])}</div>`; }
+        else { html += `<div class="incorrect">❌ ${escapeHtml(t.prompt)} -> <b>${escapeHtml(studentAnswers[i] || '---')}</b> (Správne: ${escapeHtml(t.answers.join(' | '))})</div>`; }
+      });
+
+      resDiv.innerHTML = `<h2>Skóre: ${score} / ${tasks.length} (${Math.round(score/tasks.length*100)}%)</h2>` + html;
+      document.getElementById('printBtn').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

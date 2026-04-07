@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Spracovanie výsledkov aktivity/testu</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; }
+        h1 { font-size: 22px; }
+        .info-block p { margin: 5px 0; }
+        .student-list { margin-top: 30px; }
+        .student-row { display: flex; align-items: center; margin-bottom: 10px; }
+        .student-name { width: 250px; font-weight: bold; }
+        .btn-group { display: flex; gap: 10px; }
+        .grade-btn { 
+            width: 40px; height: 40px; 
+            background-color: #f0f0f0; 
+            border: 2px solid #ccc; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: bold; color: #333;
+        }
+        .grade-btn:hover { background-color: #e0e0e0; }
+        .grade-btn.selected { border: 2px solid #0056b3; background-color: #007bff; color: white; }
+        .selected-grade-text { margin-left: 15px; font-weight: bold; width: 120px; font-style: italic; color: #555; }
+        .submit-btn { margin-top: 30px; padding: 12px 20px; font-size: 16px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .submit-btn:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+
+    <h1>Spracovanie výsledkov aktivity/testu</h1>
+    
+    <div class="info-block">
+        <p><strong>Dátum:</strong> <span id="out-datum">06. 03. 2026</span></p>
+        <p><strong>Trieda:</strong> <span id="out-trieda">II.A</span></p>
+        <p><strong>Predmet:</strong> <span id="out-predmet">Matematika</span></p>
+        <p><strong>Aktivita:</strong> <span id="out-aktivita">Sčítanie do 20</span></p>
+        <p><strong>Meno vyučujúceho:</strong> <span id="out-ucitel">Mgr. Erika Matyiová</span></p>
+    </div>
+
+    <div class="student-list">
+        
+        <div class="student-row" data-name="Anna Mrkvičková">
+            <div class="student-name">Anna Mrkvičková</div>
+            <div class="btn-group">
+                <div class="grade-btn" onclick="selectGrade(this, 'výborný', '1')">1</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'chválitebný', '2')">2</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dobrý', '3')">3</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dostatočný', '4')">4</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'nedostatočný', '5')">5</div>
+            </div>
+            <div class="selected-grade-text"></div>
+        </div>
+        
+        <div class="student-row" data-name="Eva Hrašková">
+            <div class="student-name">Eva Hrašková</div>
+            <div class="btn-group">
+                <div class="grade-btn" onclick="selectGrade(this, 'výborný', '1')">1</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'chválitebný', '2')">2</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dobrý', '3')">3</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dostatočný', '4')">4</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'nedostatočný', '5')">5</div>
+            </div>
+            <div class="selected-grade-text"></div>
+        </div>
+        
+        <div class="student-row" data-name="Ján Šikovný">
+            <div class="student-name">Ján Šikovný</div>
+            <div class="btn-group">
+                <div class="grade-btn" onclick="selectGrade(this, 'výborný', '1')">1</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'chválitebný', '2')">2</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dobrý', '3')">3</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dostatočný', '4')">4</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'nedostatočný', '5')">5</div>
+            </div>
+            <div class="selected-grade-text"></div>
+        </div>
+        
+        <div class="student-row" data-name="Ivana Malá">
+            <div class="student-name">Ivana Malá</div>
+            <div class="btn-group">
+                <div class="grade-btn" onclick="selectGrade(this, 'výborný', '1')">1</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'chválitebný', '2')">2</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dobrý', '3')">3</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dostatočný', '4')">4</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'nedostatočný', '5')">5</div>
+            </div>
+            <div class="selected-grade-text"></div>
+        </div>
+        
+        <div class="student-row" data-name="Jozef Usilovný">
+            <div class="student-name">Jozef Usilovný</div>
+            <div class="btn-group">
+                <div class="grade-btn" onclick="selectGrade(this, 'výborný', '1')">1</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'chválitebný', '2')">2</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dobrý', '3')">3</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dostatočný', '4')">4</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'nedostatočný', '5')">5</div>
+            </div>
+            <div class="selected-grade-text"></div>
+        </div>
+        
+        <div class="student-row" data-name="Peter Snaživý">
+            <div class="student-name">Peter Snaživý</div>
+            <div class="btn-group">
+                <div class="grade-btn" onclick="selectGrade(this, 'výborný', '1')">1</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'chválitebný', '2')">2</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dobrý', '3')">3</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dostatočný', '4')">4</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'nedostatočný', '5')">5</div>
+            </div>
+            <div class="selected-grade-text"></div>
+        </div>
+        
+        <div class="student-row" data-name="Lenka Kováčová">
+            <div class="student-name">Lenka Kováčová</div>
+            <div class="btn-group">
+                <div class="grade-btn" onclick="selectGrade(this, 'výborný', '1')">1</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'chválitebný', '2')">2</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dobrý', '3')">3</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dostatočný', '4')">4</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'nedostatočný', '5')">5</div>
+            </div>
+            <div class="selected-grade-text"></div>
+        </div>
+        
+        <div class="student-row" data-name="Petra Kolesárová">
+            <div class="student-name">Petra Kolesárová</div>
+            <div class="btn-group">
+                <div class="grade-btn" onclick="selectGrade(this, 'výborný', '1')">1</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'chválitebný', '2')">2</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dobrý', '3')">3</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dostatočný', '4')">4</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'nedostatočný', '5')">5</div>
+            </div>
+            <div class="selected-grade-text"></div>
+        </div>
+        
+        <div class="student-row" data-name="Marek Krásny">
+            <div class="student-name">Marek Krásny</div>
+            <div class="btn-group">
+                <div class="grade-btn" onclick="selectGrade(this, 'výborný', '1')">1</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'chválitebný', '2')">2</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dobrý', '3')">3</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'dostatočný', '4')">4</div>
+                <div class="grade-btn" onclick="selectGrade(this, 'nedostatočný', '5')">5</div>
+            </div>
+            <div class="selected-grade-text"></div>
+        </div>
+        
+    </div>
+
+    <button class="submit-btn" onclick="processResults()">Spracovať zadané výsledky</button>
+
+    <script>
+        function selectGrade(btnElement, gradeName, gradeValue) {
+            const row = btnElement.closest('.student-row');
+            row.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('selected'));
+            btnElement.classList.add('selected');
+            const textEl = row.querySelector('.selected-grade-text');
+            textEl.textContent = gradeName;
+            row.dataset.grade = gradeValue;
+        }
+
+        function processResults() {
+            const datum = document.getElementById('out-datum').innerText;
+            const trieda = document.getElementById('out-trieda').innerText;
+            const predmet = document.getElementById('out-predmet').innerText;
+            const aktivita = document.getElementById('out-aktivita').innerText;
+            const ucitel = document.getElementById('out-ucitel').innerText;
+            
+            const rows = document.querySelectorAll('.student-row');
+            const results = { '1': [], '2': [], '3': [], '4': [], '5': [] };
+
+            rows.forEach(row => {
+                const name = row.dataset.name;
+                const grade = row.dataset.grade;
+                if (grade && results[grade]) {
+                    results[grade].push(name);
+                }
+            });
+
+            // Výpočet priemernej známky
+            let pocetHodnotenych = 0;
+            let sucetZnamok = 0;
+            for (let i = 1; i <= 5; i++) {
+                let pocet = results[i.toString()].length;
+                pocetHodnotenych += pocet;
+                sucetZnamok += (pocet * i);
+            }
+            
+            // Ošetrenie delenia nulou a formátovanie na 2 desatinné miesta s čiarkou
+            let priemer = pocetHodnotenych > 0 ? (sucetZnamok / pocetHodnotenych).toFixed(2).replace('.', ',') : '-';
+
+            const now = new Date();
+            const d = String(now.getDate()).padStart(2, '0');
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const y = now.getFullYear();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const generatedTime = `${d}.${m}.${y}, ${hh}:${mm}`;
+
+            const win = window.open('', '_blank');
+            win.document.write(`<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Vyhodnotenie výsledkov aktivity/testu</title>
+    <style>
+        body { font-family: 'Comic Sans MS', cursive, sans-serif; margin: 40px; color: #000; }
+        h2 { text-align: center; font-weight: bold; margin-bottom: 30px; font-size: 28px; }
+        .header-info { font-size: 16px; text-align: left; }
+        .header-info div { margin-bottom: 5px; }
+        .header-info strong { font-weight: bold; }
+        .spacer { height: 20px; }
+        table.results-table { border-collapse: collapse; margin-top: 20px; width: 100%; max-width: 600px; }
+        table.results-table td { vertical-align: top; text-align: left; padding: 10px 15px 10px 0; font-size: 16px; }
+        .grade-title { font-weight: bold; }
+        .average-row td { border-top: 2px solid #333; padding-top: 15px; font-size: 18px; }
+        .footer-note { margin-top: 50px; font-size: 12px; color: #555; }
+    </style>
+</head>
+<body>
+    <h2>Vyhodnotenie výsledkov aktivity/testu</h2>
+    <div class="header-info">
+        <div><strong>Dátum:</strong> ${datum}</div>
+        <div><strong>Trieda:</strong> ${trieda}</div>
+        <div><strong>Predmet:</strong> ${predmet}</div>
+        <div><strong>Aktivita:</strong> ${aktivita}</div>
+        <div><strong>Meno vyučujúceho:</strong> ${ucitel}</div>
+    </div>
+    <div class="spacer"></div>
+    <table class="results-table">
+        <tr><td style="width: 250px;" class="grade-title">výborný (${results['1'].length})</td><td>${results['1'].join('<br>')}</td></tr>
+        <tr><td class="grade-title">chválitebný (${results['2'].length})</td><td>${results['2'].join('<br>')}</td></tr>
+        <tr><td class="grade-title">dobrý (${results['3'].length})</td><td>${results['3'].join('<br>')}</td></tr>
+        <tr><td class="grade-title">dostatočný (${results['4'].length})</td><td>${results['4'].join('<br>')}</td></tr>
+        <tr><td class="grade-title">nedostatočný (${results['5'].length})</td><td>${results['5'].join('<br>')}</td></tr>
+        <tr class="average-row">
+            <td class="grade-title">Priemerná známka:</td>
+            <td><strong>${priemer}</strong></td>
+        </tr>
+    </table>
+    <div class="footer-note">Vygenerované: ${generatedTime}</div>
+</body>
+</html>`);
+            win.document.close();
+        }
+    </script>
+</body>
+</html>

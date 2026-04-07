@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="sk"><head><meta charset="utf-8"><title>Zoradenie slov vo vete</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;max-width:900px;margin:2em auto;padding:0 1em;}
+.slot{display:flex;align-items:center;justify-content:center;min-width:2em;min-height:1.8em;border:2px dashed #888;padding:.4em .6em;margin:.2em;flex-shrink:0;white-space:nowrap;}
+.slot.correct{border-color:green;background:#e8ffe8;}
+.slot.incorrect{border-color:red;background:#ffe8e8;}
+.slots{display:flex;flex-wrap:wrap;gap:.4em;margin-bottom:1em;margin-top: 0;}
+.card{display:inline-block;background:#f0f0f0;padding:.4em .8em;margin:.2em;border:1px solid #888;border-radius:4px;cursor:pointer;user-select:none;}
+.card.selected{background:#cfe5ff;}
+.buttons{margin:1em 0;}
+.task h3{margin:0 0 .25em;}
+.task{margin-bottom:2.5em;}
+@media print{button,.card,input{display:none!important;}}
+</style></head><body>
+<h1>Zoradenie slov vo vete</h1>
+<p><b>Meno žiaka:</b> <input id="studentName" value=""></p>
+<b>Klikni najprv na tlačidlo, potom na prázdnu bunku.<br>Kliknutím na vloženú položku ju vrátiš späť a môžeš ju znova použiť.</b><br><br>
+<div id="tasks"></div>
+<div class="buttons"><button id="evalAll">Vyhodnotiť všetky</button></div>
+<div id="results"></div>
+<script>
+const allVariants=[[["Kedy","prídeš","domov","?"]],[["Prečo","si","nebol","v pondelok","v škole","?"],["Prečo","si","v pondelok","nebol","v škole","?"],["Prečo","si","nebol","v škole","v pondelok","?"]]];
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const tasksEl=document.getElementById('tasks');
+allVariants.forEach((vars,idx)=>{
+ const ref=vars[0];
+ const t=document.createElement('div');t.className='task';
+ const h=document.createElement('h3');h.textContent='Úloha '+(idx+1);t.appendChild(h);
+ const slots=document.createElement('div');slots.className='slots';
+ ref.forEach(()=>{const s=document.createElement('div');s.className='slot';slots.appendChild(s);});
+ t.appendChild(slots);
+ const cards=document.createElement('div');
+ shuffle(ref.slice()).forEach(w=>{const c=document.createElement('div');c.className='card';c.textContent=w;cards.appendChild(c);});
+ t.appendChild(cards);
+ const btns=document.createElement('div');btns.className='buttons';
+ btns.innerHTML='<button class="check">Vyhodnotiť</button>&nbsp;&nbsp;<button class="retry">Opakovať</button>';
+ t.appendChild(btns);
+ tasksEl.appendChild(t);
+
+ let sel=null;
+ cards.addEventListener('click',e=>{
+  const c=e.target.closest('.card'); if(!c) return;
+  if(sel) sel.classList.remove('selected');
+  sel=c; sel.classList.add('selected');
+ });
+ slots.addEventListener('click',e=>{
+  const s=e.target.closest('.slot'); if(!s) return;
+  if(sel){ s.textContent=sel.textContent; s.dataset.value=sel.textContent; sel.remove(); sel=null; return;}
+  if(s.dataset.value){const w=s.dataset.value; s.textContent=''; delete s.dataset.value; s.classList.remove('correct','incorrect');
+   const c=document.createElement('div'); c.className='card'; c.textContent=w; cards.appendChild(c);}
+ });
+ btns.querySelector('.check').addEventListener('click',()=>{evaluate(t,vars);});
+ btns.querySelector('.retry').addEventListener('click',()=>{
+  slots.querySelectorAll('.slot').forEach(s=>{s.textContent='';delete s.dataset.value;s.classList.remove('correct','incorrect');});
+  cards.innerHTML=''; shuffle(ref.slice()).forEach(w=>{const c=document.createElement('div');c.className='card';c.textContent=w;cards.appendChild(c);});
+ });
+});
+
+function evaluate(task,vars){
+ const slots=task.querySelectorAll('.slot');
+ const ans=[...slots].map(s=>s.dataset.value||'');
+ let correctVariant=null;
+ for(const v of vars){
+   if(v.length===ans.length && v.every((w,i)=>w===ans[i])){ correctVariant=v; break; }
+ }
+ const ref=vars[0];
+ slots.forEach((s,i)=>{
+   const val=s.dataset.value||'';
+   s.classList.remove('correct','incorrect');
+   if(!val) return;
+   if(correctVariant){ s.classList.add('correct'); }
+   else if(ref[i]===val){ s.classList.add('correct'); }
+   else s.classList.add('incorrect');
+ });
+ updateResults();
+}
+
+function updateResults(){
+ const all=document.querySelectorAll('.slot');
+ const total=all.length;
+ const correct=[...all].filter(s=>s.classList.contains('correct')).length;
+ const percent=total?Math.round(correct/total*100):0;
+ document.getElementById('results').innerHTML='<h3>Prebiehajúce vyhodnotenie</h3>'+
+ '<p><b>Správne slová:</b> '+correct+' / '+total+' ('+percent+'%)</p>';
+}
+
+document.getElementById('evalAll').addEventListener('click',()=>{
+ document.querySelectorAll('.check').forEach(b=>b.click());
+ const all=document.querySelectorAll('.slot');
+ const total=all.length;
+ const correct=[...all].filter(s=>s.classList.contains('correct')).length;
+ const percent=total?Math.round(correct/total*100):0;
+ const name=document.getElementById('studentName').value;
+ const now=new Date();
+ const date=now.toLocaleDateString('sk-SK');
+ const time=now.toLocaleTimeString('sk-SK');
+ document.getElementById('results').innerHTML='<h3>Vyhodnotenie celého cvičenia</h3>'+
+ '<p><b>Meno žiaka:</b> '+name+'</p>'+
+ '<p><b>Počet správnych odpovedí:</b> '+correct+' / '+total+'</p>'+
+ '<p><b>Úspešnosť:</b> '+percent+' %</p>'+
+ '<p><b>Dátum a čas vypracovania:</b> '+date+', '+time+'</p>';
+});
+
+document.addEventListener('keydown',e=>{
+ if((e.ctrlKey||e.metaKey)&&(e.key==='p'||e.key==='P')){
+   e.preventDefault();
+   document.getElementById('evalAll').click();
+   const res=document.getElementById('results').innerHTML;
+   const name=document.getElementById('studentName').value;
+   const title=document.querySelector('h1').textContent;
+   let content='<h1>'+title+'</h1><br>';
+   document.querySelectorAll('.task').forEach((t,idx)=>{
+     content+='<p><b>Úloha '+(idx+1)+'</b><br>';
+     t.querySelectorAll('.slot').forEach(s=>{
+       const w=s.dataset.value||s.textContent||'';
+       if(!w)return;
+       if(s.classList.contains('correct')) content+=w+' ✔ ';
+       else if(s.classList.contains('incorrect')) content+=w+' ✖ ';
+       else content+=w+' ';
+     });
+     content+='</p><br>';
+   });
+   const html='<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>'+title+'</title>'+
+   '<style>body{font-family:Arial;max-width:900px;margin:2em auto;line-height:1.6;}h1{margin-bottom:1em;}p{margin:.3em 0;}</style>'+
+   '</head><body>'+content+res+'</body></html>';
+   const w=window.open('','_blank');w.document.open();w.document.write(html);w.document.close();
+   w.onload=()=>{w.print();}
+ }
+});
+</script></body></html>
