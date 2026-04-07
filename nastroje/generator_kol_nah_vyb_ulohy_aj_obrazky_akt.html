@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor kolesa náhodného výberu</title>
+    <style>
+        body {
+            font-family: 'Monaco', monospace;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #2c3e50; }
+        .form-group { margin-bottom: 20px; }
+        .form-group.small-gap { margin-bottom: 8px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%; padding: 10px; border: 1px solid #ccc;
+            border-radius: 4px; box-sizing: border-box; font-family: 'Monaco', monospace; font-size: 110%;
+        }
+        textarea { resize: vertical; min-height: 150px; }
+        button {
+            padding: 10px 15px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 16px; font-family: 'Monaco', monospace;
+            margin-right: 10px; margin-bottom: 10px;
+        }
+        .btn-green {
+            background-color: #27ae60; color: white; display: block;
+            width: 100%; font-weight: bold; font-size: 18px; padding: 15px; margin-top: 20px;
+        }
+        .btn-green:hover { background-color: #2ecc71; }
+        .btn-blue { background-color: #2980b9; color: white; }
+        .btn-purple {
+            background-color: #8e44ad; color: white; display: inline-block;
+            font-size: 14px; padding: 8px 15px; margin-top: 5px; margin-bottom: 0;
+        }
+        .btn-purple:hover { background-color: #9b59b6; }
+        .instructions {
+            background-color: #e8f4f8; padding: 15px; border-left: 4px solid #2980b9;
+            margin-top: 20px; margin-bottom: 20px; line-height: 1.5;
+        }
+        footer {
+            margin-top: 40px; text-align: center; font-size: 0.9em;
+            color: #7f8c8d; border-top: 1px solid #ddd; padding-top: 20px;
+        }
+        #importFile { display: none; }
+        .hint { font-size: 0.85em; color: #666; margin-top: -5px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor kolesa náhodného výberu + náhodné úlohy (aj s obrázkami)</h1>
+
+    <div class="form-group small-gap">
+        <label for="author">Meno autora:</label>
+        <input type="text" id="author" placeholder="Zadajte meno autora">
+    </div>
+    <div class="form-group small-gap">
+        <label for="year">Rok:</label>
+        <input type="number" id="year" placeholder="2026">
+    </div>
+    
+    <div class="form-group small-gap" style="margin-top: 20px;">
+        <label for="title">Názov kolesa:</label>
+        <input type="text" id="title" placeholder="Zadajte názov kolesa">
+    </div>
+
+    <div class="form-group small-gap" style="margin-top: 20px;">
+        <label for="items">Mená žiakov:</label>
+        <p class="hint">Každé meno zadajte na zvláštny riadok. Pre nastavenie farby použite napr.: &lt;span style="color:red"&gt;Janko Hraško&lt;/span&gt;</p>
+        <textarea id="items" placeholder="Meno Priezvisko&#10;<span style=&quot;color:blue&quot;>Ďalšie Meno</span>"></textarea>
+    </div>
+
+    <div class="form-group small-gap" style="margin-top: 20px;">
+        <label for="tasks">Úlohy (Otázky):</label>
+        <p class="hint">Každú úlohu zadajte na zvláštny riadok. Pre zalomenie riadka v úlohe použite znak <b>|</b>.<br>Môžete formátovať text pomocou <b>&lt;b&gt;tučný text&lt;/b&gt;</b> alebo <b>&lt;span style="color:red"&gt;farebný text&lt;/span&gt;</b>.<br>
+        Pre pridanie obrázka nastavte kurzor do textu a kliknite na fialové tlačidlo nižšie.</p>
+        <textarea id="tasks" placeholder="Časuj sloveso|<b>wohnen</b>.&#10;Vyčasuj sloveso <span style=&quot;color:blue&quot;>arbeiten</span> v prítomnom čase."></textarea>
+        
+        <button class="btn-purple" onclick="document.getElementById('taskImageInput').click()">+ Pridať obrázok k úlohe</button>
+        <input type="file" id="taskImageInput" accept="image/*" style="display:none;" onchange="addImageToTask(event)">
+    </div>
+
+    <div class="form-group" style="margin-top: 20px;">
+        <label for="instruction">Pokyn pre žiaka:</label>
+        <input type="text" id="instruction" value="Klikni na stred kruhu.">
+    </div>
+
+    <button class="btn-green" onclick="generateAndDownload()">Stiahnuť vygenerované koleso (.html)</button>
+<p>Uložte si údaje zadané do vstupných polí generátora pomocou tlačidla <b>Exportovať nastavenia do súboru .json</b>.<br>Po otvorení tohoto generátora v inom prehliadači alebo v inom počítači môžete tieto uložené údaje načítať znova pomocou tlačidla <b>Importovať nastavenia zo súboru .json.</b></p>
+    <div style="margin-top: 20px;">
+        <button class="btn-blue" onclick="exportJSON()">Exportovať nastavenia do súboru .json</button>
+        <button class="btn-blue" onclick="document.getElementById('importFile').click()">Importovať nastavenia zo súboru .json</button>
+        <input type="file" id="importFile" accept=".json" onchange="importJSON(event)">
+    </div>
+	<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+  <br><br>
+    <script>
+        const fields = ['author', 'year', 'title', 'items', 'tasks', 'instruction'];
+        let imageMap = {}; // Objekt pre uchovávanie obrázkov v Base64
+
+        function loadSettings() {
+            fields.forEach(f => {
+                const val = localStorage.getItem('wheel_' + f);
+                if (val !== null) document.getElementById(f).value = val;
+            });
+            const savedImages = localStorage.getItem('wheel_imageMap');
+            if (savedImages) {
+                try { imageMap = JSON.parse(savedImages); } catch(e) { imageMap = {}; }
+            }
+        }
+
+        function cleanImageMap() {
+            // Vyčistí obrázky, ktoré už boli z textového poľa zmazané
+            const tasksText = document.getElementById('tasks').value;
+            for (const imgId in imageMap) {
+                if (!tasksText.includes(`[OBRAZOK:${imgId}]`)) {
+                    delete imageMap[imgId];
+                }
+            }
+        }
+
+        function saveSettings() {
+            try {
+                fields.forEach(f => localStorage.setItem('wheel_' + f, document.getElementById(f).value));
+                cleanImageMap();
+                localStorage.setItem('wheel_imageMap', JSON.stringify(imageMap));
+            } catch (e) {
+                // Tichá chyba pre prípad, že pamäť prehliadača (localStorage) je plná pre priveľa obrázkov.
+                // Nevyrušuje používateľa, údaje zostávajú vo formulári funkčné.
+                console.warn("Nepodarilo sa uložiť všetky údaje do lokálnej pamäte prehliadača (pravdepodobne z dôvodu väčších obrázkov).");
+            }
+        }
+        
+        document.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', saveSettings));
+        window.onload = loadSettings;
+
+        function addImageToTask(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Skomprimujeme a zmenšíme obrázok cez Canvas
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    } else {
+                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                    }
+                    
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const base64Data = canvas.toDataURL('image/jpeg', 0.8);
+
+                    const imgId = 'img_' + Date.now();
+                    imageMap[imgId] = base64Data;
+
+                    const textarea = document.getElementById('tasks');
+                    const cursorPosition = textarea.selectionStart;
+                    const textBefore = textarea.value.substring(0, cursorPosition);
+                    const textAfter = textarea.value.substring(cursorPosition, textarea.value.length);
+
+                    textarea.value = textBefore + `[OBRAZOK:${imgId}]` + textAfter;
+                    saveSettings();
+                    event.target.value = ''; 
+                    textarea.focus();
+                }
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function exportJSON() {
+            cleanImageMap();
+            const data = {};
+            fields.forEach(f => data[f] = document.getElementById(f).value);
+            data.imageMap = imageMap; // Pridanie obrázkov do exportu
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'nastavenia_kolesa.json';
+            a.click();
+        }
+
+        function importJSON(e) {
+            const file = e.target.files[0];
+            if (!file) return; // Ak používateľ zruší výber súboru
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                let data;
+                // Skúsime najprv bezpečne rozšifrovať súbor
+                try {
+                    data = JSON.parse(event.target.result);
+                } catch (err) {
+                    alert("Chyba pri čítaní súboru. Uistite sa, že vkladáte platný a nepoškodený .json súbor.");
+                    return; // V prípade neplatného súboru proces nepokračuje
+                }
+
+                // Ak je súbor v poriadku, načítame do polí hodnoty
+                if (data) {
+                    fields.forEach(f => { 
+                        if(data[f] !== undefined && data[f] !== null) {
+                            document.getElementById(f).value = data[f]; 
+                        }
+                    });
+                    
+                    if (data.imageMap) { 
+                        imageMap = data.imageMap; 
+                    } else { 
+                        imageMap = {}; 
+                    }
+                    
+                    saveSettings();
+                }
+
+                // Vyčistenie inputu, aby bolo možné znova nahrať ten istý súbor
+                e.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function sanitizeFilename(name) {
+            if (!name) return "koleso.html";
+            return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9\s]/g, "").trim().replace(/\s+/g, "_") + ".html";
+        }
+
+        function generateAndDownload() {
+            cleanImageMap();
+            const title = document.getElementById('title').value || "Koleso náhodného výberu";
+            const author = document.getElementById('author').value;
+            const year = document.getElementById('year').value;
+            const items = document.getElementById('items').value.split('\n').map(s => s.trim()).filter(s => s !== "");
+            
+            // Spracovanie úloh a výmena značiek za reálne HTML obrázky (bez zaoblenia a s rovnomerným tieňom)
+            const tasks = document.getElementById('tasks').value.split('\n').map(s => {
+                let taskText = s.trim();
+                if (taskText === "") return null;
+                
+                for (const [imgId, base64] of Object.entries(imageMap)) {
+                    const placeholder = `[OBRAZOK:${imgId}]`;
+                    if (taskText.includes(placeholder)) {
+                        taskText = taskText.split(placeholder).join(`<br><img src="${base64}" style="max-width:100%; max-height:35vh; margin-top:15px; box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);"><br>`);
+                    }
+                }
+                return taskText;
+            }).filter(s => s !== null);
+
+            const instr = document.getElementById('instruction').value;
+
+            let template = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>{{TITLE}}</title>
+    <style>
+        body { font-family: 'Comic Sans MS', cursive; text-align: center; background: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .meta { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+        #startBtn, #nextBtn { background: #27ae60; color: white; border: none; padding: 15px 40px; border-radius: 5px; cursor: pointer; font-size: 1.3em; margin-top: 30px; font-family: 'Comic Sans MS', cursive; font-weight: bold; }
+        #nextBtn:hover { background: #2ecc71; }
+        #wheel-ui { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 1000px; }
+        .wheel-box { position: relative; display: flex; align-items: center; justify-content: center; margin: 20px; }
+        .arrow {
+            width: 0; height: 0;
+            border-top: 25px solid transparent; border-bottom: 25px solid transparent;
+            border-left: 50px solid #27ae60; margin-right: -10px; z-index: 5;
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.2));
+        }
+        #result-box { margin-top: 40px; display: none; flex-direction: column; align-items: center; width: 100%; }
+        #winner-text { font-size: 2.5em; font-weight: bold; background: #f0f8ff; padding: 15px 40px; border-radius: 10px; border: 3px dashed #2980b9; margin-bottom: 30px; display: inline-block; }
+        #task-text { font-size: 3em; font-weight: normal; color: #000; text-align: center; margin: 20px 0; line-height: 1.3; width: 100%; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <div id="intro">
+        <h1>{{TITLE}}</h1>
+        <div class="meta">{{AUTHOR}} {{YEAR}}</div>
+        <button id="startBtn" onclick="initWheel()">Štart</button>
+    </div>
+
+    <div id="wheel-ui">
+        <div id="instruction-text" style="font-size: 1.2em; font-weight: bold; margin-bottom: 15px;">{{INSTR}}</div>
+        
+        <div class="wheel-box">
+            <div class="arrow"></div>
+            <canvas id="canvas" width="700" height="700"></canvas>
+        </div>
+        
+        <div id="result-box">
+            <div id="winner-text"></div>
+            <div id="task-text"></div>
+            <button id="nextBtn" onclick="removeAndReset()">Hotovo</button>
+        </div>
+    </div>
+
+    <script>
+        let items = {{ITEMS_JSON}};
+        let tasks = {{TASKS_JSON}};
+        let colors = [];
+        let angle = 0;
+        let spinning = false;
+        let winnerIdx = -1;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const CENTER = 350;
+        const RADIUS = 330;
+        const BTN_RADIUS = 55;
+
+        // Funkcia na vyparsovanie spanu s farbou
+        function parseHtmlText(htmlStr) {
+            const spanRegex = /<span[^>]*style=["'](?:[^"']*;)?\\s*color:\\s*([^;"'>]+)[^>]*>(.*?)<\\/span>/i;
+            const match = htmlStr.match(spanRegex);
+            if (match) {
+                return { color: match[1].trim(), text: match[2].trim() };
+            }
+            // Odstránenie iných tagov ak sú prítomné, aby na canvas nešli zátvorky (napr. b)
+            const cleanText = htmlStr.replace(/<[^>]*>?/gm, '');
+            return { color: "#2c3e50", text: cleanText.trim() };
+        }
+
+        function initWheel() {
+            document.getElementById('intro').style.display = 'none';
+            document.getElementById('wheel-ui').style.display = 'flex';
+            generateColors();
+            draw();
+        }
+
+        function generateColors() {
+            colors = [];
+            for(let i=0; i<items.length; i++) {
+                let h = (i * (360 / items.length) + Math.random() * 20) % 360;
+                colors.push('hsl(' + h + ', 75%, 93%)');
+            }
+        }
+
+        function draw() {
+            const n = items.length;
+            const arc = (Math.PI * 2) / n;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            items.forEach((itemHtml, i) => {
+                const parsed = parseHtmlText(itemHtml);
+                
+                const start = angle + i * arc;
+                ctx.fillStyle = colors[i];
+                ctx.beginPath();
+                ctx.moveTo(CENTER, CENTER);
+                ctx.arc(CENTER, CENTER, RADIUS, start, start + arc);
+                ctx.fill();
+                
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)'; 
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(CENTER, CENTER);
+                ctx.rotate(start + arc / 2 + Math.PI); 
+                
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle"; 
+                ctx.fillStyle = parsed.color;
+                
+                let fontSize = Math.min(30, (RADIUS * 2 * arc) / (Math.max(1, parsed.text.length) * 0.55));
+                ctx.font = fontSize + "px 'Comic Sans MS'";
+                
+                let displayText = parsed.text;
+                const maxTextWidth = 240; // Max šírka textu (310 od okraja - 70 aby sa nedotklo stredu 55) = 240px
+                
+                // Zmenšenie veľkosti písma, ak je text vizuálne širší ako maxTextWidth
+                let textWidth = ctx.measureText(displayText).width;
+                if(textWidth > maxTextWidth) {
+                    fontSize = fontSize * (maxTextWidth / textWidth);
+                }
+                
+                // Nastavenie minimálnej veľkosti
+                if(fontSize < 12) {
+                    fontSize = 12;
+                }
+                ctx.font = fontSize + "px 'Comic Sans MS'";
+                
+                // Ak je text aj pri min. veľkosti stále dlhý, tak ho skrátime s bodkami
+                if(ctx.measureText(displayText).width > maxTextWidth) {
+                   while(ctx.measureText(displayText + "...").width > maxTextWidth && displayText.length > 0) {
+                       displayText = displayText.slice(0, -1);
+                   }
+                   displayText += "...";
+                }
+
+                ctx.fillText(displayText, -310, 2);
+                ctx.restore();
+            });
+
+            let g = ctx.createRadialGradient(CENTER, CENTER, RADIUS/2, CENTER, CENTER, RADIUS);
+            g.addColorStop(0, 'rgba(255,255,255,0)');
+            g.addColorStop(1, 'rgba(0,0,0,0.04)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(CENTER, CENTER, RADIUS, 0, Math.PI*2); ctx.fill();
+
+            ctx.beginPath(); ctx.arc(CENTER, CENTER, BTN_RADIUS, 0, Math.PI*2);
+            ctx.fillStyle = "#39ff14"; ctx.fill();
+            ctx.strokeStyle = "#27ae60"; ctx.lineWidth = 3; ctx.stroke();
+            ctx.fillStyle = "#000"; ctx.font = "bold 20px 'Comic Sans MS'";
+            ctx.textAlign = "center"; ctx.fillText("Toč 🙂", CENTER, CENTER + 6);
+        }
+
+        canvas.onclick = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left - CENTER;
+            const y = e.clientY - rect.top - CENTER;
+            if(Math.sqrt(x*x + y*y) < BTN_RADIUS && !spinning && items.length > 0) {
+                spin();
+            }
+        };
+
+        function spin() {
+            spinning = true;
+            let speed = 0.35 + Math.random() * 0.15;
+            function animate() {
+                angle += speed;
+                speed *= 0.986;
+                draw();
+                if(speed > 0.002) requestAnimationFrame(animate);
+                else {
+                    spinning = false;
+                    const n = items.length;
+                    const arc = (Math.PI * 2) / n;
+                    let norm = (Math.PI - (angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                    winnerIdx = Math.floor(norm / arc);
+                    
+                    showResult();
+                }
+            }
+            animate();
+        }
+
+        function showResult() {
+            const parsedWinner = parseHtmlText(items[winnerIdx]);
+            
+            const winnerDiv = document.getElementById('winner-text');
+            winnerDiv.innerText = parsedWinner.text;
+            winnerDiv.style.color = parsedWinner.color === "#2c3e50" ? "#2980b9" : parsedWinner.color;
+            winnerDiv.style.borderColor = winnerDiv.style.color;
+
+            const taskDiv = document.getElementById('task-text');
+            if (tasks.length > 0) {
+                const randomTaskIdx = Math.floor(Math.random() * tasks.length);
+                let selectedTask = tasks[randomTaskIdx];
+                tasks.splice(randomTaskIdx, 1);
+                selectedTask = selectedTask.replace(/\\|/g, '<br>');
+                taskDiv.innerHTML = selectedTask;
+            } else {
+                taskDiv.innerHTML = "<span style='color: #7f8c8d; font-size: 0.6em;'><i>Žiadne ďalšie úlohy nie sú k dispozícii.</i></span>";
+            }
+
+            document.querySelector('.wheel-box').style.display = 'none';
+            document.getElementById('instruction-text').style.display = 'none';
+            document.getElementById('result-box').style.display = 'flex';
+        }
+
+        function removeAndReset() {
+            items.splice(winnerIdx, 1);
+            colors.splice(winnerIdx, 1);
+            
+            document.getElementById('result-box').style.display = 'none';
+            winnerIdx = -1;
+            
+            if (items.length > 0) {
+                document.querySelector('.wheel-box').style.display = 'flex';
+                document.getElementById('instruction-text').style.display = 'block';
+                draw();
+            } else {
+                document.getElementById('wheel-ui').innerHTML = "<h2 style='color:#27ae60; font-size: 2em; margin-top: 50px;'>Koniec! Všetky mená boli vyžrebované.</h2>";
+            }
+        }
+    <\/script>
+</body>
+</html>`;
+
+            template = template.replace(/{{TITLE}}/g, title)
+                               .replace(/{{AUTHOR}}/g, author)
+                               .replace(/{{YEAR}}/g, year)
+                               .replace(/{{INSTR}}/g, instr)
+                               .replace(/{{ITEMS_JSON}}/g, JSON.stringify(items))
+                               .replace(/{{TASKS_JSON}}/g, JSON.stringify(tasks));
+            
+            const blob = new Blob([template], {type: 'text/html'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = sanitizeFilename(title);
+            a.click();
+        }
+    </script>
+</body>
+</html>

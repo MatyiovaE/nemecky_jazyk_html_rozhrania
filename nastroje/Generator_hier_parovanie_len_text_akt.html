@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Generátor párovej hry</title>
+  <style>
+    body { font-family: monospace; font-size:17px; margin:24px; text-align:center; background:#ffffff; color:#000000; }
+    textarea, select, input[type="color"], input[type="number"], input[type="text"], button { margin:8px; padding:8px; font-size:15px; }
+    #input { width:90%; max-width:1100px; height:260px; padding:12px; box-sizing:border-box; resize:vertical; font-size:20px; }
+    .bold { font-weight:900; }
+
+    #board { margin-top:20px; display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:150px; gap:12px; max-width:920px; margin-left:auto; margin-right:auto; }
+    
+    /* Úprava štýlu kartičky pre lepšie centrovanie a zalomenie */
+    .card { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      font-weight: bold;
+      color:#000; 
+      border:3px solid #999; 
+      border-radius:10px; 
+      display:flex; 
+      flex-direction: column; /* Aby sa riadky ukladali pod seba */
+      align-items:center; 
+      justify-content:center; 
+      text-align:center; 
+      padding:4px; /* Menší padding aby sa zmestilo viac */
+      cursor:pointer; 
+      user-select:none; 
+      transition:transform .18s, background .25s; 
+      box-shadow:2px 2px 6px rgba(0,0,0,.12); 
+      font-size:26px; /* Základná veľkosť, bude sa meniť scriptom */
+      line-height: 1.15; /* Menšie riadkovanie pre viacriadkové texty */
+      word-break: break-word;
+      overflow: hidden;
+    }
+
+    .card:hover { transform:scale(1.03); }
+    .card.matched { visibility:hidden; }
+
+    /* --- Štandardné pozadie (predvolená fallback) --- */
+    .card { background:#f0f0f0; }
+
+    /* --- Odlíšené pozadie pre neaktívne kartičky podľa typu --- */
+    .card:not(.selected).term { background: #e9e9e9; }
+    .card:not(.selected).definition { background: #f6f6f6; }
+
+    /* aktívna (vybraná) kartička */
+    .card.selected { background:#d0eaff; color:#000; }
+    .card.correct { background:#c8f7c5 !important; }
+    .card.wrong { background:#f7c5c5 !important; }
+
+    /* Tmavý režim */
+    body.dark-mode { background:#2e3d20; color:#f7f9ef; }
+    body.dark-mode .card { color:#f7f9ef; border:1px solid #fff; text-shadow:1px 1px 2px rgba(0,0,0,.3); }
+    body.dark-mode .card:not(.selected).term { background: #112409; }
+    body.dark-mode .card:not(.selected).definition { background: #1d3d0f; }
+    body.dark-mode .card.selected { background:#f7f9ef; color:#000; border:1px solid #fff; }
+
+    #timerDisplay { font-size:16px; margin-top:8px; font-weight:bold; }
+    #endMessage { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); font-size:2.5rem; font-weight:800; background:#ffffff; color:#111827; padding:18px 26px; border-radius:12px; box-shadow:0 6px 30px rgba(0,0,0,0.25); z-index:999; pointer-events:none; text-align:center; }
+    body.dark-mode #endMessage { background:#304420; color:#e0f4d7; box-shadow:0 6px 30px rgba(0,0,0,0.45); }
+    
+    /* Štýl pre sekcie */
+    .backup-section, .metadata-section { margin: 15px auto; padding: 15px; border-top: 2px dashed #ccc; border-bottom: 2px dashed #ccc; max-width: 900px; background-color: rgba(0,0,0,0.02); border-radius: 8px; }
+    body.dark-mode .backup-section, body.dark-mode .metadata-section { border-color: #555; background-color: rgba(255,255,255,0.05); }
+    
+    .metadata-input { width: 200px; text-align: center; }
+
+    @media(max-width:700px){ #board{ grid-template-columns:repeat(2,1fr); } .card{ font-size:16px; } #endMessage{ font-size:1.6rem; padding:14px 18px; } .metadata-input { width: 90%; } }
+  </style>
+</head>
+<body>
+  <label><input type="checkbox" id="darkToggle"> Tmavý režim</label>
+  <h1>Generátor párovej hry</h1>
+
+  <div class="metadata-section">
+    <strong>Informácie o hre (pre export):</strong><br><br>
+    <label>Názov hry: <input type="text" id="gameTitleInput" class="metadata-input" placeholder="Moja hra"></label>
+    <label>Autor: <input type="text" id="gameAuthorInput" class="metadata-input" placeholder="Meno autora"></label>
+    <label>Rok: <input type="number" id="gameYearInput" class="metadata-input" style="width:80px;" value="2025"></label>
+  </div>
+
+  <p>Do vstupného poľa zadajte pojmy a definície oddelené klávesou [TAB].<br>Každý pár zadávajte do nového riadka.<br>Môžete vložiť aj skopírovaný obsah tabuľky s dvoma stĺpcami.</p>
+  
+  <textarea id="input" placeholder="Zadajte pojmy a definície, napr.&#10;Hund[TAB]pes&#10;Katze[TAB]mačka&#10;Maus[TAB]myš"></textarea><br>
+
+  <div>
+    <button id="saveInputBtn">💾 Uložiť vstup (lokálne)</button>
+    <button id="loadInputBtn">📂 Načítať uložený vstup</button>
+    <button id="clearInputBtn">❌ Vymazať uložený vstup</button>
+  </div>
+
+  <div class="backup-section">
+    <strong>Import / Export dát:</strong><br><br>
+    
+    <button id="exportBackupBtn" title="Stiahne súbor .json s vašimi pojmami a rekordom">💾 Zálohovať dáta (.json)</button>
+    <button id="importBackupBtn" title="Načíta .json súbor so zálohou">📂 Obnoviť zo zálohy (.json)</button>
+    <input type="file" id="fileInput" accept=".json" style="display:none">
+    
+    <span style="display:inline-block; width: 20px;"></span> <button id="importHtmlBtn" style="border-color: #4CAF50; border-width: 2px;" title="Vytiahne slovíčka z hotovej HTML hry">📥 Extrahovať dáta z HTML hry</button>
+    <input type="file" id="htmlGameInput" accept=".html" style="display:none">
+  </div>
+
+  <label for="highlight"><b>Zvýrazniť:</b></label>
+  <select id="highlight">
+    <option value="term">Pojmy</option>
+    <option value="definition">Definície</option>
+  </select>
+
+  <label for="correctColor"><b>Farba pre správne:</b></label>
+  <input type="color" id="correctColor" value="#c8f7c5">
+
+  <label for="wrongColor"><b>Farba pre nesprávne:</b></label>
+  <input type="color" id="wrongColor" value="#f7c5c5">
+
+  <label for="pairCount"><b>Počet párov:</b></label>
+  <input type="number" id="pairCount" value="6" min="1" max="20"><br>
+
+  <button id="startBtn">Spustiť ukážku hry</button>
+  <button id="exportBtn" style="font-weight:bold; border:2px solid #000;">Uložiť hru ako HTML</button>
+
+  <div style="margin-bottom:16px;">
+    <label><input type="checkbox" id="toggleTimer"> Aktivovať časovač</label>
+    <div id="timerDisplay">Čas: 0.00 s</div>
+    <div id="recordDisplay">Rekord: –</div>
+  </div>
+
+  <div id="board"></div>
+  <div id="endMessage"></div>
+
+<script>
+/* ====== UI + localStorage pre vstup ====== */
+const INPUT_KEY = "pairInputData";
+const BEST_KEY = "bestTimeData";
+const META_KEY = "gameMetadata";
+
+const inputEl = document.getElementById("input");
+const titleInput = document.getElementById("gameTitleInput");
+const authorInput = document.getElementById("gameAuthorInput");
+const yearInput = document.getElementById("gameYearInput");
+
+function feedbackBtn(btn, txt){ 
+    const orig = btn.textContent; 
+    btn.textContent = txt; 
+    setTimeout(()=> btn.textContent = orig, 1100); 
+}
+
+document.getElementById("saveInputBtn").addEventListener("click", function() {
+    try { localStorage.setItem(INPUT_KEY, inputEl.value); feedbackBtn(this, "✅ Vstup uložený!"); } catch(e) { alert("Chyba ukladania."); console.warn(e); }
+});
+
+document.getElementById("loadInputBtn").addEventListener("click", function() {
+    const v = localStorage.getItem(INPUT_KEY);
+    if(v !== null && v.trim() !== "") { inputEl.value = v; feedbackBtn(this, "✅ Načítané!"); } else { feedbackBtn(this, "⚠️ Žiadne dáta!"); }
+});
+
+document.getElementById("clearInputBtn").addEventListener("click", function() {
+    localStorage.removeItem(INPUT_KEY);
+    inputEl.value = ""; 
+    feedbackBtn(this, "🗑️ Vymazané!");
+});
+
+(function loadSaved(){ 
+    const v = localStorage.getItem(INPUT_KEY); 
+    if(v!==null) inputEl.value = v; 
+    const meta = localStorage.getItem(META_KEY);
+    if(meta) {
+        try { const m = JSON.parse(meta); if(m.title) titleInput.value = m.title; if(m.author) authorInput.value = m.author; if(m.year) yearInput.value = m.year; } catch(e){}
+    } else { titleInput.value = "Moja párová hra"; authorInput.value = "Mgr. Erika Matyiová"; yearInput.value = new Date().getFullYear(); }
+})();
+
+function saveMetadata() {
+    const meta = { title: titleInput.value, author: authorInput.value, year: yearInput.value };
+    localStorage.setItem(META_KEY, JSON.stringify(meta));
+}
+[titleInput, authorInput, yearInput].forEach(el => el.addEventListener("input", saveMetadata));
+
+/* povolenie TAB v textarea */
+inputEl.addEventListener("keydown", function(e){ if(e.key === "Tab"){ e.preventDefault(); const s=this.selectionStart, ePos=this.selectionEnd; this.value = this.value.substring(0,s) + "\t" + this.value.substring(ePos); this.selectionStart = this.selectionEnd = s+1; }});
+document.getElementById("darkToggle").addEventListener("change", function(){ document.body.classList.toggle("dark-mode", this.checked); });
+
+/* ====== IMPORT / EXPORT FUNKCIONALITA ====== */
+document.getElementById("exportBackupBtn").addEventListener("click", function(){
+    const backupData = {
+        inputData: localStorage.getItem(INPUT_KEY) || inputEl.value,
+        bestTimeData: localStorage.getItem(BEST_KEY),
+        metadata: { title: titleInput.value, author: authorInput.value, year: yearInput.value },
+        timestamp: new Date().toISOString()
+    };
+    const fileName = "zaloha_hry_" + new Date().toISOString().slice(0,10) + ".json";
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    feedbackBtn(this, "✅ Záloha stiahnutá");
+});
+
+const fileInput = document.getElementById("fileInput");
+document.getElementById("importBackupBtn").addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+        try {
+            const data = JSON.parse(ev.target.result);
+            if(data.inputData !== undefined) { localStorage.setItem(INPUT_KEY, data.inputData); inputEl.value = data.inputData; }
+            if(data.bestTimeData !== undefined) { localStorage.setItem(BEST_KEY, data.bestTimeData); }
+            if(data.metadata) {
+                if(data.metadata.title) titleInput.value = data.metadata.title;
+                if(data.metadata.author) authorInput.value = data.metadata.author;
+                if(data.metadata.year) yearInput.value = data.metadata.year;
+                saveMetadata();
+            }
+            initRecordDisplay();
+            feedbackBtn(document.getElementById("importBackupBtn"), "✅ Importované!");
+            alert("Dáta boli úspešne načítané zo zálohy.");
+        } catch(err) { alert("Chyba pri čítaní súboru."); }
+        fileInput.value = "";
+    };
+    reader.readAsText(file);
+});
+
+const htmlGameInput = document.getElementById("htmlGameInput");
+document.getElementById("importHtmlBtn").addEventListener("click", () => htmlGameInput.click());
+htmlGameInput.addEventListener("change", function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+        const content = ev.target.result;
+        const regex = /const\s+RAW_LINES\s*=\s*(\[[\s\S]*?\]);/;
+        const match = content.match(regex);
+        if(match && match[1]){
+            try {
+                const linesArray = JSON.parse(match[1]);
+                if(Array.isArray(linesArray)){
+                    inputEl.value = linesArray.join("\n");
+                    localStorage.setItem(INPUT_KEY, inputEl.value);
+                    feedbackBtn(document.getElementById("importHtmlBtn"), "✅ Načítané!");
+                    alert("Úspech! Načítalo sa " + linesArray.length + " párov.");
+                }
+            } catch(err){ alert("Chyba spracovania dát."); }
+        } else { alert("Nenašli sa dáta hry."); }
+        htmlGameInput.value = ""; 
+    };
+    reader.readAsText(file);
+});
+
+/* ====== Timer logic ====== */
+let timerInterval = null, startTime = null;
+const toggleTimer = document.getElementById("toggleTimer");
+const timerDisplay = document.getElementById("timerDisplay");
+const recordDisplay = document.getElementById("recordDisplay");
+function initRecordDisplay(){ const s = localStorage.getItem(BEST_KEY); if(s){ try{ const r = JSON.parse(s); recordDisplay.textContent = `Rekord: ${r.time.toFixed(2)} s (${r.date} ${r.timeOfDay})`; }catch(e){} } else { recordDisplay.textContent = "Rekord: –"; } }
+initRecordDisplay();
+toggleTimer.addEventListener("change", function(){ if(this.checked){ startTimer(); } else { stopTimer(); timerDisplay.textContent = "Čas: 0.00 s"; } });
+function startTimer(){ stopTimer(); startTime = performance.now(); timerInterval = setInterval(updateTimer, 50); }
+function stopTimer(){ clearInterval(timerInterval); timerInterval = null; }
+function updateTimer(){
+  const elapsed = (performance.now() - startTime) / 1000;
+  timerDisplay.textContent = `Čas: ${elapsed.toFixed(2)} s`;
+  if(allPairsFound()){ stopTimer(); saveRecordIfBetter(elapsed); showEndMessage(); refreshRecordDisplay(); }
+}
+function saveRecordIfBetter(elapsed){
+  const prev = localStorage.getItem(BEST_KEY); let isNew = false;
+  if(!prev) isNew = true; else { try{ const p = JSON.parse(prev); if(elapsed < p.time) isNew = true; }catch(e){} }
+  if(isNew){ const now = new Date(); const rec = { time: elapsed, date: now.toLocaleDateString(), timeOfDay: now.toLocaleTimeString() }; localStorage.setItem(BEST_KEY, JSON.stringify(rec)); timerDisplay.textContent += " 🏆 Rekordný čas!"; }
+}
+function refreshRecordDisplay(){ initRecordDisplay(); }
+const END_MESSAGES = ["Super! 🙂", "Úžasné! 🙂", "Výborne! 🙂", "Kto vie, ten vie 🙂", "Si šikovný/á 🙂", "Cvičenie robí majstra 🙂", "Zaslúžiš si odmenu 🙂"];
+function showEndMessage(){
+  const el = document.getElementById("endMessage");
+  el.textContent = END_MESSAGES[Math.floor(Math.random()*END_MESSAGES.length)];
+  el.style.display = "block"; el.style.opacity = "1";
+  setTimeout(() => { el.style.transition = "opacity 700ms ease"; el.style.opacity = "0"; setTimeout(() => { el.style.display = "none"; el.style.transition = ""; el.style.opacity = "1"; }, 700); }, 1500);
+}
+
+/* ====== Hra (Ukážka) ====== */
+let rawPairs = [];
+const startBtn = document.getElementById("startBtn");
+startBtn.addEventListener("click", startGame);
+
+// NOVÉ: Funkcia na zalomenie textu (ak sú medzery, nahradí ich <br>)
+function formatCardText(text){
+    if(!text) return "";
+    // Ak text obsahuje medzery a nie je extrémne dlhý (aby sme nerozbili dlhé vety na tisíc riadkov),
+    // nahradíme medzery <br>.
+    if(text.includes(' ') && text.length < 50){
+        return text.replace(/\s+/g, '<br>');
+    }
+    return text;
+}
+
+// NOVÉ: Funkcia na automatické zmenšenie písma
+function autoFitText(element) {
+    let size = 32; // Začneme na max veľkosti
+    const minSize = 10;
+    element.style.fontSize = size + "px";
+    
+    // Zmenšujeme, kým obsah presahuje kontajner
+    while ( (element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth) && size > minSize ) {
+        size--;
+        element.style.fontSize = size + "px";
+    }
+}
+
+function allPairsFound(){ return document.querySelectorAll('.card:not(.matched)').length === 0; }
+
+function startGame(){
+  if(toggleTimer.checked){ startTimer(); } else { stopTimer(); timerDisplay.textContent = "Čas: 0.00 s"; }
+  const input = inputEl.value || "";
+  const highlight = document.getElementById("highlight").value;
+  const pairCount = Math.max(1, Math.min(20, parseInt(document.getElementById("pairCount").value || "6", 10)));
+
+  rawPairs = input.split("\n").map(line => {
+    const parts = line.split(/\t| - | : |;/);
+    return parts.map(p => p.trim());
+  }).filter(p => p.length === 2 && p[0] && p[1]);
+
+  const selectedPairs = getRandomPairs(rawPairs, pairCount);
+  const cards = [];
+  selectedPairs.forEach(([term, definition], idx) => {
+    // DÔLEŽITÉ: Tu priraďujeme ID (idx), ktoré použijeme na porovnávanie
+    cards.push({ id: idx, text: term, type: "term" });
+    cards.push({ id: idx, text: definition, type: "definition" });
+  });
+
+  shuffle(cards);
+  renderBoard(cards, highlight);
+}
+
+function renderBoard(cards, highlightTarget){
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  cards.forEach((card, i) => {
+    const div = document.createElement("div");
+    div.className = "card " + (card.type === "term" ? "term" : "definition");
+    if(card.type === highlightTarget) div.classList.add("bold");
+    
+    // Použijeme nové formátovanie
+    div.innerHTML = formatCardText(card.text);
+    div.dataset.pairId = card.id;
+    
+    board.appendChild(div);
+    
+    // Aplikujeme auto-fit po vykreslení do DOMu
+    autoFitText(div);
+  });
+
+  let selected = [];
+  board.querySelectorAll(".card").forEach(card => {
+    card.addEventListener("click", () => {
+      if(card.classList.contains("matched") || card.classList.contains("selected")) return;
+      card.classList.add("selected");
+      selected.push(card);
+      if(selected.length === 2){
+        const [a, b] = selected;
+        // OPRAVA: Porovnávame dataset.pairId namiesto textu.
+        // Týmto sa vyrieši problém s medzerami, HTML tagmi a formátovaním.
+        const isMatch = a.dataset.pairId === b.dataset.pairId;
+        
+        if(isMatch && a !== b){
+          a.classList.add("correct"); b.classList.add("correct");
+          setTimeout(() => {
+            a.classList.add("matched"); b.classList.add("matched");
+            a.classList.remove("correct", "selected"); b.classList.remove("correct", "selected");
+            if(allPairsFound()){ if(!toggleTimer.checked) { showEndMessage(); saveRecordIfBetter(0); refreshRecordDisplay(); } }
+          }, 120);
+        } else {
+          a.classList.add("wrong"); b.classList.add("wrong");
+          setTimeout(() => { a.classList.remove("wrong", "selected"); b.classList.remove("wrong", "selected"); }, 300);
+        }
+        selected = [];
+      }
+    });
+  });
+}
+
+function shuffle(arr){ for(let i = arr.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]] = [arr[j],arr[i]]; } return arr; }
+function getRandomPairs(pairs, count){ const copy = pairs.slice(); shuffle(copy); return copy.slice(0, Math.min(count, copy.length)); }
+
+/* ====== Export (plný HTML) ====== */
+document.getElementById("exportBtn").addEventListener("click", saveGameAsHTML);
+
+function saveGameAsHTML(){
+  const input = inputEl.value || "";
+  const inputJson = JSON.stringify(input.split("\n"));
+  const highlight = document.getElementById("highlight").value;
+  const correctColor = document.getElementById("correctColor").value;
+  const wrongColor = document.getElementById("wrongColor").value;
+  const pairCount = parseInt(document.getElementById("pairCount").value || "6", 10);
+  const darkModeActive = document.body.classList.contains("dark-mode");
+  let gameTitle = titleInput.value.trim() || "Moja párová hra";
+  let gameAuthor = authorInput.value.trim() || "Neznámy autor";
+  let gameYear = yearInput.value.trim() || new Date().getFullYear();
+
+  function makeFilenameSafe(name){
+    let s = name.trim().replace(/\s+/g,' ');
+    s = s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    s = s.replace(/[^A-Za-z0-9 ._\-]/g,'').replace(/[,\;:]/g,'');
+    s = s.replace(/ /g,'_').replace(/_+/g,'_');
+    if(s.length>80) s = s.slice(0,80);
+    if(!s) s = 'Moja_párová_hra';
+    return s;
+  }
+  const safeTitle = makeFilenameSafe(gameTitle);
+
+  const exported = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>${gameTitle}</title>
+<style>
+:root{
+  --bg: #ffffff; --fg: #111827; --card: #f0f0f0; --border: #999999;
+  --active: #d0eaff; --control-bg: #ffffff; --control-fg: #000000;
+  --end-bg: #ffffff; --end-fg: #111827;
+  --card-width: 250px; --card-height: 165px; --card-gap: 12px;
+}
+body.dark-mode{
+  --bg: #2e3d20; --fg: #f7f9ef; --card: #112409; --border: #ffffff;
+  --active: #f7f9ef; --control-bg: #f7f9ef; --control-fg: #000000;
+  --end-bg: #062d08; --end-fg: #e0f4d7;
+}
+.card.selected { background: var(--active, #d0eaff); color: #000000 !important; }
+body.dark-mode .card.selected { background: var(--active, #f7f9ef); color: #000000 !important; }
+body.dark-mode #endMessage { background: #304420; color: var(--end-fg); box-shadow: 0 6px 30px rgba(0,0,0,0.45); }
+body{ margin:0; padding:24px; font-family: Courier, monospace; background:var(--bg); color:var(--fg); text-align:center; }
+.controls, .card, #endMessage, button, input, select { transition: background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.card{ 
+  width: var(--card-width); height: var(--card-height); 
+  display:inline-flex; flex-direction: column; align-items:center; justify-content:center; 
+  margin: calc(var(--card-gap) / 2); background:var(--card); border:3px solid var(--border); 
+  border-radius:10px; cursor:pointer; user-select:none; 
+  text-align:center; box-shadow:2px 2px 8px rgba(0,0,0,0.12); color:var(--fg); 
+  font-family: 'Segoe UI', sans-serif; font-weight: bold; line-height: 1.15; padding: 4px; overflow: hidden;
+}
+.card.matched{ visibility:hidden; }
+.card.selected{ background:var(--active); color:var(--fg); }
+.card.correct{ background: ${correctColor} !important; }
+.card.wrong{ background: ${wrongColor} !important; }
+.bold{ font-weight:800; }
+.card:not(.selected).term { background: #d9d9d9; color: var(--fg); font-weight: 800; }
+.card:not(.selected).definition { background: #f6f6f6; color: var(--fg); font-weight: 500; }
+body.dark-mode .card:not(.selected).term { background: #112409; color: var(--fg); font-weight: 800; }
+body.dark-mode .card:not(.selected).definition { background: #1d3d0f; color: var(--fg); font-weight: 500; }
+#board{ display:flex; flex-wrap:wrap; justify-content:center; max-width:1200px; margin:18px auto; }
+#endMessage{ display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); font-size:3rem; font-weight:800; background:var(--end-bg); color:var(--end-fg); padding:18px 26px; border-radius:12px; box-shadow:0 6px 30px rgba(0,0,0,0.25); z-index:999; pointer-events:none; text-align:center; }
+.controls{ margin-bottom:12px; }
+button, input, select{ padding:8px 10px; margin:6px; background:var(--control-bg); color:var(--control-fg); border:1px solid var(--border); border-radius:6px; }
+@media(max-width:900px){ :root{ --card-width: 220px; --card-height: 150px; --card-gap: 10px; } #board{ max-width:980px; } }
+@media(max-width:700px){ :root{ --card-width: 46%; --card-height: 110px; --card-gap: 8px; } #endMessage{ font-size:1.8rem; padding:14px 18px; } }
+</style>
+</head>
+<body ${darkModeActive ? 'class="dark-mode"' : ""}>
+  <label class="controls"><input type="checkbox" id="darkToggle"${darkModeActive ? " checked" : ""}> Tmavý režim</label>
+  <h1>${gameTitle}</h1>
+  <div class="controls">
+    <label><input type="checkbox" id="toggleTimer"> Aktivovať časovač</label><br>
+    <span id="timerDisplay">Čas: 0.00 s</span><br>
+    <span id="recordDisplay" style="margin-left:12px">Rekord: –</span><br>
+    <button id="restartBtn" style="margin-left:12px">🔁 Reštartovať</button>
+  </div>
+  <div id="board"></div>
+  <div id="endMessage"></div>
+<script>
+(function(){
+  const RAW_LINES = ${inputJson};
+  const PAIR_COUNT = ${pairCount};
+  const HIGHLIGHT = ${JSON.stringify(highlight)};
+  const END_MESSAGES = ${JSON.stringify(END_MESSAGES)};
+  
+  function parsePairs(lines){
+    const pairs = [];
+    for(const rawLine of lines){
+      if(!rawLine) continue;
+      const parts = rawLine.split(/\\t| - | : |;/).map(s => s.trim()).filter(Boolean);
+      if(parts.length === 2) pairs.push([parts[0], parts[1]]);
+    }
+    return pairs;
+  }
+  function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+  function allPairsFound(){ return document.querySelectorAll('.card:not(.matched)').length === 0; }
+  const BEST_KEY = 'matchGameBestTime_export';
+  let timerInterval = null, startTime = null;
+  const toggleTimer = document.getElementById('toggleTimer');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const recordDisplay = document.getElementById('recordDisplay');
+  const endMessageEl = document.getElementById('endMessage');
+  const DARK_KEY = 'exportGameDarkMode';
+  (function restoreDarkMode() { try { const saved = localStorage.getItem(DARK_KEY); const darkOn = saved === '1'; document.body.classList.toggle('dark-mode', darkOn); const dt = document.getElementById('darkToggle'); if (dt) dt.checked = darkOn; } catch (e) {} })();
+  const dtEl = document.getElementById('darkToggle');
+  if (dtEl) { dtEl.addEventListener('change', function () { try { localStorage.setItem(DARK_KEY, this.checked ? '1' : '0'); } catch (e) {} document.body.classList.toggle('dark-mode', this.checked); }); }
+  function refreshBest(){ const raw = localStorage.getItem(BEST_KEY); if(!raw){ recordDisplay.textContent = 'Rekord: –'; return; } try{ const r=JSON.parse(raw); recordDisplay.textContent = 'Rekord: ' + r.time.toFixed(2) + ' s ('+r.date+' '+r.timeOfDay+')'; }catch(e){ recordDisplay.textContent = 'Rekord: –'; } }
+  refreshBest();
+  function startTimer(){ stopTimer(); startTime = performance.now(); timerInterval = setInterval(()=>{ const elapsed = (performance.now()-startTime)/1000; timerDisplay.textContent = 'Čas: ' + elapsed.toFixed(2) + ' s'; if(allPairsFound()){ stopTimer(); saveIfBetter(elapsed); showEnd(); refreshBest(); } }, 100); }
+  function stopTimer(){ clearInterval(timerInterval); timerInterval=null; }
+  toggleTimer.addEventListener('change', ()=>{ if(toggleTimer.checked) startTimer(); else { stopTimer(); timerDisplay.textContent='Čas: 0.00 s'; } });
+  const TIMER_KEY = 'exportGameTimerOn';
+  (function restoreTimerToggle() { try { const saved = localStorage.getItem(TIMER_KEY); const timerOn = saved === '1'; if (toggleTimer) { toggleTimer.checked = timerOn; if (timerOn) { if (typeof startTimer === 'function') { startTimer(); } else { Promise.resolve().then(() => { if (typeof startTimer === 'function') startTimer(); }); } } } } catch (e) {} })();
+  if (toggleTimer) { toggleTimer.addEventListener('change', function () { try { localStorage.setItem(TIMER_KEY, this.checked ? '1' : '0'); } catch (e) {} try { if (this.checked) startTimer(); else stopTimer(); } catch (e) {} }); }
+
+  function saveIfBetter(elapsed){ const raw = localStorage.getItem(BEST_KEY); let isNew = false; if(!raw) isNew = true; else { try{ const p = JSON.parse(raw); if(elapsed < p.time) isNew = true; }catch(e){} } if(isNew){ const now=new Date(); localStorage.setItem(BEST_KEY, JSON.stringify({time: elapsed, date: now.toLocaleDateString(), timeOfDay: now.toLocaleTimeString()})); } }
+  function showEnd(){ const msg = END_MESSAGES[Math.floor(Math.random()*END_MESSAGES.length)]; endMessageEl.textContent = msg; endMessageEl.style.display = 'block'; endMessageEl.style.opacity = '1'; setTimeout(()=>{ endMessageEl.style.transition='opacity 700ms ease'; endMessageEl.style.opacity='0'; setTimeout(()=>{ endMessageEl.style.display='none'; endMessageEl.style.transition=''; endMessageEl.style.opacity='1'; },700); },1500); }
+
+  function formatCardText(text){
+    if(!text) return "";
+    if(text.includes(' ') && text.length < 50) return text.replace(/\\s+/g, '<br>');
+    return text;
+  }
+  function autoFitText(element) {
+    let size = 34; const minSize = 10; element.style.fontSize = size + "px";
+    while ((element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth) && size > minSize) {
+        size--; element.style.fontSize = size + "px";
+    }
+  }
+
+  const pairs = parsePairs(RAW_LINES);
+  const pick = shuffle(pairs.slice()).slice(0, Math.min(PAIR_COUNT, pairs.length));
+  let cards = [];
+  pick.forEach((p,i)=>{ cards.push({id:i,text:p[0],type:'term'}); cards.push({id:i,text:p[1],type:'definition'}); });
+  shuffle(cards);
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cards.forEach(c=>{
+    const d = document.createElement('div');
+    d.className = 'card ' + (c.type === 'term' ? 'term' : 'definition');
+    if(HIGHLIGHT === 'term' && c.type === 'term') d.classList.add('bold');
+    if(HIGHLIGHT === 'definition' && c.type === 'definition') d.classList.add('bold');
+    d.innerHTML = formatCardText(c.text); 
+    d.dataset.pairId = c.id; board.appendChild(d); 
+    d.addEventListener('click', ()=> onClick(d));
+    autoFitText(d);
+  });
+  let first=null, second=null;
+  function onClick(el){ if(el.classList.contains('matched') || el.classList.contains('selected')) return; el.classList.add('selected'); if(!first){ first = el; return; } second = el; 
+  // OPRAVA: Použitie ID namiesto porovnávania textu pre správne fungovanie viacslovných pojmov
+  const isMatch = first.dataset.pairId === second.dataset.pairId; 
+  if(isMatch && first !== second){ first.classList.add('correct'); second.classList.add('correct'); setTimeout(()=>{ first.classList.add('matched'); second.classList.add('matched'); first.classList.remove('correct','selected'); second.classList.remove('correct','selected'); first=second=null; if(toggleTimer.checked){} else if(!document.querySelector('.card:not(.matched)')) showEnd(); },120); } else { first.classList.add('wrong'); second.classList.add('wrong'); setTimeout(()=>{ first.classList.remove('wrong','selected'); second.classList.remove('wrong','selected'); first=second=null; },300); } }
+  document.getElementById('darkToggle').addEventListener('change', function(){ document.body.classList.toggle('dark-mode', this.checked); });
+  document.getElementById('restartBtn').addEventListener('click', function(){ location.reload(); });
+})();
+<\/script>
+<br><br>
+  <b>Spracované pomocou UI:</b> © ${gameAuthor} (${gameYear})
+  <br><br>
+</body>
+</html>`;
+  const blob = new Blob([exported], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = safeTitle.replace(/\s+/g, "_") + ".html";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>

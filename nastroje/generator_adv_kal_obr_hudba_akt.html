@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor adventného kalendára</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; font-size: 110%; padding: 20px; background-color: #f0f2f5; color: #333; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #c0392b; text-align: center; }
+        .section { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; }
+        label { font-weight: bold; display: block; margin-bottom: 10px; }
+        textarea, input[type="text"] { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: inherit; font-size: 110%; }
+        
+        #finalMessage { height: 50px; }
+        #contentInput { height: 300px; }
+        
+        .upload-zone { border: 3px dashed #3498db; padding: 20px; text-align: center; border-radius: 10px; cursor: pointer; background: #ebf5fb; margin-bottom: 10px; }
+        .image-status-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-top: 10px; }
+        .day-dot { padding: 5px; border-radius: 4px; background: #eee; text-align: center; font-size: 0.7em; font-weight: bold; }
+        .day-dot.filled { background: #27ae60; color: white; }
+
+        .download-btn { width: 100%; padding: 20px; border: none; border-radius: 8px; background: #27ae60; color: white; font-weight: bold; font-size: 1.2em; cursor: pointer; }
+        .clear-btn { background: none; color: #e74c3c; text-decoration: underline; cursor: pointer; border: none; width: 100%; margin-top: 5px; font-size: 0.9em; text-align: right; display: block; }
+        
+        .save-status { font-size: 0.85em; margin-top: 5px; font-weight: bold; }
+        .status-ok { color: #27ae60; }
+        .status-err { color: #c0392b; }
+
+        .music-credits-inputs { display: flex; gap: 10px; margin-top: 10px; }
+        .music-credits-inputs div { flex: 1; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎄 Generátor adventného kalendára</h1>
+
+    <div class="section">
+        <label>Záverečná správa:</label>
+        <textarea id="finalMessage">Výborne! Všetky zadania sú úspešne vyriešené. Veselé Vianoce!</textarea>
+    </div>
+
+    <div class="section">
+        <label>1. Hudba na záver (MP3 a informácie o zdroji):</label>
+        <input type="file" id="musicFile" accept="audio/mp3, audio/mpeg" onchange="processMusic()">
+        <p id="musicInfo" style="font-size: 0.8em; color: green; margin-bottom: 10px;"></p>
+        
+        <div class="music-credits-inputs">
+            <div>
+                <label style="font-size: 0.9em;">Názov hudby:</label>
+                <input type="text" id="musicTitle" placeholder="Napr. Tichá noc - Inštrumentál">
+            </div>
+            <div>
+                <label style="font-size: 0.9em;">Odkaz na zdroj:</label>
+                <input type="text" id="musicUrl" placeholder="https://www.youtube.com/watch?v=...">
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <label>2. Obrázky (názvy 01 až 24):</label>
+        <div class="upload-zone" onclick="document.getElementById('bulkFiles').click()">
+            <strong>Kliknite sem a vyberte obrázky.</strong>
+        </div>
+        <input type="file" id="bulkFiles" multiple accept="image/*" style="display:none" onchange="processImages(this)">
+        <div class="image-status-grid" id="statusGrid"></div>
+    </div>
+
+    <div class="section">
+        <label>3. Zadania:</label>
+		<b>Formát:<br>
+		<span style="color: blue;">Otázka</span>[TAB]<span style="color: green;">Správna odpoveď</span>[TAB]<span style="color: red;">Nesprávna odpoveď 1</span>[TAB]<span style="color: red;">Nesprávna odpoveď 2</span>[TAB]<span style="color: red;">Nesprávna odpoveď 3</span></b><br><br>
+        <textarea id="contentInput" placeholder="Otázka[TAB]Správna odpoveď[TAB]Nesprávna odpoveď 1[TAB]Nesprávna odpoveď 2 atď."></textarea>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span id="saveStatus" class="save-status">Čakám na vstup...</span>
+            <button class="clear-btn" onclick="clearTasks()">❌ Vymazať pamäť</button>
+        </div>
+    </div>
+
+    <button class="download-btn" onclick="generate()">🚀 Stiahnuť adventný kalendár</button>
+	<br><br>
+	<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+</div>
+
+<script>
+    let images = new Array(24).fill("");
+    let music = "";
+    const STORAGE_KEY = 'advent_generator_zadani_fix_v2';
+
+    const inputField = document.getElementById('contentInput');
+    const statusSpan = document.getElementById('saveStatus');
+
+    // Oprava pre fungovanie klávesy TAB v textovom poli
+    inputField.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+
+            // Vloží tabulátor na pozíciu kurzora
+            this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+
+            // Posunie kurzor za vložený tabulátor
+            this.selectionStart = this.selectionEnd = start + 1;
+            
+            // Vyvolá udalosť input, aby sa spustilo automatické ukladanie
+            this.dispatchEvent(new Event('input'));
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                inputField.value = saved;
+                statusSpan.textContent = "✅ Text bol obnovený z pamäte";
+                statusSpan.className = "save-status status-ok";
+            } else {
+                statusSpan.textContent = "ℹ️ Pamäť je prázdna";
+                statusSpan.className = "save-status";
+            }
+        } catch (e) {
+            console.error(e);
+            statusSpan.textContent = "⚠️ Prehliadač blokuje prístup k pamäti (localStorage)";
+            statusSpan.className = "save-status status-err";
+        }
+        updateGrid();
+    });
+
+    inputField.addEventListener('input', () => {
+        try {
+            localStorage.setItem(STORAGE_KEY, inputField.value);
+            statusSpan.textContent = "✅ Uložené (" + new Date().toLocaleTimeString() + ")";
+            statusSpan.className = "save-status status-ok";
+        } catch (e) {
+            statusSpan.textContent = "❌ Chyba: Nedá sa uložiť! (Skontrolujte nastavenia cookies)";
+            statusSpan.className = "save-status status-err";
+        }
+    });
+
+    function clearTasks() {
+        if(confirm("Vymazať uložený text?")) {
+            localStorage.removeItem(STORAGE_KEY);
+            inputField.value = "";
+            statusSpan.textContent = "🗑️ Vymazané";
+            statusSpan.className = "save-status";
+        }
+    }
+
+    function updateGrid() {
+        const g = document.getElementById('statusGrid'); g.innerHTML = '';
+        for(let i=1; i<=24; i++) {
+            const d = document.createElement('div');
+            d.className = 'day-dot' + (images[i-1] ? ' filled' : '');
+            d.textContent = i;
+            g.appendChild(d);
+        }
+    }
+
+    function processMusic() {
+        const file = document.getElementById('musicFile').files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => { music = e.target.result; document.getElementById('musicInfo').textContent = "✅ Hudba nahraná"; };
+        reader.readAsDataURL(file);
+    }
+
+    function processImages(input) {
+        const files = Array.from(input.files);
+        files.forEach(f => {
+            const m = f.name.match(/(\d+)/);
+            if(m) {
+                const day = parseInt(m[0]);
+                if(day >= 1 && day <= 24) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => { images[day-1] = e.target.result; updateGrid(); };
+                    reader.readAsDataURL(f);
+                }
+            }
+        });
+    }
+
+    function generate() {
+        const content = document.getElementById('contentInput').value.trim();
+        const msg = document.getElementById('finalMessage').value;
+        const mTitle = document.getElementById('musicTitle').value;
+        const mUrl = document.getElementById('musicUrl').value;
+        
+        const rows = content.split('\n').map((l, i) => {
+            const p = l.split('\t');
+            return { q: p[0]||"?", c: p[1]||"A", w: p.slice(2), img: images[i]||"" };
+        }).slice(0,24);
+
+        const html = `
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Adventný kalendár</title>
+    <style>
+        body { margin:0; padding:20px; background:#f0f4f8; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; }
+        .grid { display:grid; grid-template-columns:repeat(6, 1fr); gap:12px; width:95vw; max-width:900px; }
+        .card { 
+            background:linear-gradient(135deg, #27ae60, #1e8449); border-radius:10px; 
+            display:flex; align-items:center; justify-content:center; font-size:2.2rem; font-weight:bold; 
+            cursor:pointer; color:white; aspect-ratio:1/1; position:relative; overflow:hidden; 
+        }
+        .card[data-day="24"] { color: #ff0000; text-shadow: 1px 1px 0px white; }
+        .card.solved { background-size:cover; background-position:center; color:transparent!important; }
+        #overlay, #viewer { position:fixed; inset:0; background:rgba(0,0,0,0.9); display:none; align-items:center; justify-content:center; z-index:1000; flex-direction:column; }
+        .box { background:white; width:90%; max-width:500px; padding:30px; border-radius:15px; text-align:center; }
+        #v-img { max-width:90%; max-height:75vh; border:5px solid white; border-radius:8px; margin-bottom:15px; }
+        .btn { width:100%; padding:15px; margin:5px 0; font-size:1.2rem; cursor:pointer; border-radius:10px; border:none; background:#3498db; color:white; font-weight:bold; }
+        .close-btn { width:auto; padding:12px 60px; background:#c0392b; }
+        #final { display:none; position:fixed; inset:0; background:linear-gradient(to bottom, #89c4f4, #1e3c72); flex-direction:column; align-items:center; justify-content:center; z-index:2000; color:white; text-align:center; }
+        .final-line { font-size: 2.2rem; font-weight: bold; margin: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .music-credits { font-size: 1.2rem; margin-top: 60px; opacity: 0.9; }
+        .music-credits a { color: inherit; text-decoration: underline; }
+        .snowflake { position:fixed; top:-10%; color:white; pointer-events:none; animation:fall linear infinite; }
+        @keyframes fall { to { transform:translateY(110vh) rotate(360deg); } }
+        @media (max-width:768px) { .grid { grid-template-columns:repeat(3, 1fr); } }
+    </style>
+</head>
+<body>
+    <h1 style="color:#c0392b">Adventný kalendár</h1>
+    <div class="grid" id="g"></div>
+    <div id="overlay"><div class="box"><h2 id="qt"></h2><div id="opts"></div></div></div>
+    <div id="viewer">
+        <img id="v-img" src="">
+        <button class="btn close-btn" onclick="closeV()">Zavrieť (Enter)</button>
+    </div>
+    <div id="final">
+        <div id="msgBox"></div>
+        <div id="musicBox" class="music-credits"></div>
+        <button class="btn" style="width:auto; padding:15px 40px; margin-top:30px; background:rgba(255,255,255,0.2); border:2px solid white;" onclick="resetHry()">Hrať znova</button>
+    </div>
+    <audio id="audio" src="${music}" loop></audio>
+    <script>
+        const tasks = ${JSON.stringify(rows)};
+        const msgText = \`${msg}\`;
+        const mTitle = \`${mTitle}\`;
+        const mUrl = \`${mUrl}\`;
+        let solved = []; 
+        let active = -1;
+
+        function render() {
+            const grid = document.getElementById('g'); grid.innerHTML = '';
+            tasks.forEach((t, i) => {
+                const d = document.createElement('div');
+                d.className = 'card' + (solved.includes(i) ? ' solved' : '');
+                d.textContent = i + 1;
+                d.setAttribute('data-day', i + 1);
+                if(solved.includes(i) && t.img) d.style.backgroundImage = 'url('+t.img+')';
+                d.onclick = () => openT(i);
+                grid.appendChild(d);
+            });
+            if(solved.length === 24) showF();
+        }
+
+        function openT(i) {
+            if(solved.includes(i)) { if(tasks[i].img) showI(i, false); return; }
+            active = i;
+            document.getElementById('qt').textContent = tasks[i].q;
+            const opt = document.getElementById('opts'); opt.innerHTML = '';
+            let ch = [...tasks[i].w.map(x=>({x, c:false})), {x:tasks[i].c, c:true}].sort(()=>Math.random()-0.5);
+            ch.forEach(o => {
+                const b = document.createElement('button'); b.className = 'btn'; b.textContent = o.x;
+                b.onclick = (e) => {
+                    if(o.c) { e.target.style.background='#27ae60'; setTimeout(()=>{ document.getElementById('overlay').style.display='none'; showI(i, true); }, 500); }
+                    else { e.target.style.background='#e74c3c'; }
+                };
+                opt.appendChild(b);
+            });
+            document.getElementById('overlay').style.display = 'flex';
+        }
+
+        function showI(i, isNew) {
+            document.getElementById('v-img').src = tasks[i].img || "";
+            document.getElementById('viewer').style.display = 'flex';
+            document.getElementById('viewer').dataset.new = isNew;
+        }
+
+        function closeV() {
+            if(document.getElementById('viewer').dataset.new === "true") {
+                if(!solved.includes(active)) { solved.push(active); render(); }
+            }
+            document.getElementById('viewer').style.display = 'none';
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if(e.key === "Enter" && document.getElementById('viewer').style.display === 'flex') closeV();
+        });
+
+        function showF() {
+            const box = document.getElementById('msgBox'); box.innerHTML = '';
+            const lines = msgText.match(/[^.!?]+[.!?]+/g) || [msgText];
+            lines.forEach(l => {
+                const d = document.createElement('div'); d.className = 'final-line';
+                d.textContent = l.trim();
+                box.appendChild(d);
+            });
+
+            if(mTitle || mUrl) {
+                const mBox = document.getElementById('musicBox');
+                let html = "";
+                if(mTitle) html += "Hudba: " + mTitle + "<br><br>";
+                if(mUrl) html += 'Odkaz: <a href="' + mUrl + '" target="_blank">' + mUrl + '</a>';
+                mBox.innerHTML = html;
+            }
+
+            document.getElementById('final').style.display = 'flex';
+            const a = document.getElementById('audio'); if(a.src.length > 100) a.play();
+            for(let i=0; i<50; i++) {
+                const s = document.createElement('div'); s.className = 'snowflake';
+                s.textContent = '❄'; s.style.left = Math.random()*100+'vw';
+                s.style.fontSize = (Math.random()*1.5+1)+'em';
+                s.style.animation = 'fall '+(Math.random()*3+2)+'s linear infinite';
+                document.getElementById('final').appendChild(s);
+            }
+        }
+
+        function resetHry() { location.reload(); }
+        render();
+    <\/script>
+</body>
+</html>
+        `;
+
+        const blob = new Blob([html], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'adventny_kalendar_obrazky_hudba.html';
+        a.click();
+    }
+</script>
+</body>
+</html

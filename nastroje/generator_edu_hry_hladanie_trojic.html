@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edukačná hra "Nájdi trojicu obrázkov": generátor s vlastnými obrázkami</title>
+    <style>
+        :root { --primary: #15803d; --bg: #f0fdf4; --text: #1e293b; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 5px solid var(--primary); }
+        h1, h2 { color: var(--primary); margin-top: 0; }
+        label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.95rem; }
+        input[type="text"], select, textarea { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        textarea { height: 150px; font-family: monospace; font-size: 120%; white-space: pre; overflow-x: auto; }
+        .btn-group { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #166534; }
+        .btn-secondary { background: #e2e8f0; color: var(--text); }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .divider { height: 1px; background: #e2e8f0; margin: 20px 0; }
+        .preview-box { background: #f1f5f9; padding: 10px; border-radius: 6px; margin-top: 8px; border: 1px dashed #94a3b8; font-size: 0.9rem; }
+        .hidden { display: none; }
+        
+        /* Nové štýly pre nahrávanie obrázkov */
+        .image-upload-area {
+            border: 2px dashed #cbd5e1;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            background: #f8fafc;
+            margin-top: 10px;
+        }
+        .image-preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+        .img-preview-item {
+            width: 60px;
+            height: 60px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            object-fit: contain;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status-badge {
+            display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold;
+        }
+        .status-ok { background: #dcfce7; color: #166534; }
+        .status-warn { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Edukačná hra "Nájdi trojicu obrázkov": generátor s vlastnými obrázkami</h1>
+    
+    <h2>1. Nastavenia cvičenia</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+            <label for="title">Nadpis cvičenia:</label>
+            <input type="text" id="title" placeholder="Napr. Doprava a šport">
+        </div>
+        <div>
+            <label for="author">Autor:</label>
+            <input type="text" id="author" placeholder="Meno učiteľa">
+        </div>
+    </div>
+
+    <div>
+        <label for="mode">Režim odpovedí:</label>
+        <select id="mode" onchange="updateUI()">
+            <option value="text">Písanie (presná zhoda)</option>
+            <option value="choice">Výber z možností</option>
+        </select>
+    </div>
+
+    <h2>2. Dáta (pojmy a definície)</h2>
+    
+    <div id="instr-text" class="preview-box">
+        <strong>Formát pre PÍSANIE:</strong><br>Otázka[TAB]Správna odpoveď<br>
+        <em>Napíš hlavné mesto Slovenska.[TAB]Bratslava</em>
+    </div>
+
+    <div id="instr-choice" class="preview-box hidden">
+        <strong>Formát pre VÝBER:</strong><br>Otázka[TAB]Správna odpoveď[TAB]Nesprávna odpoveď 1[TAB]Nesprávna odpoveď 2[TAB]Nesprávna odpoveď 3 (nepovinné)<br>
+        (Zadajte presný počet nesprávnych odpovedí)<br><br>
+        <em>Aké je hlavné mesto Slovenska?[TAB]Bratislava[TAB]Košice[TAB]Banská Bystrica</em>
+    </div>
+
+    <label for="dataset">Vložte dáta:</label>
+    <textarea id="dataset" placeholder=""></textarea>
+
+    <h2>3. Grafika (obrázky v mriežke)</h2>
+    <div class="image-upload-area">
+        <p>Tu môžete nahrať vlastné obrázky, ktoré nahradia emoji v hre.<br>
+        <small>Odporúčame formát PNG, rozmer cca 128x128px. Min. 3 obrázky, max 12.</small></p>
+        
+        <input type="file" id="imgInput" multiple accept="image/*" onchange="processImages(this)">
+        <div style="margin-top: 10px;">
+            Stav: <span id="imgStatus" class="status-badge status-warn">Používajú sa predvolené emoji</span>
+        </div>
+        <div class="image-preview-container" id="previewContainer"></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="btn-group">
+        <button class="btn-secondary" onclick="saveLocal()">💾 Uložiť dáta</button>
+        <button class="btn-secondary" onclick="exportJSON()">📤 Export textu</button>
+        <button class="btn-secondary" onclick="document.getElementById('importFile').click()">📥 Import textu</button>
+        <input type="file" id="importFile" style="display:none" accept=".json" onchange="importJSON(this)">
+    </div>
+    <br>
+    <button class="btn-primary" style="width: 100%; font-size: 1.1rem; margin-top: 10px;" onclick="generateGame()">🚀 Stiahnuť hru (.html)</button>
+    <br><br>
+    <div style="font-size: 0.8rem; color: #64748b;">
+        <br>
+        <b>Spracovala pomocou UI</b>: Mgr. Erika Matyiová (2026)
+    </div>
+</div>
+
+<script>
+    // --- UI LOGIC ---
+    let CUSTOM_IMAGES_BASE64 = []; // Tu sa uložia obrázky pre hru
+
+    function updateUI() {
+        const mode = document.getElementById('mode').value;
+        const instrText = document.getElementById('instr-text');
+        const instrChoice = document.getElementById('instr-choice');
+        const textarea = document.getElementById('dataset');
+
+        if (mode === 'text') {
+            instrText.classList.remove('hidden');
+            instrChoice.classList.add('hidden');
+            textarea.placeholder = "Hlavné mesto SR[TAB]Bratislava\nChemická značka vody[TAB]H2O";
+        } else {
+            instrText.classList.add('hidden');
+            instrChoice.classList.remove('hidden');
+            textarea.placeholder = "Čo je to?[TAB]Kameň[TAB]Drevo\nKtorý strom je listnatý?[TAB]Lipa[TAB]Smrek[TAB]Jedľa";
+        }
+    }
+
+    document.getElementById('dataset').addEventListener('keydown', function(e) {
+        if (e.key == 'Tab') {
+            e.preventDefault();
+            var start = this.selectionStart;
+            var end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 1;
+        }
+    });
+
+    // --- IMAGE PROCESSING LOGIC ---
+    function processImages(input) {
+        const files = Array.from(input.files);
+        const container = document.getElementById('previewContainer');
+        const status = document.getElementById('imgStatus');
+        
+        if (files.length === 0) return;
+
+        // Reset
+        CUSTOM_IMAGES_BASE64 = [];
+        container.innerHTML = 'Spracovávam...';
+
+        if (files.length < 3) {
+            alert("Prosím, vyberte aspoň 3 obrázky pre variabilitu hry.");
+            container.innerHTML = '';
+            input.value = ''; // clear
+            return;
+        }
+
+        let processedCount = 0;
+        // Limit na 12 obrázkov
+        const selectedFiles = files.slice(0, 12);
+
+        selectedFiles.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                CUSTOM_IMAGES_BASE64.push(e.target.result);
+                processedCount++;
+                
+                if (processedCount === selectedFiles.length) {
+                    renderPreviews();
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function renderPreviews() {
+        const container = document.getElementById('previewContainer');
+        const status = document.getElementById('imgStatus');
+        container.innerHTML = '';
+
+        CUSTOM_IMAGES_BASE64.forEach(src => {
+            const img = document.createElement('img');
+            img.src = src;
+            img.className = 'img-preview-item';
+            container.appendChild(img);
+        });
+
+        status.textContent = `Pripravených ${CUSTOM_IMAGES_BASE64.length} vlastných obrázkov`;
+        status.className = "status-badge status-ok";
+    }
+
+    // --- STORAGE LOGIC ---
+    function saveLocal() {
+        const data = {
+            title: document.getElementById('title').value,
+            author: document.getElementById('author').value,
+            mode: document.getElementById('mode').value,
+            dataset: document.getElementById('dataset').value
+        };
+        localStorage.setItem('natureGameDataV6', JSON.stringify(data));
+        alert('Textové dáta uložené (Obrázky sa neukladajú do prehliadača kvôli veľkosti, musíte ich nahrať znova pri obnovení).');
+    }
+
+    function loadLocal() {
+        const saved = localStorage.getItem('natureGameDataV6');
+        if (saved) {
+            const data = JSON.parse(saved);
+            document.getElementById('title').value = data.title || '';
+            document.getElementById('author').value = data.author || '';
+            document.getElementById('mode').value = data.mode || 'text';
+            document.getElementById('dataset').value = data.dataset || '';
+        }
+        updateUI();
+    }
+
+    function exportJSON() {
+        const data = {
+            title: document.getElementById('title').value,
+            author: document.getElementById('author').value,
+            mode: document.getElementById('mode').value,
+            dataset: document.getElementById('dataset').value
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'nastavenia_hry_v6.json';
+        a.click();
+    }
+
+    function importJSON(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                document.getElementById('title').value = data.title || '';
+                document.getElementById('author').value = data.author || '';
+                document.getElementById('mode').value = data.mode || 'text';
+                document.getElementById('dataset').value = data.dataset || '';
+                updateUI();
+                alert('Nastavenia importované.');
+            } catch (err) {
+                alert('Chyba pri čítaní súboru.');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    loadLocal();
+
+    // --- GAME GENERATION LOGIC ---
+
+    function generateGame() {
+        const title = document.getElementById('title').value.trim() || 'Hra Mix';
+        const author = document.getElementById('author').value.trim() || 'Neznámy';
+        const mode = document.getElementById('mode').value;
+        const rawData = document.getElementById('dataset').value.trim();
+
+        if (!rawData) { alert('Zadajte aspoň jednu otázku.'); return; }
+
+        const lines = rawData.split('\n');
+        const tasks = [];
+        
+        lines.forEach(line => {
+            const parts = line.split('\t');
+            if (parts.length >= 2) {
+                const q = parts[0].trim();
+                const a = parts[1].trim();
+                let distractors = [];
+                if (mode === 'choice' && parts.length > 2) {
+                    distractors = parts.slice(2).map(p => p.trim()).filter(p => p !== "");
+                }
+                tasks.push({ q: q, a: a, d: distractors });
+            }
+        });
+
+        if (tasks.length === 0) { alert('Nesprávny formát dát.'); return; }
+
+        // Rozhodnutie, či použiť emoji alebo obrázky
+        let gameItemsJSON;
+        let useImages = false;
+
+        if (CUSTOM_IMAGES_BASE64.length >= 3) {
+            gameItemsJSON = JSON.stringify(CUSTOM_IMAGES_BASE64);
+            useImages = true;
+        } else {
+            // Default Emojis
+            gameItemsJSON = JSON.stringify(['🚗', '🚲', '🛴', '⚽', '🎲', '🔑', '💡', '📞', '🕶', '🎵', '🎧']);
+            useImages = false;
+        }
+
+        let filename = "hra_" + title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase() + ".html";
+
+        const gameHTML = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        :root { 
+            --cell-size: 44px; 
+            --gap: 4px;
+            --bg-app: #f0fdf4;       
+            --bg-panel: #ffffff;
+            --text-main: #14532d;    
+            --text-muted: #15803d;   
+            --bg-grid: #dcfce7;      
+            --bg-cell: #86efac;      
+            --border-color: #4ade80; 
+            --input-bg: #ffffff;
+            --btn-choice-bg: #f0fdf4;
+            --btn-choice-hover: #bbf7d0;
+            --shadow: rgba(22, 163, 74, 0.15);
+            --primary-action: #16a34a;
+        }
+
+        [data-theme="dark"] {
+            --bg-app: #020617;       
+            --bg-panel: #0f172a;     
+            --text-main: #f0fdf4;    
+            --text-muted: #86efac;   
+            --bg-grid: #1e293b;      
+            --bg-cell: #334155;      
+            --border-color: #166534; 
+            --input-bg: #0f172a;
+            --btn-choice-bg: #1e293b;
+            --btn-choice-hover: #334155;
+            --shadow: rgba(0,0,0,0.6);
+            --primary-action: #22c55e;
+        }
+
+        body { 
+            font-family: 'Segoe UI', 'Comic Sans MS', sans-serif; 
+            background: var(--bg-app); 
+            color: var(--text-main); 
+            height: 100vh; margin: 0; padding: 0; 
+            display: flex; flex-direction: column; 
+            user-select: none; overflow: hidden;
+            transition: background 0.3s;
+        }
+        
+        header { 
+            padding: 10px 20px; 
+            display: flex; justify-content: flex-end; align-items: center;
+            position: relative;
+            background: var(--bg-panel); border-bottom: 2px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .header-center {
+            position: absolute; left: 0; right: 0; text-align: center; pointer-events: none;
+        }
+        
+        h1 { margin: 0; font-size: 1.3rem; color: var(--primary-action); }
+        .meta { font-size: 0.85rem; color: var(--text-muted); }
+        
+        .header-controls { display: flex; gap: 15px; align-items: center; z-index: 10; }
+        .stats-bar { display: flex; gap: 15px; font-weight: bold; font-size: 1rem; }
+        
+        .stat-item { 
+            background: var(--btn-choice-bg); 
+            padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border-color);
+        }
+
+        .theme-btn {
+            background: transparent; border: 1px solid var(--border-color);
+            color: var(--text-main); padding: 5px; border-radius: 50%;
+            cursor: pointer; font-size: 1.2rem; width: 36px; height: 36px;
+            transition: 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        .theme-btn:hover { background: var(--bg-grid); }
+
+        .game-area { 
+            flex-grow: 1; display: flex; justify-content: center; align-items: center; 
+            gap: 20px; padding: 10px; overflow: hidden; 
+        }
+
+        .panel-left { 
+            flex: 1; max-width: 400px; min-width: 300px;
+            background: var(--bg-panel); 
+            padding: 25px; border-radius: 20px; 
+            box-shadow: 0 8px 20px -4px var(--shadow); 
+            border: 2px solid var(--border-color);
+            display: flex; flex-direction: column; justify-content: flex-start;
+            height: fit-content; max-height: 90%;
+            position: relative;
+        }
+        
+        #q-text { font-size: 1.3rem; font-weight: bold; margin-bottom: 20px; line-height: 1.3; text-align: center; }
+        
+        input.answer-input { 
+            padding: 12px; border: 2px solid var(--border-color); 
+            background: var(--input-bg); color: var(--text-main);
+            border-radius: 12px; width: 100%; box-sizing: border-box; font-size: 1.1rem; margin-bottom: 10px; 
+            text-align: center;
+        }
+        input.answer-input:focus { outline: none; border-color: var(--primary-action); }
+
+        .choice-btn { 
+            display: block; width: 100%; padding: 12px; margin-bottom: 8px; 
+            background: var(--btn-choice-bg); color: var(--text-main);
+            border: 2px solid var(--border-color); border-radius: 12px; 
+            cursor: pointer; text-align: left; transition: 0.2s; font-size: 1rem;
+        }
+        .choice-btn:hover { transform: translateY(-2px); border-color: var(--primary-action); }
+        
+        .choice-btn.correct-choice {
+            background: #dcfce7 !important; 
+            border-color: #16a34a !important;
+            color: #166534 !important;
+        }
+        .choice-btn.wrong-choice {
+            background: #fee2e2; 
+            border-color: #dc2626;
+            color: var(--text-main);
+        }
+        [data-theme="dark"] .choice-btn.wrong-choice {
+            background: #ffffff;
+            color: #dc2626;
+            border-color: #dc2626;
+            font-weight: bold;
+        }
+        
+        .feedback { min-height: 24px; font-weight: bold; margin-top: 10px; text-align: center; }
+        .feedback.correct { color: #16a34a; }
+        .feedback.wrong { color: #dc2626; }
+        [data-theme="dark"] .feedback.wrong {
+            color: #dc2626; background: #ffffff; padding: 5px 10px; border-radius: 8px; display: inline-block;
+        }
+
+        .history-box {
+            margin-top: auto; margin-bottom: 10px;
+            max-height: 120px; overflow-y: auto; 
+            border-top: 2px dashed var(--border-color); 
+            padding-top: 10px; font-size: 0.9rem; width: 100%;
+        }
+        .history-item { 
+            margin-bottom: 6px; padding: 6px; 
+            background: var(--btn-choice-bg); 
+            border-radius: 6px; line-height: 1.3;
+            border-left: 3px solid #16a34a;
+        }
+        .history-item span { display: block; font-size: 0.8em; color: var(--text-muted); }
+
+        .btn-action { background: var(--primary-action); color: white; border: none; padding: 12px; border-radius: 12px; cursor: pointer; width: 100%; font-size: 1.1rem; margin-top: 5px; font-weight: bold; box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: 0.1s; }
+        .btn-action:active { transform: translateY(4px); box-shadow: none; }
+        
+        .btn-hint {
+            background: #facc15; color: #713f12; 
+            border: 2px solid #ca8a04; 
+            padding: 8px 15px; border-radius: 20px; 
+            cursor: pointer; font-weight: bold; font-size: 0.95rem;
+            margin-bottom: 10px; display: inline-block;
+            box-shadow: 0 3px 0 #ca8a04;
+            transition: 0.1s;
+        }
+        .btn-hint:active { transform: translateY(3px); box-shadow: none; }
+
+        .btn-skip { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); box-shadow: none; font-size: 0.9rem; margin-top: 15px; padding: 8px; }
+        .btn-skip:active { transform: none; }
+
+        .panel-right { 
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+            position: relative;
+        }
+
+        .moves-display {
+            background: var(--bg-panel); padding: 5px 15px; border-radius: 20px;
+            border: 2px solid var(--border-color); font-weight: bold; font-size: 1.1rem;
+            box-shadow: 0 4px 10px var(--shadow); color: var(--primary-action);
+            min-width: 120px; text-align: center;
+        }
+
+        .grid-container { 
+            display: grid; 
+            grid-template-columns: repeat(8, var(--cell-size)); 
+            grid-template-rows: repeat(8, var(--cell-size)); 
+            gap: var(--gap); 
+            background: var(--bg-grid); 
+            padding: 8px; 
+            border-radius: 16px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05), 0 10px 25px var(--shadow);
+            border: 4px solid var(--bg-panel);
+            position: relative;
+        }
+        
+        .cell { 
+            width: var(--cell-size); height: var(--cell-size); 
+            border-radius: 8px; background: rgba(255,255,255,0.4);
+            display: flex; justify-content: center; align-items: center;
+            font-size: calc(var(--cell-size) * 0.7);
+            cursor: pointer; transition: transform 0.2s, background 0.2s;
+            user-select: none;
+            overflow: hidden; /* Dôležité pre obrázky */
+        }
+        
+        /* Štýl pre obrázky v bunkách */
+        .cell img.game-icon {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .cell:hover { background: rgba(255,255,255,0.7); }
+        .cell.selected { background: #fff; transform: scale(1.1); box-shadow: 0 0 10px var(--primary-action); z-index: 10; border: 2px solid var(--primary-action); }
+        
+        .cell.matched { 
+            animation: textVanish 0.4s forwards;
+        }
+        @keyframes textVanish {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 0; }
+        }
+
+        .cell.hint-highlight {
+            border: 3px solid #facc15;
+            background: #fef08a !important;
+            animation: pulseHint 1s infinite;
+        }
+        @keyframes pulseHint {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .grid-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.1); border-radius: 12px; z-index: 20;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(2px); color: var(--text-main);
+            font-weight: bold; text-align: center; padding: 20px;
+        }
+        .grid-overlay.hidden { display: none; }
+
+        #overlay { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: rgba(0, 0, 0, 0.85);
+            display: none; justify-content: center; align-items: center; 
+            z-index: 2000; flex-direction: column;
+        }
+        #fireworks { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        
+        .score-card {
+            background: white; color: #333; padding: 40px; border-radius: 20px;
+            text-align: center; max-width: 400px; width: 90%;
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .big-score { font-size: 3rem; font-weight: 800; color: var(--primary-action); display: block; margin: 10px 0; }
+        
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        @media (max-width: 700px) {
+            .game-area { flex-direction: column; justify-content: flex-start; padding-top: 10px; overflow-y: auto; }
+            .panel-left { width: 90%; margin-bottom: 20px; order: 2; }
+            .panel-right { order: 1; transform: scale(0.9); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-center">
+            <h1>${title}</h1>
+            <div class="meta">${author}</div>
+        </div>
+        <div class="header-controls">
+            <div class="stats-bar">
+                <span class="stat-item" title="Počet otázok">📝 <span id="score-quiz">0</span></span>
+                <span class="stat-item" title="Skóre z hry">⭐ <span id="score-game">0</span></span>
+            </div>
+            <button class="theme-btn" id="theme-toggle">🌓</button>
+        </div>
+    </header>
+
+    <div class="game-area">
+        <div class="panel-left">
+            <div id="quiz-container">
+                <div style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 10px; text-align: center;">Otázka <span id="q-counter">1</span></div>
+                <div id="q-text">Načítavam...</div>
+                <div id="input-area"></div>
+                <div id="feedback-area" class="feedback"></div>
+                <div id="controls-area"></div>
+            </div>
+            <div id="msg-box" style="text-align: center; display: none; margin-top: 10px; padding: 10px; background: #dcfce7; color: #166534; border-radius: 10px;">
+                <strong>Správne!</strong><br>Získavaš 5 ťahov v mriežke.
+            </div>
+            
+            <div id="history-box" class="history-box">
+                <div style="text-align: center; font-weight: bold; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">--- Čaká sa na odpoveď ---</div>
+            </div>
+        </div>
+
+        <div class="panel-right">
+            <div class="moves-display">Ťahy: <span id="moves-count">0</span></div>
+            <button class="btn-hint" onclick="showHint()">💡 Pomôcka</button>
+            <div class="grid-container" id="grid"></div>
+            <div id="grid-lock" class="grid-overlay">
+                <div>Zodpovedaj otázku<br>pre odomknutie hry!</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="overlay">
+        <canvas id="fireworks"></canvas>
+        <div class="score-card">
+            <h1 style="color: var(--primary-action);">Gratulujeme!</h1>
+            <p>Všetky otázky boli zodpovedané.</p>
+            <div>Tvoje celkové skóre:</div>
+            <span class="big-score" id="final-score">0</span>
+            <button class="btn-action" onclick="location.reload()">Hrať znova</button>
+        </div>
+    </div>
+
+<script>
+    const TASKS = ${JSON.stringify(tasks)};
+    const MODE = "${mode}";
+    // Pole prvkov - buď emoji alebo Base64 obrázky
+    const NATURE_ITEMS = ${gameItemsJSON};
+    const IS_IMAGE_MODE = ${useImages}; 
+    
+    let state = {
+        grid: [],           
+        quizScore: 0,
+        gameScore: 0,
+        movesLeft: 0,
+        currentTaskIdx: -1, 
+        taskPool: [],
+        activeItems: 3,    
+        selected: null,     
+        locked: true,       
+        gameOver: false
+    };
+
+    const els = {
+        grid: document.getElementById('grid'),
+        moves: document.getElementById('moves-count'),
+        qText: document.getElementById('q-text'),
+        inputArea: document.getElementById('input-area'),
+        feedback: document.getElementById('feedback-area'),
+        controls: document.getElementById('controls-area'),
+        scoreQuiz: document.getElementById('score-quiz'),
+        scoreGame: document.getElementById('score-game'),
+        gridLock: document.getElementById('grid-lock'),
+        msgBox: document.getElementById('msg-box'),
+        quizContainer: document.getElementById('quiz-container'),
+        qCounter: document.getElementById('q-counter'),
+        overlay: document.getElementById('overlay'),
+        finalScore: document.getElementById('final-score'),
+        historyBox: document.getElementById('history-box')
+    };
+
+    function init() {
+        state.taskPool = [...TASKS].sort(() => Math.random() - 0.5);
+        fillGridInitial();
+        renderGrid();
+        nextTask();
+        if(localStorage.getItem('theme') === 'dark') toggleTheme();
+    }
+
+    // --- QUIZ LOGIC ---
+    function nextTask() {
+        state.currentTaskIdx++;
+        if (state.currentTaskIdx >= state.taskPool.length) {
+            endGame();
+            return;
+        }
+
+        state.locked = true;
+        els.gridLock.classList.remove('hidden');
+        els.msgBox.style.display = 'none';
+        els.quizContainer.style.opacity = "1";
+        els.feedback.textContent = "";
+        els.feedback.className = "feedback";
+        els.qCounter.textContent = \`\${state.currentTaskIdx + 1} / \${state.taskPool.length}\`;
+
+        const task = state.taskPool[state.currentTaskIdx];
+        els.qText.textContent = task.q;
+        els.inputArea.innerHTML = "";
+        els.controls.innerHTML = "";
+
+        if (MODE === 'text') {
+            const inp = document.createElement('input');
+            inp.type = "text"; inp.className = "answer-input"; inp.placeholder = "Tvoja odpoveď...";
+            inp.autocomplete = "off";
+            inp.onkeydown = (e) => { if(e.key === 'Enter') checkAnswerText(inp.value, task); };
+            els.inputArea.appendChild(inp);
+            const btn = document.createElement('button');
+            btn.className = "btn-action"; btn.textContent = "Overiť";
+            btn.onclick = () => checkAnswerText(inp.value, task);
+            els.controls.appendChild(btn);
+            setTimeout(() => inp.focus(), 100);
+        } else {
+            let options = [task.a, ...(task.d || [])];
+            options.sort(() => Math.random() - 0.5);
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "choice-btn"; btn.textContent = opt;
+                btn.onclick = () => checkAnswerChoice(opt, task, btn);
+                els.inputArea.appendChild(btn);
+            });
+        }
+        
+        const skipBtn = document.createElement('button');
+        skipBtn.className = "btn-skip"; skipBtn.textContent = "Neviem (Vynechať)";
+        skipBtn.onclick = () => {
+            state.quizScore = Math.max(0, state.quizScore - 1);
+            updateStats();
+            nextTask();
+        };
+        els.controls.appendChild(skipBtn);
+    }
+
+    function checkAnswerText(val, task) {
+        if (!val.trim()) return;
+        if (val.trim().toLowerCase() === task.a.toLowerCase()) handleCorrect(task);
+        else handleWrong();
+    }
+
+    function checkAnswerChoice(val, task, btn) {
+        if (val === task.a) {
+            btn.classList.add('correct-choice');
+            handleCorrect(task);
+        } else {
+            btn.classList.add('wrong-choice'); 
+            btn.disabled = true;
+            handleWrong();
+        }
+    }
+
+    function handleCorrect(task) {
+        state.quizScore += 1;
+        updateStats();
+        els.feedback.textContent = "Správne!"; els.feedback.className = "feedback correct";
+        
+        els.historyBox.innerHTML = '<div style="text-align: center; font-weight: bold; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">--- Aktuálne vyriešená úloha ---</div>';
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+        historyItem.innerHTML = \`<span>\${task.q}</span><strong>\${task.a}</strong>\`;
+        els.historyBox.appendChild(historyItem);
+
+        if (state.currentTaskIdx > 0 && state.currentTaskIdx % 2 === 0 && state.activeItems < NATURE_ITEMS.length) {
+            state.activeItems++;
+        }
+        unlockGamePhase();
+    }
+
+    function handleWrong() {
+        els.feedback.textContent = "Skús to znova."; 
+        els.feedback.className = "feedback wrong";
+    }
+
+    function unlockGamePhase() {
+        state.movesLeft = 5;
+        state.locked = false;
+        els.moves.textContent = state.movesLeft;
+        els.gridLock.classList.add('hidden');
+        els.msgBox.style.display = 'block';
+        els.quizContainer.style.opacity = "0.5";
+        els.inputArea.innerHTML = ""; 
+        els.controls.innerHTML = "";
+    }
+
+    function returnToQuiz() {
+        state.locked = true;
+        els.gridLock.classList.remove('hidden');
+        setTimeout(nextTask, 1000);
+    }
+
+    // --- MATCH-3 LOGIC ---
+
+    function fillGridInitial() {
+        state.grid = [];
+        for (let r=0; r<8; r++) {
+            let row = [];
+            for (let c=0; c<8; c++) {
+                let f;
+                do {
+                    f = Math.floor(Math.random() * state.activeItems);
+                } while (
+                    (c >= 2 && row[c-1] === f && row[c-2] === f) ||
+                    (r >= 2 && state.grid[r-1][c] === f && state.grid[r-2][c] === f)
+                );
+                row.push(f);
+            }
+            state.grid.push(row);
+        }
+    }
+
+    function renderGrid() {
+        els.grid.innerHTML = "";
+        for (let r=0; r<8; r++) {
+            for (let c=0; c<8; c++) {
+                const cell = document.createElement('div');
+                cell.className = "cell";
+                if (state.selected && state.selected.r === r && state.selected.c === c) {
+                    cell.classList.add('selected');
+                }
+                
+                if (state.grid[r][c] !== null) {
+                    const item = NATURE_ITEMS[state.grid[r][c]];
+                    if (IS_IMAGE_MODE) {
+                        cell.innerHTML = \`<img src="\${item}" class="game-icon" draggable="false">\`;
+                    } else {
+                        cell.textContent = item;
+                    }
+                } else {
+                    cell.textContent = ""; 
+                }
+
+                cell.id = \`cell-\${r}-\${c}\`; 
+                cell.onclick = () => handleCellClick(r, c);
+                els.grid.appendChild(cell);
+            }
+        }
+    }
+
+    // --- NÁPOVEDA (HINT LOGIC) ---
+    function showHint() {
+        if (state.locked || state.movesLeft <= 0) return;
+
+        for(let r=0; r<8; r++) {
+            for(let c=0; c<8; c++) {
+                if (c < 7) {
+                    if (checkVirtualSwap(r, c, r, c+1)) {
+                        highlightHint(r, c, r, c+1);
+                        return;
+                    }
+                }
+                if (r < 7) {
+                    if (checkVirtualSwap(r, c, r+1, c)) {
+                        highlightHint(r, c, r+1, c);
+                        return;
+                    }
+                }
+            }
+        }
+        alert("Žiadny možný ťah! Skúsim premiešať...");
+        fillGridInitial();
+        renderGrid();
+    }
+
+    function checkVirtualSwap(r1, c1, r2, c2) {
+        let temp = state.grid[r1][c1];
+        state.grid[r1][c1] = state.grid[r2][c2];
+        state.grid[r2][c2] = temp;
+
+        const matches = findMatches();
+        const hasMatch = matches.length > 0;
+
+        temp = state.grid[r1][c1];
+        state.grid[r1][c1] = state.grid[r2][c2];
+        state.grid[r2][c2] = temp;
+
+        return hasMatch;
+    }
+
+    function highlightHint(r1, c1, r2, c2) {
+        const cell1 = document.getElementById(\`cell-\${r1}-\${c1}\`);
+        const cell2 = document.getElementById(\`cell-\${r2}-\${c2}\`);
+        
+        if(cell1) cell1.classList.add('hint-highlight');
+        if(cell2) cell2.classList.add('hint-highlight');
+
+        setTimeout(() => {
+            if(cell1) cell1.classList.remove('hint-highlight');
+            if(cell2) cell2.classList.remove('hint-highlight');
+        }, 2000);
+    }
+
+    function handleCellClick(r, c) {
+        if (state.locked || state.movesLeft <= 0) return;
+
+        if (!state.selected) {
+            state.selected = {r, c};
+            renderGrid();
+        } else {
+            const r1 = state.selected.r, c1 = state.selected.c;
+            state.selected = null;
+            const isAdj = Math.abs(r1 - r) + Math.abs(c1 - c) === 1;
+            
+            if (isAdj) {
+                swap(r1, c1, r, c, true);
+            } else {
+                if(r1 === r && c1 === c) renderGrid(); 
+                else { state.selected = {r,c}; renderGrid(); }
+            }
+        }
+    }
+
+    function swap(r1, c1, r2, c2, validate) {
+        let temp = state.grid[r1][c1];
+        state.grid[r1][c1] = state.grid[r2][c2];
+        state.grid[r2][c2] = temp;
+        renderGrid();
+
+        if (validate) {
+            setTimeout(() => {
+                const matches = findMatches();
+                if (matches.length > 0) {
+                    state.movesLeft--;
+                    els.moves.textContent = state.movesLeft;
+                    processMatches(matches);
+                } else {
+                    let temp = state.grid[r1][c1];
+                    state.grid[r1][c1] = state.grid[r2][c2];
+                    state.grid[r2][c2] = temp;
+                    renderGrid();
+                }
+            }, 200);
+        }
+    }
+
+    function findMatches() {
+        let matchedSet = new Set();
+        const add = (r, c) => matchedSet.add(r + "," + c);
+
+        for (let r=0; r<8; r++) {
+            for (let c=0; c<6; c++) {
+                let val = state.grid[r][c];
+                if (val !== null && val === state.grid[r][c+1] && val === state.grid[r][c+2]) {
+                    add(r, c); add(r, c+1); add(r, c+2);
+                }
+            }
+        }
+        for (let c=0; c<8; c++) {
+            for (let r=0; r<6; r++) {
+                let val = state.grid[r][c];
+                if (val !== null && val === state.grid[r+1][c] && val === state.grid[r+2][c]) {
+                    add(r, c); add(r+1, c); add(r+2, c);
+                }
+            }
+        }
+        return Array.from(matchedSet).map(str => {
+            const parts = str.split(',');
+            return {r: parseInt(parts[0]), c: parseInt(parts[1])};
+        });
+    }
+
+    function processMatches(matches) {
+        state.gameScore += matches.length * 10;
+        updateStats();
+
+        matches.forEach(m => {
+            const cell = els.grid.children[m.r * 8 + m.c];
+            if(cell) cell.classList.add('matched');
+            state.grid[m.r][m.c] = null;
+        });
+
+        setTimeout(() => {
+            applyGravityStrict();
+        }, 400);
+    }
+
+    function applyGravityStrict() {
+        for (let c=0; c<8; c++) {
+            let emptySlots = 0;
+            for (let r=7; r>=0; r--) {
+                if (state.grid[r][c] === null) {
+                    emptySlots++;
+                } else if (emptySlots > 0) {
+                    state.grid[r + emptySlots][c] = state.grid[r][c];
+                    state.grid[r][c] = null;
+                }
+            }
+            for (let r=0; r<emptySlots; r++) {
+                state.grid[r][c] = Math.floor(Math.random() * state.activeItems);
+            }
+        }
+
+        let clean = false;
+        let loops = 0;
+        
+        while (!clean && loops < 15) {
+            clean = true;
+            loops++;
+            for(let r=0; r<8; r++) {
+                for(let c=0; c<8; c++) {
+                    let val = state.grid[r][c];
+                    if (c >= 2 && state.grid[r][c-1] === val && state.grid[r][c-2] === val) {
+                        state.grid[r][c] = (val + 1) % state.activeItems;
+                        clean = false; 
+                    }
+                    val = state.grid[r][c];
+                    if (r >= 2 && state.grid[r-1][c] === val && state.grid[r-2][c] === val) {
+                        state.grid[r][c] = (val + 1) % state.activeItems;
+                        clean = false;
+                    }
+                }
+            }
+        }
+
+        renderGrid();
+        checkMoveLimit();
+    }
+
+    function checkMoveLimit() {
+        if (state.movesLeft <= 0) {
+            returnToQuiz();
+        }
+    }
+
+    function updateStats() {
+        els.scoreQuiz.textContent = state.quizScore;
+        els.scoreGame.textContent = state.gameScore;
+    }
+
+    function endGame() {
+        state.gameOver = true;
+        els.finalScore.textContent = state.quizScore * 100 + state.gameScore;
+        els.overlay.style.display = 'flex';
+        startFireworks();
+    }
+
+    document.getElementById('theme-toggle').onclick = toggleTheme;
+    function toggleTheme() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if(isDark) {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+
+    function startFireworks() {
+        const c = document.getElementById('fireworks');
+        const ctx = c.getContext('2d');
+        c.width = window.innerWidth; c.height = window.innerHeight;
+        let p = [];
+        function loop() {
+            ctx.clearRect(0,0,c.width,c.height);
+            if(Math.random()<0.05) {
+                const x=Math.random()*c.width, y=Math.random()*c.height/2;
+                const col=\`hsl(\${Math.random()*360},60%,60%)\`;
+                for(let i=0;i<40;i++) p.push({x,y,col,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,life:100});
+            }
+            p.forEach((pt,i)=>{ pt.x+=pt.vx; pt.y+=pt.vy; pt.vy+=0.05; pt.life--; 
+                ctx.fillStyle=pt.col; ctx.beginPath(); ctx.arc(pt.x,pt.y,3,0,6.28); ctx.fill();
+                if(pt.life<=0) p.splice(i,1);
+            });
+            requestAnimationFrame(loop);
+        }
+        loop();
+    }
+
+    init();
+<\/script>
+</body>
+</html>`;
+
+        const blob = new Blob([gameHTML], {type: 'text/html'});
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+    }
+</script>
+
+</body>
+</html>

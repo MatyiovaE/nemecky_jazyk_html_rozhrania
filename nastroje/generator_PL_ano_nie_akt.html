@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metóda „ÁNO - NIE“ (generátor pracovného listu)</title>
+    <style>
+        /* Aplikovanie písma Monaco na celý dokument */
+        * {
+            font-family: Monaco, monospace;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 20px;
+        }
+
+        #generator-ui {
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            max-width: 1000px;
+            margin: 0 auto 30px auto;
+        }
+
+        h2 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .input-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .input-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"], textarea {
+            padding: 8px;
+            border: 1px solid #aaa;
+            border-radius: 3px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            resize: vertical;
+        }
+
+        .buttons-row {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #e0e0e0;
+            border: 1px solid #999;
+            cursor: pointer;
+            border-radius: 3px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #ccc;
+        }
+
+        .btn-generate {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #388E3C;
+        }
+
+        .btn-generate:hover {
+            background-color: #45a049;
+        }
+
+        /* Skryté vstupné pole pre import */
+        #import-file {
+            display: none;
+        }
+
+        /* --- Štýly pre vygenerovaný pracovný list --- */
+        #worksheet-output {
+            display: none; /* Skryté pred vygenerovaním */
+            background: #fff;
+            padding: 40px;
+            border: 1px solid #ccc;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .ws-h1 {
+            text-align: left;
+            font-size: 24px;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .ws-header-info {
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+
+        .ws-student-name {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        th, td {
+            border: 1px solid #000;
+            padding: 5px;
+            vertical-align: top;
+        }
+
+        /* Prispôsobenie šírky stĺpcov podľa zadania */
+        .col-pc { width: 9%; text-align: center; }
+        .col-vyrok { width: 45%; }
+        .col-pred { width: 9%; text-align: center; }
+        .col-po { width: 9%; text-align: center; }
+        .col-dokaz { width: 28%; }
+
+        .ws-footer {
+            font-size: 12px;
+            color: #555;
+            text-align: right;
+        }
+
+        /* --- Štýly pre tlač (CTRL + P) --- */
+        @media print {
+            body {
+                background: none;
+                margin: 0;
+                padding: 0;
+            }
+            #generator-ui {
+                display: none; /* Skryje celé rozhranie generátora pri tlači */
+            }
+            #worksheet-output {
+                display: block !important;
+                border: none;
+                padding: 0;
+                margin: 0;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="generator-ui">
+        <h2>Metóda „ÁNO - NIE“ (generátor pracovného listu)</h2>
+        
+        <div class="input-row">
+            <div class="input-group">
+                <label for="autor">Autor:</label>
+                <input type="text" id="autor" placeholder="Zadaj meno autora">
+            </div>
+            <div class="input-group">
+                <label for="rok">Rok:</label>
+                <input type="text" id="rok" placeholder="Zadaj rok">
+            </div>
+        </div>
+
+        <div class="input-row">
+            <div class="input-group">
+                <label for="predmet">Predmet:</label>
+                <input type="text" id="predmet" placeholder="Zadaj predmet">
+            </div>
+            <div class="input-group">
+                <label for="trieda">Trieda:</label>
+                <input type="text" id="trieda" placeholder="Zadaj triedu">
+            </div>
+        </div>
+
+        <div class="input-row">
+            <div class="input-group">
+                <label for="tema">Téma:</label>
+                <input type="text" id="tema" placeholder="Zadaj tému">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="tvrdenia">Tvrdenia (každé na nový riadok):</label>
+            <textarea id="tvrdenia" placeholder="Vložte tvrdenia, každé na jeden riadok..."></textarea>
+        </div>
+
+        <div class="buttons-row">
+            <button onclick="exportJSON()">Exportovať nastavenia (.json)</button>
+            <button onclick="document.getElementById('import-file').click()">Importovať nastavenia (.json)</button>
+            <input type="file" id="import-file" accept=".json" onchange="importJSON(event)">
+        </div>
+
+        <div class="buttons-row" style="margin-top: 30px;">
+            <button class="btn-generate" onclick="generateWorksheet()">Vygenerovať pracovný list</button>
+            <span style="font-size: 12px; margin-top: 10px; color: #666;">(Po vygenerovaní stlač CTRL + P pre uloženie do PDF)</span>
+        </div>
+		<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+<br><br>
+    </div>
+
+    <div id="worksheet-output"></div>
+
+    <script>
+        // Funkcia na vygenerovanie pracovného listu
+        function generateWorksheet() {
+            const autor = document.getElementById('autor').value;
+            const rok = document.getElementById('rok').value;
+            const predmet = document.getElementById('predmet').value;
+            const trieda = document.getElementById('trieda').value;
+            const tema = document.getElementById('tema').value;
+			
+			 // --- PRIDANÝ BLOK PRE NÁZOV SÚBORU ---
+    if (tema) {
+        document.title = tema.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[ \(\)\-]/g, "_").replace(/__+/g, "_");
+    } else {
+        document.title = "pracovny_list_ano_nie";
+    }
+    // -------------------------------------
+            
+            const tvrdeniaText = document.getElementById('tvrdenia').value;
+            const tvrdenia = tvrdeniaText.split('\n').filter(line => line.trim() !== '');
+
+            // Získanie a formátovanie aktuálneho dátumu a času (D. M. RRRR, HH:MM)
+            const now = new Date();
+            const dateStr = `${now.getDate()}. ${now.getMonth() + 1}. ${now.getFullYear()}, ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            let html = `
+                <h1 class="ws-h1">Metóda „ÁNO - NIE“</h1>
+                
+                <div class="ws-header-info">
+                    Predmet:&nbsp; <strong>${predmet}</strong> &nbsp;&nbsp;&nbsp; 
+                    Téma:&nbsp; <strong>${tema}</strong> &nbsp;&nbsp;&nbsp; 
+                    Trieda:&nbsp; <strong>${trieda}</strong><br>
+                    Autor:&nbsp; <strong>${autor}</strong> &nbsp;&nbsp;&nbsp; 
+                    Rok:&nbsp; <strong>${rok}</strong>
+                </div>
+
+                <div class="ws-student-name">
+                    Meno žiaka: ________________________________________
+                </div>
+
+                <br>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-pc">P. č.</th>
+                            <th class="col-vyrok">Výrok</th>
+                            <th class="col-pred">Pred čítaním</th>
+                            <th class="col-po">Po čítaní</th>
+                            <th class="col-dokaz">Dôkaz</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            if (tvrdenia.length === 0) {
+                html += `<tr><td colspan="5" style="text-align: center; color: #999;">Neboli zadané žiadne výroky.</td></tr>`;
+            } else {
+                tvrdenia.forEach((vyrok, index) => {
+                    html += `
+                        <tr>
+                            <td class="col-pc">${index + 1}.</td>
+                            <td class="col-vyrok">${vyrok}</td>
+                            <td class="col-pred">Á/N</td>
+                            <td class="col-po">Á/N</td>
+                            <td class="col-dokaz"></td>
+                        </tr>
+                    `;
+                });
+            }
+
+            html += `
+                    </tbody>
+                </table>
+                <div class="ws-footer">Vygenerované: ${dateStr}</div>
+            `;
+
+            const outputDiv = document.getElementById('worksheet-output');
+            outputDiv.innerHTML = html;
+            outputDiv.style.display = 'block';
+
+            // Automatické skrolovanie na vygenerovaný list
+            outputDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Funkcia na export nastavení do JSON
+        function exportJSON() {
+            const data = {
+                autor: document.getElementById('autor').value,
+                rok: document.getElementById('rok').value,
+                predmet: document.getElementById('predmet').value,
+                trieda: document.getElementById('trieda').value,
+                tema: document.getElementById('tema').value,
+                tvrdenia: document.getElementById('tvrdenia').value
+            };
+
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "ano-nie-nastavenia.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Funkcia na import nastavení z JSON
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    document.getElementById('autor').value = data.autor || '';
+                    document.getElementById('rok').value = data.rok || '';
+                    document.getElementById('predmet').value = data.predmet || '';
+                    document.getElementById('trieda').value = data.trieda || '';
+                    document.getElementById('tema').value = data.tema || '';
+                    document.getElementById('tvrdenia').value = data.tvrdenia || '';
+                    
+                    // Vyčistenie inputu, aby bolo možné znova nahrať ten istý súbor
+                    document.getElementById('import-file').value = "";
+                    alert("Nastavenia boli úspešne načítané.");
+                } catch (error) {
+                    alert("Chyba pri načítavaní súboru. Uistite sa, že ide o platný JSON súbor.");
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>

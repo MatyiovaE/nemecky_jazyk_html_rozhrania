@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <title>Interaktívny Cloze Test s klikateľnou interpunkciou a exportom</title>
+  <style>
+    body { font-family: Courier bold, monospace; margin: 20px; font-size: 100%; }
+    h1 { margin-top: 0; }
+
+    .panel { margin: 12px 0; }
+    .hint { color: #666; font-size: 0.92em; }
+
+    textarea {
+      width: 100%;
+      min-height: 250px;
+      font-family: monospace;
+	  font-size: 130%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+
+    input[type="text"] { padding: 6px; width: 320px; }
+    .small-input { width: 150px !important; }
+
+    button {
+      margin-right: 8px;
+      padding: 6px 10px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-bottom: 5px;
+    }
+
+    .word, .punc { cursor: pointer; padding: 0 2px; border-radius: 3px; }
+    .word.marked, .punc.marked { background: #ffe58f; }
+
+    .gap {
+      display: inline-block;
+      cursor: pointer;
+      margin: 0 4px;
+      padding: 1px 2px;
+      border-radius: 4px;
+      font-family: monospace;
+	  font-size: 130%;
+      letter-spacing: 0.3em;
+      color: #0b3d91;
+      font-weight: bold;
+    }
+    .gap.selected   { background-color: #cceeff; font-size: 130%; }
+    .gap.correct    { background: #e6ffed; border: 1px solid #34c759; color: #065f46; font-size: 130%; }
+    .gap.incorrect  { background: #ffecec; border: 1px solid #ff3b30; color: #7a0010; font-size: 130%; }
+
+    .choice {
+      display: inline-block;
+      margin: 5px 6px 0 0;
+      padding: 5px 10px;
+      background-color: #eee;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .choice:hover { background-color: #ddd; }
+
+    .result { margin-top: 16px; font-weight: bold; }
+    #solutionsArea h3 { margin: 8px 0; }
+    #solutionsArea ol { margin: 6px 0 0 20px; }
+
+    #toolbar button {
+      margin-right: 8px;
+      padding: 4px 8px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    /* zachovávanie viacnásobných medzier a zalamovanie */
+    #testArea {
+      white-space: pre-wrap;
+      outline: 1px solid #ccc;
+      padding: 8px;
+      min-height: 120px;
+    }
+
+    /* Viacúlohové rozloženie */
+    .taskBlock { border: 1px solid #ccc; padding: 10px; margin: 15px 0; }
+    .taskHeader { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .taskHeader h3 { margin: 0 8px 0 0; }
+    .clickable-block, .testContent { white-space: pre-wrap; }
+    .testContent { outline: none; padding: 6px 0; }
+
+    .summary { margin-top: 20px; font-size: 1.05em; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h1>🧩 Interaktívny Cloze Test s klikateľnou interpunkciou</h1>
+<p><b>Postup na tvorbu jednoúlohového Cloze testu:</b><br>
+1. Zadajte do vstupného poľa text, z ktorého chcete vytvoriť interaktívny Cloze test.<br>
+2. Kliknite na tlačidlo "Označiť slová kliknutím".<br>
+3. Kliknite na jednotlivé slová, ktoré chcete, aby žiak doplnil (zafarbia sa na žlto).<br>
+4. Kliknite na tlačidlo "Generovať test (jedna úloha)".<br>
+5. V dolnej časti stránky kliknete na tlačidlo "Stiahnuť (aktuálny jednoúlohový test)".</p>
+
+<p><b>Postup na tvorbu viacúlohového Cloze testu:</b><br>
+1. Zadajte do vstupného poľa text, z ktorého chcete vytvoriť interaktívny Cloze test.<br>
+2. Medzi jednotlivé úlohy vložte 2 prázdne riadky.<br>
+3. Kliknite na tlačidlo "Rozdeliť na úlohy".<br>
+4. Pri každej úlohe kliknite na tlačidlo "Označiť slová kliknutím".<br>
+5. Kliknite na jednotlivé slová, ktoré chcete, aby žiak doplnil (zafarbia sa na žlto).<br>
+4. Pri každej úlohe kliknite na tlačidlo "Generovať test".<br>
+5. V dolnej časti stránky kliknete na tlačidlo "Stiahnuť (všetky vygenerované úlohy)".</p>
+  
+  <div class="panel">
+    <label><b>Názov testu:</b> <input id="testTitle" type="text" placeholder="Zadajte názov testu"></label><br><br>
+    <label><b>Autor:</b> <input id="testAuthor" type="text" placeholder="Zadajte autora" class="small-input"></label>
+    <label style="margin-left: 15px;"><b>Rok:</b> <input id="testYear" type="text" placeholder="Zadajte rok" class="small-input"></label>
+  </div>
+
+  <div class="panel">
+    <button id="btnExportJson">💾 Exportovať nastavenia (.json)</button>
+    <button id="btnImportJson">📂 Importovať nastavenia (.json)</button>
+    <input type="file" id="fileImport" accept=".json" style="display:none;">
+  </div>
+
+  <div class="panel">
+  <p><b>Vstupné pole:</b></p>
+    <textarea id="inputText" placeholder="Sem vložte text, ktorý neskôr upravíte.&#10;Viaceré úlohy oddeľte dvoma prázdnymi riadkami."></textarea>
+  </div>
+
+  <div class="panel">
+    <button id="btnClean">🧼 Vyčistiť medzery</button>
+    <button id="btnFixCommas">🔍 Skontrolovať čiarky</button>
+    <button id="btnFixPunctuation">🔎 Skontrolovať interpunkciu</button>
+    <button id="btnFixQuotes">💬 Skontrolovať úvodzovky</button>
+    <button id="btnCopy">📋 Kopírovať do schránky</button>
+  </div>
+
+  <div class="panel">
+    <button id="btnPrepare">Označiť slová kliknutím</button>
+    <button id="btnGenerate">Generovať test (jedna úloha)</button><br><br>
+    <span class="hint">
+      Tip: Kliknite na slovo alebo interpunkciu (.,?!), ktorú chcete skryť. Tab vloží 4 medzery, dvojklik vráti odpoveď späť.
+    </span>
+  </div>
+
+  <div id="clickableText" class="panel"></div>
+
+  <div id="toolbar" class="panel">
+    <button onclick="applyFormat('bold')"><b>B</b></button>
+  </div>
+
+  <div class="panel areas">
+    <div id="testArea" contenteditable="true" class="panel"></div>
+    <div id="choicesArea" class="panel"></div>
+  </div>
+
+  <div id="result" class="result"></div>
+  <div id="solutionsArea" class="panel"></div>
+
+  <div class="panel">
+    <button id="btnEvaluate">Vyhodnotiť (jedna úloha)</button>
+  </div>
+
+  <hr>
+  
+  <div class="panel">
+    <button id="btnSplit">🔀 Rozdeliť na úlohy</button>
+    <button id="btnEvaluateAll">📊 Vyhodnotiť všetky</button>
+    <span class="hint">Bloky oddeľte dvoma prázdnymi riadkami. Každá úloha má vlastné ovládanie a vyhodnotenie.</span>
+  </div>
+
+  <div class="panel">
+    <button id="btnDownloadSingle">⬇️ Stiahnuť (aktuálny jednoúlohový test)</button>
+    <button id="btnDownloadAll">⬇️ Stiahnuť (všetky vygenerované úlohy)</button>
+    <span class="hint">Export vytvorí samostatné HTML súbory.</span>
+  </div>
+
+  <div id="tasksContainer"></div>
+  <div id="summary" class="summary"></div>
+
+  <script>
+    // Utility
+    function codePointLen(s){ return Array.from(s||'').length; }
+    function shuffle(a){ var t=a.slice(); for(var i=t.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)); var tmp=t[i]; t[i]=t[j]; t[j]=tmp;} return t; }
+    function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function tokenize(text){
+      var re = /([A-Za-z0-9ÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽáäčďéíĺľňóôŕšťúýžÜÖŐŰüöőűßẞ]+(?:-[A-Za-z0-9ÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽáäčďéíĺľňóôŕšťúýžÜÖŐŰüöőűßẞ]+)*)|(\s+)|([.,:!?])/gu;
+      var out=[],m;
+      while((m=re.exec(text))!==null){
+        if(m[1]) out.push({t:m[1],type:'word'});
+        else if(m[2]) out.push({t:m[2],type:'space'});
+        else out.push({t:m[3],type:'punc'});
+      }
+      return out.length?out:[{t:text,type:'word'}];
+    }
+
+    // JSON Export a Import
+    document.getElementById('btnExportJson').onclick = function() {
+      var data = {
+        title: document.getElementById('testTitle').value,
+        author: document.getElementById('testAuthor').value,
+        year: document.getElementById('testYear').value,
+        text: document.getElementById('inputText').value
+      };
+      var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = (data.title || 'cloze_nastavenia').trim().replace(/\s+/g,'_') + '.json';
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    };
+
+    document.getElementById('btnImportJson').onclick = function() {
+      document.getElementById('fileImport').click();
+    };
+
+    document.getElementById('fileImport').addEventListener('change', function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          var data = JSON.parse(evt.target.result);
+          if (data.title !== undefined) document.getElementById('testTitle').value = data.title;
+          if (data.author !== undefined) document.getElementById('testAuthor').value = data.author;
+          if (data.year !== undefined) document.getElementById('testYear').value = data.year;
+          if (data.text !== undefined) document.getElementById('inputText').value = data.text;
+          
+          // Ulož do LocalStorage
+          localStorage.setItem('cloze_testTitle', document.getElementById('testTitle').value);
+          localStorage.setItem('cloze_testAuthor', document.getElementById('testAuthor').value);
+          localStorage.setItem('cloze_testYear', document.getElementById('testYear').value);
+          localStorage.setItem('cloze_inputText', document.getElementById('inputText').value);
+          
+        } catch (err) {
+          console.error('Chyba pri čítaní JSON súboru:', err);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = ''; // reset vstupu
+    });
+
+    // Jedno-úlohové premenné
+    var tokens=[], hiddenSet=new Set(), correctAnswers={}, userAnswers={}, selectedGapEl=null;
+
+    // Jedno-úlohové ovládanie
+    document.getElementById('btnPrepare').onclick = function(){
+      hiddenSet.clear(); tokens = tokenize(document.getElementById('inputText').value);
+      document.getElementById('clickableText').innerHTML=''; document.getElementById('result').textContent=''; document.getElementById('solutionsArea').innerHTML='';
+      userAnswers={};
+      var frag=document.createDocumentFragment();
+      tokens.forEach(function(tok,idx){
+        if(tok.type==='word' || tok.type==='punc'){
+          var sp=document.createElement('span'); sp.textContent=tok.t; sp.className=(tok.type==='word'?'word':'punc');
+          sp.dataset.idx=idx; sp.onclick=function(){ if(hiddenSet.has(idx)){ hiddenSet.delete(idx); sp.classList.remove('marked'); } else { hiddenSet.add(idx); sp.classList.add('marked'); } };
+          frag.appendChild(sp);
+        } else frag.appendChild(document.createTextNode(tok.t));
+      });
+      var ct=document.getElementById('clickableText'); ct.innerHTML=''; ct.appendChild(frag); ct.classList.add('clickable-block');
+    };
+
+    document.getElementById('btnGenerate').onclick = function(){
+      if(!tokens.length){ alert('Najprv kliknite na „Označiť slová kliknutím“.'); return; }
+      var testArea=document.getElementById('testArea'), choicesArea=document.getElementById('choicesArea');
+      testArea.innerHTML=''; choicesArea.innerHTML=''; document.getElementById('result').textContent=''; document.getElementById('solutionsArea').innerHTML='';
+      correctAnswers={}; userAnswers={}; selectedGapEl=null;
+
+      var h3c=document.createElement('h3'); h3c.textContent='Slová na doplnenie';
+      choicesArea.appendChild(h3c);
+
+      var counter=1, missing=[];
+      tokens.forEach(function(tok,idx){
+        if((tok.type==='word' || tok.type==='punc') && hiddenSet.has(idx)){
+          var correct=tok.t, clen=codePointLen(correct);
+          var gap=document.createElement('span'); gap.className='gap'; gap.dataset.gap=counter; gap.dataset.correctLen=clen; gap.dataset.current='';
+          gap.textContent = '_'.repeat(clen)+'('+counter+')';
+          correctAnswers[counter]=correct;
+          testArea.appendChild(gap);
+          missing.push(correct);
+          counter++;
+        } else {
+          testArea.appendChild(document.createTextNode(tok.t));
+        }
+      });
+      shuffle(missing).forEach(function(w){ var c=document.createElement('span'); c.className='choice'; c.textContent=w; choicesArea.appendChild(c); });
+    };
+
+    document.getElementById('testArea').onclick = function(e){
+      var g=e.target.closest('.gap'); if(!g) return; if(selectedGapEl) selectedGapEl.classList.remove('selected'); selectedGapEl=g; g.classList.add('selected');
+    };
+    document.getElementById('testArea').ondblclick = function(e){
+      var g=e.target.closest('.gap'); if(!g) return; var num=g.dataset.gap;
+      if(userAnswers[num]){ var back=document.createElement('span'); back.className='choice'; back.textContent=userAnswers[num]; document.getElementById('choicesArea').appendChild(back); delete userAnswers[num]; }
+      var clen=Number(g.dataset.correctLen); g.textContent = '_'.repeat(clen)+'('+num+')'; g.classList.remove('selected','correct','incorrect'); selectedGapEl=null; g.dataset.current='';
+    };
+    document.getElementById('choicesArea').onclick = function(e){
+      var c=e.target.closest('.choice'); if(!c) return; if(!selectedGapEl){ alert('Najprv kliknite na medzeru.'); return; }
+      var num=selectedGapEl.dataset.gap;
+      if(userAnswers[num]){ var back=document.createElement('span'); back.className='choice'; back.textContent=userAnswers[num]; document.getElementById('choicesArea').appendChild(back); }
+      selectedGapEl.textContent = c.textContent + '('+num+')'; userAnswers[num]=c.textContent; selectedGapEl.dataset.current=c.textContent;
+      c.remove(); selectedGapEl.classList.remove('selected'); selectedGapEl=null;
+    };
+
+    document.getElementById('btnEvaluate').onclick = function(){
+      var total = Object.keys(correctAnswers).length; if(total===0){ document.getElementById('result').textContent='Najprv vygenerujte test.'; return; }
+      document.querySelectorAll('.gap').forEach(function(g){
+        g.classList.remove('correct','incorrect');
+        var num=g.dataset.gap; var correct=correctAnswers[num]||''; var clen=Number(g.dataset.correctLen);
+        var user=userAnswers[num]||''; var miss=Math.max(0, clen - codePointLen(user));
+        g.textContent=(user||'')+'_'.repeat(miss)+'('+num+')'; if(user===correct) g.classList.add('correct'); else g.classList.add('incorrect');
+      });
+      var ok=document.querySelectorAll('.gap.correct').length; var pct=Math.round(ok/(total||1)*100);
+      document.getElementById('result').textContent='✅ Správne: '+ok+'/'+total+' ('+pct+'%)';
+      var solH3=document.createElement('h3'); solH3.textContent='Správne odpovede:'; var ol=document.createElement('ol');
+      Object.keys(correctAnswers).map(Number).sort().forEach(function(n){ var li=document.createElement('li'); li.textContent=correctAnswers[n]; ol.appendChild(li); });
+      var solArea=document.getElementById('solutionsArea'); solArea.innerHTML=''; solArea.appendChild(solH3); solArea.appendChild(ol);
+    };
+
+    function applyFormat(cmd){ document.execCommand(cmd,false,null); document.getElementById('testArea').focus(); }
+    document.getElementById('testArea').addEventListener('keydown', function(e){ if(e.key==='Tab'){ e.preventDefault(); var sel=window.getSelection(); if(!sel.rangeCount) return; var range=sel.getRangeAt(0); var spaces=document.createTextNode('    '); range.insertNode(spaces); range.setStartAfter(spaces); range.collapse(true); sel.removeAllRanges(); sel.addRange(range); } });
+
+    // Viacúlohový režim
+    var tasks = []; 
+
+    document.getElementById('btnSplit').onclick = function(){
+      var container=document.getElementById('tasksContainer'); container.innerHTML=''; document.getElementById('summary').textContent=''; tasks=[];
+      var input=(document.getElementById('inputText').value||'').replace(/\r\n?/g,'\n');
+      var blocks=input.split(/\n\s*\n\s*\n/).map(function(b){ return b; }).filter(function(b){ return b.trim().length>0; });
+      if(!blocks.length){ alert('Neboli nájdené žiadne bloky. Oddelte úlohy dvoma prázdnymi riadkami.'); return; }
+      blocks.forEach(function(block,i){
+        var t = { id:i+1, blockText:block, tokens:tokenize(block), hiddenSet:new Set(), correctAnswers:{}, userAnswers:{}, selectedGap:null, score:null };
+        tasks.push(t); renderTask(t);
+      });
+    };
+
+    function renderTask(task){
+      var container=document.getElementById('tasksContainer');
+      var div=document.createElement('div'); div.className='taskBlock'; div.id='task'+task.id;
+      div.innerHTML = '<div class="taskHeader"><h3>Úloha '+task.id+'</h3><button class="btnPrepare">Označiť slová</button><button class="btnGenerate">Generovať test</button><button class="btnEvaluate">Vyhodnotiť</button></div><div class="clickable"></div><div class="testArea"><div class="testContent"></div></div><div class="choicesArea"></div><div class="result"></div><div class="solutions"></div>';
+      container.appendChild(div);
+      var clickEl=div.querySelector('.clickable'); clickEl.textContent=task.blockText; clickEl.classList.add('clickable-block');
+      div.querySelector('.btnPrepare').onclick=function(){ prepareTask(task,div); };
+      div.querySelector('.btnGenerate').onclick=function(){ generateTask(task,div); };
+      div.querySelector('.btnEvaluate').onclick=function(){ evaluateTask(task,div); };
+    }
+
+    function prepareTask(task,div){
+      task.hiddenSet.clear(); task.userAnswers={};
+      var frag=document.createDocumentFragment();
+      task.tokens.forEach(function(tok,idx){
+        if(tok.type==='word' || tok.type==='punc'){
+          var sp=document.createElement('span'); sp.textContent=tok.t; sp.className=(tok.type==='word'?'word':'punc');
+          sp.dataset.idx=idx; sp.onclick=function(){ if(task.hiddenSet.has(idx)){ task.hiddenSet.delete(idx); sp.classList.remove('marked'); } else { task.hiddenSet.add(idx); sp.classList.add('marked'); } };
+          frag.appendChild(sp);
+        } else frag.appendChild(document.createTextNode(tok.t));
+      });
+      var clickEl=div.querySelector('.clickable'); clickEl.innerHTML=''; clickEl.appendChild(frag); clickEl.classList.add('clickable-block');
+      div.querySelector('.testContent').innerHTML=''; div.querySelector('.choicesArea').innerHTML=''; div.querySelector('.result').textContent=''; div.querySelector('.solutions').innerHTML='';
+    }
+
+    function generateTask(task,div){
+      var testContent = div.querySelector('.testContent'), choicesArea = div.querySelector('.choicesArea');
+      testContent.innerHTML = ''; choicesArea.innerHTML = '<h4>Slová na doplnenie</h4>';
+      task.correctAnswers={}; task.userAnswers={}; task.selectedGap=null;
+      var counter=1, missing=[];
+      task.tokens.forEach(function(tok,idx){
+        if((tok.type==='word' || tok.type==='punc') && task.hiddenSet.has(idx)){
+          var correct=tok.t; var clen=codePointLen(correct);
+          var gap=document.createElement('span'); gap.className='gap'; gap.dataset.gap=counter; gap.dataset.correctLen=clen; gap.dataset.current='';
+          gap.textContent = '_'.repeat(clen)+'('+counter+')';
+          gap.onclick=function(){ if(task.selectedGap) task.selectedGap.classList.remove('selected'); task.selectedGap=gap; gap.classList.add('selected'); };
+          gap.ondblclick=function(){ var num=gap.dataset.gap; if(task.userAnswers[num]){ var back=document.createElement('span'); back.className='choice'; back.textContent=task.userAnswers[num]; choicesArea.appendChild(back); delete task.userAnswers[num]; } gap.textContent='_'.repeat(clen)+'('+num+')'; gap.classList.remove('selected','correct','incorrect'); task.selectedGap=null; gap.dataset.current=''; };
+          testContent.appendChild(gap); task.correctAnswers[counter]=correct; missing.push(correct); counter++;
+        } else testContent.appendChild(document.createTextNode(tok.t));
+      });
+      shuffle(missing).forEach(function(w){
+        var c=document.createElement('span'); c.className='choice'; c.textContent=w;
+        c.onclick=function(){
+          if(!task.selectedGap){ alert('Najprv kliknite na medzeru.'); return; }
+          var num=task.selectedGap.dataset.gap;
+          if(task.userAnswers[num]){ var back=document.createElement('span'); back.className='choice'; back.textContent=task.userAnswers[num]; choicesArea.appendChild(back); }
+          task.selectedGap.textContent=c.textContent+'('+num+')'; task.userAnswers[num]=c.textContent; task.selectedGap.dataset.current=c.textContent;
+          c.remove(); task.selectedGap.classList.remove('selected'); task.selectedGap=null;
+        };
+        choicesArea.appendChild(c);
+      });
+      div.querySelector('.result').textContent=''; div.querySelector('.solutions').innerHTML='';
+    }
+
+    function evaluateTask(task,div){
+      var total = Object.keys(task.correctAnswers).length; if(total===0){ div.querySelector('.result').textContent='Najprv generujte test.'; return; }
+      div.querySelectorAll('.testContent .gap').forEach(function(g){
+        g.classList.remove('correct','incorrect');
+        var num=g.dataset.gap; var correct=task.correctAnswers[num]||''; var clen=Number(g.dataset.correctLen);
+        var user=task.userAnswers[num]||''; var miss=Math.max(0, clen - codePointLen(user));
+        g.textContent=(user||'')+'_'.repeat(miss)+'('+num+')'; if(user===correct) g.classList.add('correct'); else g.classList.add('incorrect');
+      });
+      var ok = div.querySelectorAll('.testContent .gap.correct').length; var pct = Math.round(ok/(total||1)*100);
+      div.querySelector('.result').textContent='✅ Správne: '+ok+'/'+total+' ('+pct+'%)';
+      var sol = div.querySelector('.solutions'); sol.innerHTML='<h4>Správne odpovede:</h4>'; var ol=document.createElement('ol');
+      Object.keys(task.correctAnswers).map(Number).sort().forEach(function(n){ var li=document.createElement('li'); li.textContent=task.correctAnswers[n]; ol.appendChild(li); });
+      sol.appendChild(ol); task.score={ok:ok,total:total};
+    }
+
+    document.getElementById('btnEvaluateAll').onclick = function(){
+      var sumOk=0,sumTotal=0;
+      tasks.forEach(function(t){ if(t.score){ sumOk+=t.score.ok; sumTotal+=t.score.total; } });
+      if(sumTotal===0){ document.getElementById('summary').textContent='Najprv vyhodnoťte jednotlivé úlohy.'; return; }
+      var pct=Math.round(sumOk/sumTotal*100);
+      document.getElementById('summary').textContent='📊 Celkový výsledok: '+sumOk+'/'+sumTotal+' ('+pct+'%)';
+    };
+
+    // Export (download)
+function buildStandaloneHTML(title, author, year, sections){
+  var metaInfo = '';
+  if(author || year) {
+    metaInfo = '<p style="font-size:1.1em; color:#555;">';
+    if(author) metaInfo += '<b>Autor:</b> ' + escapeHtml(author) + '&nbsp;&nbsp;&nbsp;';
+    if(year) metaInfo += '<b>Rok:</b> ' + escapeHtml(year);
+    metaInfo += '</p>';
+  }
+
+  var head = '<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>' + escapeHtml(title) + '</title><style>' +
+    'body{font-family:Courier bold, monospace;margin:20px;font-size:115%;line-height:1.6}h1{margin-top:0}' +
+    '.gap{display:inline-block;margin:0 2px;padding:0 2px;border-radius:2px;font-family:monospace;letter-spacing:0.3em;color:#0b3d91;font-size:130%;font-weight:bold;cursor:pointer}' +
+    '.gap.selected{background:#cceeff}' +
+    '.gap.correct{background:#e6ffed;border:1px solid #34c759;color:#065f46;font-size:130%}' +
+    '.gap.incorrect{background:#ffecec;border:1px solid #ff3b30;color:#7a0010;font-size:130%}' +
+    '.choice{display:inline-block;margin:5px 6px 0 0;padding:5px 10px;background:#eee;border-radius:6px;cursor:pointer}' +
+    '.choice:hover{background:#ddd}' +
+    '.test-block{border:1px solid #ddd;padding:10px;margin-bottom:14px;white-space:pre-wrap}' +
+    '.meta{margin-top:12px}' +
+    '.choices-label{margin-top:12px;font-weight:bold}' +
+    'button{padding:8px 12px; font-size:1em; cursor:pointer; margin-right:10px;}' +
+    '</style></head><body>';
+
+  var body = '<h1>' + escapeHtml(title) + '</h1>' + metaInfo +
+    '<p style="font-weight: bold;">Klikni na miesto, kde niečo chýba a potom klikni na niektorú z položiek.<br>Ak si to rozmyslíš, klikni na uvedenú položku dvakrát a tá sa vráti na miesto.</p>' +
+    '<label>Meno žiaka: <input id="studentName" type="text" style="padding:6px;width:300px"></label><br><br>';
+
+  sections.forEach(function(s, idx){
+    body += '<div class="test-block" data-section="' + idx + '">' +
+      '<div class="section-title"><b>Úloha ' + escapeHtml(String(s.id)) + '</b><br><br></div>' +
+      '<div class="content" id="content-' + idx + '">' + s.contentHtml + '</div>' +
+      '<div class="choices-label">Slová na doplnenie:</div>' +
+      '<div class="choices" id="choices-' + idx + '">' + s.choicesHtml + '</div>' +
+      '<div class="result" id="result-' + idx + '"></div>' +
+      '</div>';
+  });
+
+  body += '<button id="btnEvaluateAll">Vyhodnotiť všetky</button>' +
+          '<button id="btnShowDetails" style="display:none; background:#007bff; color:white; border:none; border-radius:4px;">Detailný prehľad odpovedí</button>' +
+          '<div id="summary" class="meta"></div>';
+
+  var script = `<script>(function(){
+    function codePointLen(s){return Array.from(s||"").length;}
+    function escapeHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+    function shuffle(a){var t=a.slice();for(var i=t.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=t[i];t[i]=t[j];t[j]=tmp;}return t;}
+    var secData=${JSON.stringify(sections.map(s => ({answers:s.answers})))};
+
+    document.querySelectorAll(".test-block").forEach(function(block,idx){
+      var choices = block.querySelector(".choices");
+      var selected = null;
+      var originalChoices = Array.from(choices.querySelectorAll(".choice")).map(c => c.textContent);
+      choices.innerHTML = "";
+      shuffle(originalChoices).forEach(function(txt){
+        var c = document.createElement("span");
+        c.className = "choice";
+        c.textContent = txt;
+        choices.appendChild(c);
+      });
+
+      block.querySelectorAll(".gap").forEach(function(g){
+        g.dataset.current = g.dataset.current || "";
+        g.addEventListener("click", function(){
+          if(selected) selected.classList.remove("selected");
+          selected = g;
+          g.classList.add("selected");
+        });
+        g.addEventListener("dblclick", function(){
+          var num = g.dataset.gap;
+          var cur = g.dataset.current || "";
+          if(cur){
+            var back = document.createElement("span");
+            back.className = "choice";
+            back.textContent = cur;
+            choices.appendChild(back);
+          }
+          var clen = Number(g.dataset.correctLen) || 0;
+          g.textContent = "_".repeat(clen) + "(" + num + ")";
+          g.dataset.current = "";
+          g.classList.remove("selected","correct","incorrect");
+          selected = null;
+        });
+      });
+
+      choices.addEventListener("click", function(e){
+        var c = e.target.closest(".choice");
+        if(!c) return;
+        if(!selected){ alert("Najprv kliknite na medzeru."); return; }
+        var num = selected.dataset.gap;
+        var cur = selected.dataset.current || "";
+        if(cur){
+          var back = document.createElement("span");
+          back.className = "choice";
+          back.textContent = cur;
+          choices.appendChild(back);
+        }
+        selected.textContent = c.textContent + "(" + num + ")";
+        selected.dataset.current = c.textContent;
+        c.remove();
+        selected.classList.remove("selected");
+        selected = null;
+      });
+    });
+
+    document.getElementById("btnEvaluateAll").addEventListener("click", function(){
+      var sumOk = 0, sumTotal = 0;
+      var name = document.getElementById("studentName").value || "";
+      
+      window._detailData = {
+          title: "${escapeHtml(title)}",
+          studentName: name,
+          blocks: []
+      };
+
+      document.querySelectorAll(".test-block").forEach(function(block,idx){
+        var answers = secData[idx].answers || {};
+        var total = Object.keys(answers).length;
+        var ok = 0;
+        
+        var blockData = { id: idx + 1, gaps: [] };
+
+        block.querySelectorAll(".gap").forEach(function(g){
+          g.classList.remove("correct","incorrect");
+          var num = g.dataset.gap;
+          var correct = answers[num] || "";
+          var user = g.dataset.current || "";
+          var clen = Number(g.dataset.correctLen) || 0;
+          var miss = Math.max(0, clen - codePointLen(user));
+          g.textContent = (user || "") + "_".repeat(miss) + "(" + num + ")";
+          
+          var status = "";
+          if(!user) { status = "❗"; }
+          else if(user === correct) { g.classList.add("correct"); ok++; status = "✅"; }
+          else { g.classList.add("incorrect"); status = "❌"; }
+          
+          blockData.gaps.push({ num: num, user: user, correct: correct, status: status });
+        });
+        
+        window._detailData.blocks.push(blockData);
+        sumOk += ok;
+        sumTotal += total;
+      });
+      var pct = Math.round((sumOk / (sumTotal || 1)) * 100);
+      var now = new Date();
+      document.getElementById("summary").innerHTML =
+        "<br><b>Názov testu:</b> " + escapeHtml("${escapeHtml(title)}") +
+        "<br><b>Meno žiaka:</b> " + escapeHtml(name) +
+        "<br><b>Hodnotenie:</b> " + sumOk + "/" + sumTotal + " (" + pct + "%)" +
+        "<br><b>Dátum a čas:</b> " + now.toLocaleString();
+        
+      document.getElementById("btnShowDetails").style.display = "inline-block";
+    });
+
+    document.getElementById("btnShowDetails").addEventListener("click", function(){
+        var w = window.open('', '_blank');
+        if(!w) { alert("Povoľte vyskakovacie okná (pop-ups) pre zobrazenie detailov."); return; }
+        var d = window._detailData;
+        var html = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Detailný prehľad odpovedí</title>" +
+          "<style>body{font-family:sans-serif;margin:20px;line-height:1.6} table{border-collapse:collapse;width:100%;margin-bottom:20px;} th,td{border:1px solid #ccc;padding:8px;text-align:left;} th{background:#eee;} .legend{margin-top:20px;font-size:1em;background:#f9f9f9;padding:15px;border:1px solid #ddd;} @media print{ button{display:none;} }</style></head><body>" +
+          "<h2>Detailný prehľad odpovedí</h2>" +
+          "<p><b>Test:</b> " + d.title + "<br><b>Žiak:</b> " + (d.studentName || "Nezadané") + "</p>";
+          
+        d.blocks.forEach(function(b) {
+          html += "<h3>Úloha " + b.id + "</h3><table><tr><th style='width:10%'>Medzera</th><th style='width:40%'>Odpoveď žiaka</th><th style='width:40%'>Správna odpoveď</th><th style='width:10%; text-align:center;'>Výsledok</th></tr>";
+          b.gaps.forEach(function(g) {
+             html += "<tr><td>" + g.num + "</td>" +
+                     "<td>" + (g.user || "<i>(žiadna)</i>") + "</td>" +
+                     "<td>" + g.correct + "</td>" +
+                     "<td style='text-align:center;font-size:1.2em;'>" + g.status + "</td></tr>";
+          });
+          html += "</table>";
+        });
+        
+        html += "<div class='legend'><b>Vysvetlivky symbolov:</b><br><br>✅ - Správna odpoveď<br>❌ - Nesprávna odpoveď<br>❗ - Chýbajúca odpoveď (žiak nedoplnil slovo)<br><br><hr><br><button onclick='window.print()' style='padding:8px 12px; cursor:pointer;'>🖨️ Tlačiť / Uložiť ako PDF</button></div>";
+        html += "</body></html>";
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+    });
+  })();<\/script>`;
+
+  return head + body + script + '</body></html>';
+}
+
+    function downloadHtml(filename, html){
+      var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+      var url = URL.createObjectURL(blob);
+      var a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },3000);
+    }
+
+    // Z jedného testu
+    function createSectionFromSingle(){
+      var testArea=document.getElementById('testArea');
+      var choicesArea=document.getElementById('choicesArea');
+      if(!testArea || !choicesArea) return null;
+      if(!testArea.querySelector('.gap')) return null;
+      testArea.querySelectorAll('.gap').forEach(function(g){ if(!g.dataset.current) g.dataset.current=''; });
+      var contentHtml = testArea.innerHTML;
+      var choicesHtml = choicesArea.innerHTML;
+      var answers={}; Object.keys(correctAnswers||{}).forEach(function(k){ answers[k]=correctAnswers[k]; });
+      return { id:1, contentHtml:contentHtml, choicesHtml:choicesHtml, answers:answers };
+    }
+
+    // Z viacerých úloh
+    function createSectionsFromTasks(){
+      var sections=[];
+      tasks.forEach(function(task){
+        var div=document.getElementById('task'+task.id);
+        if(!div) return;
+        if(!task.correctAnswers || Object.keys(task.correctAnswers).length===0) return; 
+        var contentEl=div.querySelector('.testContent');
+        var choicesEl=div.querySelector('.choicesArea');
+        contentEl.querySelectorAll('.gap').forEach(function(g){ if(!g.dataset.current) g.dataset.current=''; });
+        var contentHtml=contentEl.innerHTML;
+        var choicesHtml=choicesEl.innerHTML;
+        sections.push({ id:task.id, contentHtml:contentHtml, choicesHtml:choicesHtml, answers:task.correctAnswers });
+      });
+      return sections;
+    }
+
+    document.getElementById('btnDownloadSingle').onclick = function(){
+      var title = document.getElementById('testTitle').value || 'Cloze_test';
+      var author = document.getElementById('testAuthor').value || '';
+      var year = document.getElementById('testYear').value || '';
+      var section = createSectionFromSingle();
+      if(!section){ alert('Najprv vygenerujte test v jednoúlohovom režime (Generovať test).'); return; }
+      var html = buildStandaloneHTML(title, author, year, [section]);
+      var fname = title.trim().replace(/\s+/g,'_')+'.html';
+      downloadHtml(fname, html);
+    };
+
+    document.getElementById('btnDownloadAll').onclick = function(){
+      var title = document.getElementById('testTitle').value || 'Cloze_test_multi';
+      var author = document.getElementById('testAuthor').value || '';
+      var year = document.getElementById('testYear').value || '';
+      var sections = createSectionsFromTasks();
+      if(!sections.length){ alert('Najprv vygenerujte testy pre jednotlivé úlohy (Generovať test v každom paneli).'); return; }
+      var html = buildStandaloneHTML(title, author, year, sections);
+      var fname = title.trim().replace(/\s+/g,'_')+'_multi.html';
+      downloadHtml(fname, html);
+    };
+
+    // Whitespace-cleaning functions (pôvodné)
+    function cleanWhitespace(){
+      var ta=document.getElementById('inputText'); var t=ta.value.replace(/\r\n?/g,"\n").replace(/\u00A0/g," ").replace(/\t/g," ");
+      var paragraphs=t.split(/\n\s*\n+/).map(function(p){
+        return p.split("\n").map(function(line){ return line.replace(/\s+/g," ").trim(); }).filter(Boolean).join(" ");
+      }).filter(Boolean);
+      t=paragraphs.join("\n\n"); t=t.replace(/\s+([,.?!])/g,"$1"); ta.value=t;
+    }
+    function fixCommas(){ var ta=document.getElementById('inputText'); var t=ta.value; t=t.replace(/\s+,/g,","); t=t.replace(/,(?!\s)/g,", "); t=t.replace(/, +/g,", "); ta.value=t; }
+    function fixPunctuation(){ var ta=document.getElementById('inputText'); var t=ta.value; t=t.replace(/\s+([.!?])/g,"$1"); t=t.replace(/([.!?])(?!\s|$)/g,"$1 "); t=t.replace(/([.!?]) +/g,"$1 "); ta.value=t; }
+    function fixQuotes(){ var ta=document.getElementById('inputText'); var t=ta.value; t=t.replace(/[\u00A0\u2009\u202F\u2002-\u2008]/g," "); t=t.replace(/([„“])\s+/g,"$1"); t=t.replace(/([^\s])([„“])/g,"$1 $2"); t=t.replace(/([”"])([^\s])/g,"$1 $2"); t=t.replace(/([”"])\s*([„“])/g,"$1 $2"); t=t.replace(/ {2,}/g," "); t=t.replace(/([.,!?;:])\s+([”"])/g,"$1$2"); ta.value=t; }
+    function copyToClipboard(){ var ta=document.getElementById('inputText'); ta.select(); ta.setSelectionRange(0,99999); document.execCommand('copy'); alert('Text bol skopírovaný do schránky.'); }
+
+    document.getElementById('btnClean').addEventListener('click', cleanWhitespace);
+    document.getElementById('btnFixCommas').addEventListener('click', fixCommas);
+    document.getElementById('btnFixPunctuation').addEventListener('click', fixPunctuation);
+    document.getElementById('btnFixQuotes').addEventListener('click', fixQuotes);
+    document.getElementById('btnCopy').addEventListener('click', copyToClipboard);
+	
+	// --- LocalStorage pre vstupný text a názov testu ---
+const inputTextEl = document.getElementById('inputText');
+const testTitleEl = document.getElementById('testTitle');
+const testAuthorEl = document.getElementById('testAuthor');
+const testYearEl = document.getElementById('testYear');
+
+// pri načítaní stránky obnovíme uložené hodnoty
+window.addEventListener('DOMContentLoaded', () => {
+  const savedText = localStorage.getItem('cloze_inputText');
+  const savedTitle = localStorage.getItem('cloze_testTitle');
+  const savedAuthor = localStorage.getItem('cloze_testAuthor');
+  const savedYear = localStorage.getItem('cloze_testYear');
+  
+  if (savedText !== null) inputTextEl.value = savedText;
+  if (savedTitle !== null) testTitleEl.value = savedTitle;
+  if (savedAuthor !== null) testAuthorEl.value = savedAuthor;
+  if (savedYear !== null) testYearEl.value = savedYear;
+});
+
+// pri zmene obsahu uložíme do localStorage
+inputTextEl.addEventListener('input', () => localStorage.setItem('cloze_inputText', inputTextEl.value));
+testTitleEl.addEventListener('input', () => localStorage.setItem('cloze_testTitle', testTitleEl.value));
+testAuthorEl.addEventListener('input', () => localStorage.setItem('cloze_testAuthor', testAuthorEl.value));
+testYearEl.addEventListener('input', () => localStorage.setItem('cloze_testYear', testYearEl.value));
+
+  </script>
+
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

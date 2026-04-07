@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor kolesa náhodného výberu</title>
+    <style>
+        body {
+            font-family: 'Monaco', monospace;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #2c3e50; }
+        .form-group { margin-bottom: 20px; }
+        .form-group.small-gap { margin-bottom: 8px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%; padding: 10px; border: 1px solid #ccc;
+            border-radius: 4px; box-sizing: border-box; font-family: 'Monaco', monospace;
+        }
+        textarea { resize: vertical; min-height: 150px; }
+        button {
+            padding: 10px 15px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 16px; font-family: 'Monaco', monospace;
+            margin-right: 10px; margin-bottom: 10px;
+        }
+        .btn-green {
+            background-color: #27ae60; color: white; display: block;
+            width: 100%; font-weight: bold; font-size: 18px; padding: 15px; margin-top: 20px;
+        }
+        .btn-green:hover { background-color: #2ecc71; }
+        .btn-blue { background-color: #2980b9; color: white; }
+        .instructions {
+            background-color: #e8f4f8; padding: 15px; border-left: 4px solid #2980b9;
+            margin-top: 20px; margin-bottom: 20px; line-height: 1.5;
+        }
+        footer {
+            margin-top: 40px; text-align: center; font-size: 0.9em;
+            color: #7f8c8d; border-top: 1px solid #ddd; padding-top: 20px;
+        }
+        #importFile { display: none; }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor kolesa náhodného výberu</h1>
+
+    <div class="form-group small-gap">
+        <label for="author">Meno autora:</label>
+        <input type="text" id="author" placeholder="Zadajte meno autora">
+    </div>
+    <div class="form-group small-gap">
+        <label for="year">Rok:</label>
+        <input type="number" id="year" placeholder="2026">
+    </div>
+    
+    <div class="form-group small-gap" style="margin-top: 20px;">
+        <label for="title">Názov kolesa:</label>
+        <input type="text" id="title" placeholder="Zadajte názov kolesa">
+    </div>
+
+    <div class="form-group small-gap" style="margin-top: 20px;">
+        <p>Každú položku zadajte na zvláštny riadok.</p>
+        <textarea id="items" placeholder="Položka 1&#10;Položka 2"></textarea>
+    </div>
+
+    <div class="form-group" style="margin-top: 20px;">
+        <label for="instruction">Pokyn pre žiaka:</label>
+        <input type="text" id="instruction" value="Klikni na stred kruhu.">
+    </div>
+
+    <button class="btn-green" onclick="generateAndDownload()">Stiahnuť vygenerované koleso (.html)</button>
+<p>Uložte si údaje zadané do vstupných polí generátora pomocou tlačidla <b>Exportovať nastavenia do súboru .json</b>.<br>Po otvorení tohoto generátora v inom prehliadači alebo v inom počítači môžete tieto uložené údaje načítať znova pomocou tlačidla <b>Importovať nastavenia zo súboru .json.</b></p>
+    <div style="margin-top: 20px;">
+        <button class="btn-blue" onclick="exportJSON()">Exportovať nastavenia do súboru .json</button>
+        <button class="btn-blue" onclick="document.getElementById('importFile').click()">Importovať nastavenia zo súboru .json</button>
+        <input type="file" id="importFile" accept=".json" onchange="importJSON(event)">
+    </div>
+	<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+  <br><br>
+    <script>
+        const fields = ['author', 'year', 'title', 'items', 'instruction'];
+        function loadSettings() {
+            fields.forEach(f => {
+                const val = localStorage.getItem('wheel_' + f);
+                if (val !== null) document.getElementById(f).value = val;
+            });
+        }
+        function saveSettings() {
+            fields.forEach(f => localStorage.setItem('wheel_' + f, document.getElementById(f).value));
+        }
+        document.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', saveSettings));
+        window.onload = loadSettings;
+
+        function exportJSON() {
+            const data = {};
+            fields.forEach(f => data[f] = document.getElementById(f).value);
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'nastavenia_kolesa.json';
+            a.click();
+        }
+
+        function importJSON(e) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const data = JSON.parse(event.target.result);
+                fields.forEach(f => { if(data[f]) document.getElementById(f).value = data[f]; });
+                saveSettings();
+            };
+            reader.readAsText(e.target.files[0]);
+        }
+
+        function sanitizeFilename(name) {
+            if (!name) return "koleso.html";
+            return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9\s]/g, "").trim().replace(/\s+/g, "_") + ".html";
+        }
+
+        function generateAndDownload() {
+            const title = document.getElementById('title').value || "Koleso náhodného výberu";
+            const author = document.getElementById('author').value;
+            const year = document.getElementById('year').value;
+            const items = document.getElementById('items').value.split('\n').map(s => s.trim()).filter(s => s !== "");
+            const instr = document.getElementById('instruction').value;
+
+            let template = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>{{TITLE}}</title>
+    <style>
+        body { font-family: 'Comic Sans MS', cursive; text-align: center; background: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .meta { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+        #startBtn, #nextBtn { background: #27ae60; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 1.1em; margin-top: 10px; font-family: 'Comic Sans MS', cursive; }
+        #wheel-ui { display: none; flex-direction: column; align-items: center; }
+        .wheel-box { position: relative; display: flex; align-items: center; margin: 20px; }
+        .arrow {
+    width: 0;
+    height: 0;
+    border-top: 20px solid transparent;
+    border-bottom: 20px solid transparent;
+    border-left: 40px solid #27ae60; /* Zelená farba */
+    margin-right: 15px;
+    z-index: 5;
+    filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.2));
+}
+#result-box { margin-top: 20px; display: none; }
+        #winner-text { font-size: 2em; font-weight: bold; color: #2980b9; background: #f0f8ff; padding: 10px 30px; border-radius: 10px; border: 2px dashed #2980b9; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div id="intro">
+        <h1>{{TITLE}}</h1>
+        <div class="meta">{{AUTHOR}} {{YEAR}}</div>
+        <button id="startBtn" onclick="initWheel()">Štart</button>
+    </div>
+
+    <div id="wheel-ui">
+        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 15px;">{{INSTR}}</div>
+        <div class="wheel-box">
+            <div class="arrow"></div>
+            <canvas id="canvas" width="500" height="500"></canvas>
+        </div>
+        <div id="result-box">
+            <div id="winner-text"></div>
+            <button id="nextBtn" onclick="removeAndReset()">Hotovo</button>
+        </div>
+    </div>
+
+    <script>
+        let items = {{ITEMS_JSON}};
+        let colors = [];
+        let angle = 0;
+        let spinning = false;
+        let winnerIdx = -1;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function initWheel() {
+            document.getElementById('intro').style.display = 'none';
+            document.getElementById('wheel-ui').style.display = 'flex';
+            generateColors();
+            draw();
+        }
+
+        function generateColors() {
+            colors = [];
+            for(let i=0; i<items.length; i++) {
+                let h = (i * (360 / items.length) + Math.random() * 20) % 360;
+                colors.push('hsl(' + h + ', 75%, 93%)');
+            }
+        }
+
+        function draw() {
+            const n = items.length;
+            const arc = (Math.PI * 2) / n;
+            ctx.clearRect(0,0,500,500);
+
+            items.forEach((text, i) => {
+                const start = angle + i * arc;
+                ctx.fillStyle = colors[i];
+                ctx.beginPath();
+                ctx.moveTo(250, 250);
+                ctx.arc(250, 250, 240, start, start + arc);
+                ctx.fill();
+                
+                // Čiary (Sýtosť 0.5)
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)'; 
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(250, 250);
+                ctx.rotate(start + arc / 2 + Math.PI); 
+                
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle"; 
+                ctx.fillStyle = "#2c3e50";
+                
+                // Veľkosť písma (Základ 30)
+                let fontSize = Math.min(30, (440 * arc) / (text.length * 0.55));
+                if(fontSize < 12) fontSize = 12;
+                ctx.font = "bold " + fontSize + "px 'Comic Sans MS'";
+                
+                let displayText = text;
+                if(ctx.measureText(text).width > 185) {
+                   while(ctx.measureText(displayText + "...").width > 185 && displayText.length > 0) {
+                       displayText = displayText.slice(0, -1);
+                   }
+                   displayText += "...";
+                }
+
+                // Posunuté na -220 pre väčšiu medzeru od okraja
+                ctx.fillText(displayText, -220, 2);
+                ctx.restore();
+            });
+
+            let g = ctx.createRadialGradient(250,250,120,250,250,240);
+            g.addColorStop(0, 'rgba(255,255,255,0)');
+            g.addColorStop(1, 'rgba(0,0,0,0.04)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(250,250,240,0,Math.PI*2); ctx.fill();
+
+            ctx.beginPath(); ctx.arc(250,250,45,0,Math.PI*2);
+            ctx.fillStyle = "#39ff14"; ctx.fill();
+            ctx.strokeStyle = "#27ae60"; ctx.lineWidth = 3; ctx.stroke();
+            ctx.fillStyle = "#000"; ctx.font = "16px 'Comic Sans MS'";
+            ctx.textAlign = "center"; ctx.fillText("Toč 🙂", 250, 255);
+        }
+
+        canvas.onclick = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left - 250;
+            const y = e.clientY - rect.top - 250;
+            if(Math.sqrt(x*x + y*y) < 45 && !spinning && items.length > 0) {
+                spin();
+            }
+        };
+
+        function spin() {
+            spinning = true;
+            document.getElementById('result-box').style.display = 'none';
+            let speed = 0.35 + Math.random() * 0.15;
+            function animate() {
+                angle += speed;
+                speed *= 0.986;
+                draw();
+                if(speed > 0.002) requestAnimationFrame(animate);
+                else {
+                    spinning = false;
+                    const n = items.length;
+                    const arc = (Math.PI * 2) / n;
+                    let norm = (Math.PI - (angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                    winnerIdx = Math.floor(norm / arc);
+                    document.getElementById('winner-text').innerText = items[winnerIdx];
+                    document.getElementById('result-box').style.display = 'block';
+                }
+            }
+            animate();
+        }
+
+        function removeAndReset() {
+            items.splice(winnerIdx, 1);
+            colors.splice(winnerIdx, 1);
+            document.getElementById('result-box').style.display = 'none';
+            winnerIdx = -1;
+            draw();
+        }
+    <\/script>
+</body>
+</html>`;
+
+            template = template.replace(/{{TITLE}}/g, title).replace(/{{AUTHOR}}/g, author).replace(/{{YEAR}}/g, year).replace(/{{INSTR}}/g, instr).replace(/{{ITEMS_JSON}}/g, JSON.stringify(items));
+            const blob = new Blob([template], {type: 'text/html'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = sanitizeFilename(title);
+            a.click();
+        }
+    </script>
+</body>
+</html>

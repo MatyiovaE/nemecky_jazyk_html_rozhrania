@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Časovanie slovenských slovies</title>
+    <style>
+        body {
+            font-family: Courier bold, monospace;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace; /* Aby bolo vidieť tabulátory zarovnane */
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box; /* Aby padding nezväčšoval šírku */
+        }
+        #inputVerbs {
+            height: 120px;
+        }
+        #outputVerbs {
+            height: 300px;
+            background-color: #fafafa;
+            white-space: pre; /* Zachovanie formátovania */
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .note {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Časovač slovies</h2>
+
+    <label for="inputVerbs">Zadaj neurčitky slovies (oddelené prázdnym riadkom):</label>
+    <textarea id="inputVerbs" placeholder="písať&#10;&#10;jesť&#10;&#10;piť&#10;&#10;byť">písať
+
+jesť
+
+piť
+
+byť</textarea>
+   
+    <button onclick="spracujSlovesa()">Časovať sloveso/slovesá</button>
+
+    <label for="outputVerbs">Výsledok (editovateľný):</label>
+    <textarea id="outputVerbs"></textarea>
+</div>
+
+<script>
+    // Zoznam zámen pre iteráciu
+    const pronouns = [
+        { os: 'ja', key: 0 },
+        { os: 'ty', key: 1 },
+        { os: 'on', key: 2 },
+        { os: 'ona', key: 2 }, // on/ona/ono majú rovnaký tvar
+        { os: 'ono', key: 2 },
+        { os: 'my', key: 3 },
+        { os: 'vy', key: 4 },
+        { os: 'oni', key: 5 },
+        { os: 'ony', key: 5 }  // oni/ony majú rovnaký tvar
+    ];
+
+    // Databáza nepravidelných alebo špecifických slovies z tvojho zadania
+    const dictionary = {
+	"baliť":	["balím", "balíš", "balí", "balíme", "balíte", "balia"],
+	"bežať":	["bežím", "bežíš", "beží", "bežíme", "bežíte", "bežia"],
+	"brať":	["beriem", "berieš", "berie", "berieme", "beriete", "berú"],
+	"biť":	["bijem", "biješ", "bije", "bijeme", "bijete", "bijú"],
+	"byť": ["som", "si", "je", "sme", "ste", "sú"],
+	"cestovať":	["cestujem", "cestuješ", "cestuje", "cestujeme", "cestujete", "cestujú"],
+	"cvičiť":	["cvičím", "cvičíš", "cvičí", "cvičíme", "cvičíte", "cvičia"],
+	"chcieť": ["chcem", "chceš", "chce", "chceme", "chcete", "chcú"],
+	"chytiť": ["chytím", "chytíš", "chytí", "chytíme", "chytíte", "chytia"],
+	"chytať": ["chytám", "chytáš", "chytá", "chytáme", "chytáte", "chytajú"],
+	"čakať":	["čakám", "čakáš", "čaká", "čakáme", "čakáte", "čakajú"],
+	"česať sa": ["sa češem", "sa češeš", "sa češe", "sa češeme", "sa češete", "sa češú"],
+	"čistiť": ["čistím", "čistíš", "čistí", "čistíme", "čistíte", "čistia"],
+	"čítať":	["čítam", "čítaš", "číta", "čítame", "čítate", "čítajú"],
+	"dať":	["dám", "dáš", "dá", "dáme", "dáte", "dajú"],
+	"dávať":	["dávam", "dávaš", "dáva", "dávame", "dávate", "dávajú"],
+	"dívať sa":	["sa dívam", "sa dívaš", "sa díva", "sa dívame", "sa dívate", "sa dívajú"],
+	"držať":	["držím", "držíš", "drží", "držíme", "držíte", "držia"],
+	"dýchať": ["dýcham", "dýchaš", "dýcha", "dýchame", "dýchate", "dýchajú"],
+	"fajčiť":	["fajčím", "fajčíš", "fajčí", "fajčíme", "fajčíte", "fajčia"],
+	"fotiť": ["fotím", "fotíš", "fotí", "fotíme", "fotíte", "fotia"],
+	"fotografovať": ["fotografujem", "fotografuješ", "fotografuje", "fotografujeme", "fotografujete", "fotografujú"],
+	"hlásiť sa":	["sa hlásim", "sa hlásiš", "sa hlási", "sa hlásime", "sa hlásite", "sa hlásia"],
+	"hovoriť":	["hovorím", "hovoríš", "hovorí", "hovoríme", "hovoríte", "hovoria"],
+	"hrať sa":	["sa hrám", "sa hráš", "sa hrá", "sa hráme", "sa hráte", "sa hrajú"],
+	"hrať":	["hrám", "hráš", "hrá", "hráme", "hráte", "hrajú"],
+	"chápať":	["chápem", "chápeš", "chápe", "chápeme", "chápete", "chápu"],
+	"informovať sa":	["sa informujem", "sa informuješ", "sa informuje", "sa informujeme", "sa informujete", "sa informujú"],
+	"ísť": ["idem", "ideš", "ide", "ideme", "idete", "idú"],
+	"jesť": ["jem", "ješ", "je", "jeme", "jete", "jedia"],
+	"končiť":	["končím", "končíš", "končí", "končíme", "končíte", "končia"],
+	"kontrolovať":	["kontrolujem", "kontroluješ", "kontroluje", "kontrolujeme", "kontrolujete", "kontrolujú"],
+	"kopať":	["kopem", "kopeš", "kope", "kopeme", "kopete", "kopú"],
+	"kresliť":	["kreslím", "kreslíš", "kreslí", "kreslíme", "kreslíte", "kreslia"],
+	"kričať":	["kričím", "kričíš", "kričí", "kričíme", "kričíte", "kričia"],
+	"kúpiť":	["kúpim", "kúpiš", "kúpi", "kúpime", "kúpite", "kúpia"],
+	"kupovať":	["kupujem", "kupuješ", "kupuje", "kupujeme", "kupujete", "kupujú"],
+	"kúriť":	["kúrim", "kúriš", "kúri", "kúrime", "kúrite", "kúria"],
+	"letieť": ["letím", "letíš", "letí", "letíme", "letíte", "letia"],
+	"ležať":	["ležím", "ležíš", "leží", "ležíme", "ležíte", "ležia"],
+	"ľúbiť": ["ľúbim", "ľúbiš", "ľúbi", "ľúbime", "ľúbite", "ľúbia"],
+	"mať":	["mám", "máš", "má", "máme", "máte", "majú"],
+	"meniť":	["mením", "meníš", "mení", "meníme", "meníte", "menia"],
+	"meškať":	["meškám", "meškáš", "mešká", "meškáme", "meškáte", "meškajú"],
+	"miešať": ["miešam", "miešaš", "mieša", "miešame", "miešate", "miešajú"],
+	"milovať":	["milujem", "miluješ", "miluje", "milujeme", "milujete", "milujú"],
+	"mýliť sa":	["sa mýlim", "sa mýliš", "sa mýli", "sa mýlime", "sa mýlite", "sa mýlia"],
+	"myslieť si":	["si myslím", "si myslíš", "si myslí", "si myslíme", "si myslíte", "si myslia"],
+	"myslieť":	["myslím", "myslíš", "myslí", "myslíme", "myslíte", 	"myslia"],
+	"naraňajkovať sa":	["sa naraňajkujem", "sa naraňajkuješ", "sa naraňajkuje", "sa naraňajkujeme", "sa naraňajkujete", "sa naraňajkujú"],
+	"naučiť sa":	["sa naučím", "sa naučíš", "sa naučí", "sa naučíme", "sa naučíte", "sa naučia"],
+	"obliecť sa":	["sa oblečiem", "sa oblečieš", "sa oblečie", "sa oblečie", "sa oblečiete", "sa oblečú"],
+	"obedovať":	["obedujem", "obeduješ", "obeduje", "obedujeme", "obedujete", "obedujú"],
+	"obliekať sa":	["sa obliekam", "sa obliekaš", "sa oblieka", "sa obliekame", "sa obliekate", "sa obliekajú"],
+	"objať":	["objímem", "objímeš", "objíme", "objímeme", "objímete", "objímu"],
+	"objímať":	["objímam", "objímaš", "objíma", "objímame", "objímate", "objímajú"],
+	"odpovedať":	["odpovedám", "odpovedáš", "odpovedá", "odpovedáme", "odpovedáte", "odpovedajú"],
+	"opakovať":	["opakujem", "opakuješ", "opakuje", "opakujeme", "opakujete", "opakujú"],
+	"opísať": ["opíšem", "opíšeš", "opíše", "opíšeme", "opíšete", "opíšu"],
+	"opisovať": ["opisujem", "opisuješ", "opisuje", "opisujeme", "opisujete", "opisujú"],
+	"opraviť":	["opravím", "opravíš", "opraví", "opravíme", "opravíte", "opravia"],
+	"opravovať":	["opravujem", "opravuješ", "opravuje", "opravujeme", "opravujete", "opravujú"],
+	"osprchovať sa":	["sa osprchujem", "sa osprchuješ", "sa osprchuje", "sa osprchujeme", "sa osprchujete", "sa osprchujú"],
+	"otvárať":	["otváram", "otváraš", "otvára", "otvárame", "otvárate", "otvárajú"],
+	"otvoriť":	["otvorím", "otvoríš", "otvorí", "otvoríme", "otvoríte", "otvoria"],
+	"piecť": ["pečiem", "pečieš", "pečie", "pečieme", "pečiete", "pečú"],
+	"písať": ["píšem", "píšeš", "píše", "píšeme", "píšete", "píšu"],
+	"pískať": ["pískam", "pískaš", "píska", "pískame", "pískate", "pískajú"],
+	"piť": ["pijem", "piješ", "pije", "pijeme", "pijete", "pijú"],
+	"plakať":	["plačem", "plačeš", "plače", "plačeme", "plačete", "plačú"],
+	"plávať":	["plávam", "plávaš", "pláva", "plávame", "plávate", "plávajú"],
+	"pobaliť sa":	["sa pobalím", "sa pobalíš", "sa pobalí", "sa pobalíme", "sa pobalíte", "sa pobalia"],
+	"počítať": ["počítam", "počítaš", "počíta", "počítame", "počítate", "počítajú"],
+	"počkať":	["počkám", "počkáš", "počká", "počkáme", "počkáte", "počkajú"],
+	"počuť":	["počujem", "počuješ", "počuje", "počujeme", "počujete", "počujú"],
+	"počúvať":	["počúvam", "počúvaš", "počúva", "počúvame", "počúvate", "počúvajú"],
+	"podržať":	["podržím", "podržíš", "podrží", "podržíme", "podržíte", "podržia"],
+	"pochopiť":	["pochopím", "pochopíš", "pochopí", "pochopíme", "pochopíte", "pochopia"],
+	"pokaziť":	["pokazím", "pokazíš", "pokazí", "pokazíme", "pokazíte", "pokazia"],
+	"pomáhať":	["pomáham", "pomáhaš", "pomáha", "pomáhame", "pomáhate", "pomáhajú"],
+	"pomiešať": ["pomiešam", "pomiešaš", "pomieša", "pomiešame", "pomiešate", "pomiešajú"],
+	"pomýliť sa":	["sa pomýlim", "sa pomýliš", "sa pomýli", "sa pomýlime", "sa pomýlite", "sa pomýlia"],
+	"pomôcť":	["pomôžem", "pomôžeš", "pomôže", "pomôžeme", "pomôžete", "pomôžu"],
+	"ponáhľať sa":	["sa ponáhľam", "sa ponáhľaš", "sa ponáhľa", "sa ponáhľame", "sa ponáhľate", "sa ponáhľajú"],
+	"používať":	["používam", "používaš", "používa", "používame", "používate", "používajú"],
+	"použiť":	["použijem", "použiješ", "použije", "použijeme", "použijete", "použijú"],
+	"povedať":	["poviem", "povieš", "povie", "povieme", "poviete", "povedia"],
+	"pozerať":	["pozerám", "pozeráš", "pozerá", "pozeráme", "pozeráte", "pozerajú"],
+	"poznať":	["poznám", "poznáš", "pozná", "poznáme", "poznáte", "poznajú"],
+	"pracovať": ["pracujem", "pracuješ", "pracuje", "pracujeme", "pracujete", "pracujú"],
+	"predať":	["predám", "predáš", "predá", "predáme", "predáte", "predajú"],
+	"predávať":	["predávam", "predávaš", "predáva", "predávame", "predávate", "predávajú"],
+	"prepísať":	["prepíšem", "prepíšeš", "prepíše", "prepíšeme", "prepíšete", "prepíšu"],
+	"prežiť":	["prežijem", "prežiješ", "prežije", "prežijeme", "prežijete", "prežijú"]
+	"prihlásiť sa":	["sa prihlásim", "sa prihlásiš", "sa prihlási", "sa prihlásime", "sa prihlásite", "sa prihlásia"],
+	"pripojiť":	["pripojím", "pripojíš", "pripojí", "pripojíme", "pripojíte", "pripoja"],
+	"pripájať":	["pripájam", "pripájaš", "pripája", "pripájame", "pripájate", "pripájajú"],
+	"pripomenúť":	["pripomeniem", "pripomenieš", "pripomenie", "pripomenieme", "pripomeniete", "pripomenú"],
+	"pripomínať":	["pripomínam", "pripomínaš", "pripomína", "pripomíname", "pripomínate", "pripomínajú"],
+	"priradiť":	["priradím", "priradíš", "priradí", "priradíme", "priradíte", "priradia"],
+	"priraďovať":	["priraďujem", "priraďuješ", "priraďuje", "priraďujeme", "priraďujete", "priraďujú"],
+	"prísť":	["prídem", "prídeš", "príde", "prídeme", "prídete", "prídu"],
+	"raňajkovať":	["raňajkujem", "raňajkuješ", "raňajkuje", "raňajkujeme", "raňajkujete", "raňajkujú"],
+	"riešiť":	["riešim", "riešiš", "rieši", "riešime", "riešite", "riešia"],
+	"robiť":	["robím", "robíš", "robí", "robíme", "robíte", "robia"],
+	"rozhodnúť sa":	["sa rozhodnem", "sa rozhodneš", "sa rozhodne", "sa rozhodneme", "sa rozhodnete", "sa rozhodnú"],
+	"rozprávať":	["rozprávam", "rozprávaš", "rozpráva", "rozprávame", "rozprávate", "rozprávajú"],
+	"rozprávať sa":	["sa rozprávam", "sa rozprávaš", "sa rozpráva", "sa rozprávame", "sa rozprávate", "sa rozprávajú"],
+	"sadať si":	["si sadám", "si sadáš", "si sadá", "si sadáme", "si sadáte", "si sadajú"],
+	"sadnúť si":	["si sadnem", "si sadneš", "si sadne", "si sadneme", "si sadnete", "si sadnú"],
+	"sedieť": ["sedím", "sedíš", "sedí", "sedíme", "sedíte", "sedia"],
+	"skákať":	["skáčem", "skáčeš", "skáče", "skáčeme", "skáčete", "skákajú"],
+	"skočiť":	["skočím", "skočíš", "skočí", "skočíme", "skočíte", "skočia"],
+	"smiať sa":	["sa smejem", "sa smeješ", "sa smeje", "sa smejeme", "sa smejete", "sa smejú"],
+	"sprchovať sa":	["sa sprchujem", "sa sprchuješ", "sa sprchuje", "sa sprchujeme", "sa sprchujete", "sa sprchujú"],
+	"šoférovať":	["šoférujem", "šoféruješ", "šoféruje", "šoférujeme", "šoférujete", "šoférujú"],
+	"spať": ["spím", "spíš", "spí", "spíme", "spíte", "spia"],
+	"spievať": ["spievam", "spievaš", "spieva", "spievame", "spievate", "spievajú"],
+	"spojiť":	["spojím", "spojíš", "spojí", "spojíme", "spojíte", "spoja"],
+	"spájať":	["spájam", "spájaš", "spája", "spájame", "spájate", "spájajú"],
+	"spomenúť":	["spomeniem", "spomenieš", "spomenie", "spomenieme", "spomeniete", "spomenú"],
+	"spomínať si":	["si spomínam", "si spomínaš", "si spomína", "si spomíname", "si spomínate", "si spomínajú"],
+	"spraviť": ["spravím", "spravíš", "spraví", "spravíme", "spravíte", "spravia"],
+	"stáť":	["stojím", "stojíš", "stojí", "stojíme", "stojíte", "stoja"],
+	"stretávať":	["stretávam", "stretávaš", "stretáva", "stretávame", "stretávate", "stretávajú"],
+	"stretnúť":	["stretnem", "stretneš", "stretne", "stretneme", "stretnete", "stretnú"],
+	"študovať":	["študujem", "študuješ", "študuje", "študujeme", "študujete", "študujú"],
+	"tešiť sa":	["sa teší", "sa tešíš", "sa teší", "sa tešíme", "sa tešíte", "sa tešia"],
+	"tvrdiť":	["tvrdím", "tvrdíš", "tvrdí", "tvrdíme", "tvrdíte", "tvrdia"],
+	"ubytovať sa":	["sa ubytujem", "sa ubytuješ", "sa ubytuje", "sa ubytujeme", "sa ubytujete", "sa ubytujú"],
+	"učiť sa":	["sa učím", "sa učíš", "sa učí", "sa učíme", "sa učíte", "sa učia"],
+	"usmievať sa":	["sa usmievam", "sa usmievaš", "sa usmievaš", "sa usmieva", "sa usmievame", "sa usmievate"],
+	"usmiať sa":	["sa usmeje", "sa usmeješ", "sa usmeje", "sa usmejeme", "sa usmejete", "sa usmejú"],
+	"umyť":	["umyjem", "umyješ", "umyje", "umyje", "umyjete", "umyjú"],
+	"umývať sa":	["sa umývam", "sa umývaš", "sa umýva", "sa umývame", "sa umývate", "sa umývajú"],
+	"urobiť":	["urobím", "urobíš", "urobí", "urobíme", "urobíte", "urobia"],
+	"utekať":	["utekám", "utekáš", "uteká", "utekáme", "utekáte", "utekajú"],
+	"utierať":	["utieram", "utieraš", "utiera", "utierame", "utierate", "utierajú"],
+	"utrieť":	["utriem", "utrieš", "utrie", "utrieme", "utriete", "utrú"],
+	"upiecť": ["upečiem", "upečieš", "upečie", "upečieme", "upečiete", "upečú"],
+	"uvariť": ["uvarím", "uvaríš", "uvarí", "uvaríme", "uvaríte", "uvaria"],
+	"uvidieť":	["uvidím", "uvidíš", "uvidí", "uvidíme", "uvidíte", "uvidia"],
+	"variť": ["varím", "varíš", "varí", "varíme", "varíte", "varia"],
+	"veriť": ["verím", "veríš", "verí", "veríme", "veríte", "veria"],
+	"večerať": ["večeriam", "večeriaš", "večeria", "večeriame", "večeriate", "večerajú"],
+	"vedieť": ["viem", "vieš", "vie", "vieme", "viete", "vedia"],
+	"vidieť":	["vidím", "vidíš", "vidí", "vidíme", "vidíte", "vidia"],
+	"volať sa":	["sa volám", "sa voláš", "sa volá", "sa voláme", "sa voláte", "sa volajú"],
+	"volať":	["volám", "voláš", "volá", "voláme", "voláte", "volajú"],
+	"voliť":	["volím", "volíš", "volí", "volíme", "volíte", "volia"],
+	"vrátiť":	["vrátim", "vrátiš", "vráti", "vrátime", "vrátite", "vrátia"],
+	"vstať":	["vstanem", "vstaneš", "vstane", "vstaneme", "vstanete", "vstanú"],
+	"vstávať":	["vstávam", "vstávaš", "vstáva", "vstávame", "vstávate", "vstávajú"],
+	"vybrať":	["vyberiem", "vyberieš", "vyberie", "vyberieme", "vyberiete", "vyberú"],
+	"vykrikovať":	["vykrikujem", "vykrikuješ", "vykrikuje", "vykrikujeme", "vykrikujete", "vykrikujú"],
+	"vymeniť":	["vymením", "vymeníš", "vymení", "vymeníme", "vymeníte", "vymenia"],
+	"vypnúť":	["vypnem", "vypneš", "vypne", "vypneme", "vypnete", "vypnú"],
+	"vyriešiť":	["vyriešim", "vyriešiš", "vyrieši", "vyriešime", "vyriešite", "vyriešia"],
+	"zabaliť":	["zabalím", "zabalíš", "zabalí", "zabalíme", "zabalíte", "zabalia"],
+	"zabudnúť":	["zabudnem", "zabudneš", "zabudne", "zabudneme", "zabudnete", "zabudnú"],
+	"začať":	["začnem", "začneš", "začne", "začneme", "začnete", "začnú"],
+	"začínať":	["začínam", "začínaš", "začína", "začíname", "začínate", "začínajú"],
+	"zametať":	["zametám", "zametáš", "zametá", "zametáme", "zametáte", "zametajú"],
+	"zamknúť":	["zamknem", "zamkneš", "zamkne", "zamkneme", "zamknete", "zamknú"],
+	"zapnúť":	["zapnem", "zapneš", "zapne", "zapneme", "zapnete", "zapnú"],
+	"zaspať":	["zaspím", "zaspíš", "zaspí", "zaspíme", "zaspíte", "zaspia"],
+	"zatvárať":	["zatváram", "zatváraš", "zatvára", "zatvárame", "zatvárate", "zatvárajú"],
+	"zatvoriť":	["zatvorím", "zatvoríš", "zatvorí", "zatvoríme", "zatvoríte", "zatvoria"],
+	"zastaviť":	["zastavím", "zastavíš", "zastaví", "zastavíme", "zastavíte", "zastavia"],
+	"zbaliť":	["zbalím", "zbalíš", "zbalí", "zbalíme", "zbalíte", "zbalia"],
+	"zistiť":	["zistím", "zistíš", "zistí", "zistíme", "zistíte", "zistia"],
+	"zmeniť":	["zmením", "zmeníš", "zmení", "zmeníme", "zmeníte", "zmenia"],
+	"zmenšiť":	["zmenším", "zmenšíš", "zmenší", "zmenšíme", "zmenšíte", "zmenšia"],
+	"zopakovať":	["zopakujem", "zopakuješ", "zopakuje", "zopakujeme", "zopakujete", "zopakujú"],
+	"zväčšiť":	["zväčším", "zväčšíš", "zväčší", "zväčšíme", "zväčšíte", "zväčšia"],
+	"zvládnuť":	["zvládnem", "zvládneš", "zvládne", "zvládneme", "zvládnete", "zvládnu"],
+	"zvoliť":	["zvolím", "zvolíš", "zvolí", "zvolíme", "zvolíte", "zvolia"],
+	"žiť":	["žijem", "žiješ", "žije", "žijeme", "žijete", "žijú"]
+    };
+    function spracujSlovesa() {
+        const inputArea = document.getElementById('inputVerbs');
+        const outputArea = document.getElementById('outputVerbs');
+        
+        // Získanie textu a rozdelenie podľa prázdnych riadkov
+        // Regex \n\s*\n hľadá dva newliny a prípadné medzery medzi nimi
+        let rawInput = inputArea.value.trim();
+        if (!rawInput) return;
+
+        // Rozdelíme vstup buď podľa prázdnych riadkov, alebo len nových riadkov, 
+        // ale vyčistíme prázdne položky.
+        let verbs = rawInput.split(/\n+/).map(v => v.trim()).filter(v => v.length > 0);
+
+        let finalOutput = "";
+
+        verbs.forEach(verb => {
+            let forms = casujSloveso(verb.toLowerCase());
+            
+            if (forms) {
+                finalOutput += verb + "\n"; // Nadpis slovesa
+                
+                // Vygenerovanie riadkov pre zámená
+                pronouns.forEach(p => {
+                    // p.key určuje index v poli tvarov (0=ja, 1=ty, 2=on/a/o, 3=my, 4=vy, 5=oni/y)
+                    let verbForm = forms[p.key];
+                    finalOutput += `${p.os}\t${verbForm}\n`;
+                });
+                
+                finalOutput += "\n"; // Medzera medzi blokmi
+            }
+        });
+
+        outputArea.value = finalOutput.trim();
+    }
+
+    function casujSloveso(verb) {
+        // 1. Skontrolujeme, či je v našom slovníku (pre presnosť zadania)
+        if (dictionary[verb]) {
+            return dictionary[verb];
+        }
+
+        // 2. Pokus o algoritmické časovanie (heuristika pre bežné vzory)
+        // Toto nie je dokonalé pre celú slovenčinu, ale pokryje veľa prípadov.
+        
+        // Vzor -ovať (pracovať -> pracujem)
+        if (verb.endsWith("ovať")) {
+            const stem = verb.slice(0, -4); // odstráni ovať
+            return [
+                stem + "ujem", 
+                stem + "uješ", 
+                stem + "uje", 
+                stem + "ujeme", 
+                stem + "ujete", 
+                stem + "ujú"
+            ];
+        }
+
+        // Vzor -iť (robiť -> robím)
+        if (verb.endsWith("iť")) {
+            const stem = verb.slice(0, -2);
+            // Zjednodušené pravidlo, v slovenčine je tu rytmický zákon, ktorý tu ignorujeme pre jednoduchosť
+            return [
+                stem + "ím", 
+                stem + "íš", 
+                stem + "í", 
+                stem + "íme", 
+                stem + "íte", 
+                stem + "ia"
+            ];
+        }
+        
+        // Vzor -ieť (rozumieť -> rozumiem)
+        if (verb.endsWith("ieť")) {
+             const stem = verb.slice(0, -4); // pozor na dĺžku kmeňa
+             // Zoberieme kmeň bez "ieť"
+             const stemBase = verb.substring(0, verb.length - 3); // rozum
+             return [
+                stemBase + "em", 
+                stemBase + "eš", 
+                stemBase + "e", 
+                stemBase + "eme", 
+                stemBase + "ete", 
+                stemBase + "ejú" // toto je zradné, často -ia (rozumejú vs vidia)
+            ];
+        }
+
+        // Vzor -ať (volám vs píšem)
+        // Toto je najťažšie odlíšiť bez slovníka. Defaultneme na vzor "chytať/volať" (ám).
+        if (verb.endsWith("ať")) {
+            const stem = verb.slice(0, -2);
+            return [
+                stem + "ám", 
+                stem + "áš", 
+                stem + "á", 
+                stem + "áme", 
+                stem + "áte", 
+                stem + "ajú"
+            ];
+        }
+
+        return ["?", "?", "?", "?", "?", "?"];
+    }
+</script>
+
+</body>
+</html>

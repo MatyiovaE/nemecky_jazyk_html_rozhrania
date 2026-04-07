@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor rozdelenia osôb do skupín</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="date"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .btn-success {
+            background-color: #2ecc71;
+            font-weight: bold;
+        }
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        .btn-group {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor rozdelenia osôb do skupín</h1>
+
+    <div class="form-group">
+        <label for="teacher">Meno učiteľa:</label>
+        <input type="text" id="teacher" placeholder="Napr. Ján Novák">
+    </div>
+
+    <div class="form-group">
+        <label for="subject">Predmet:</label>
+        <input type="text" id="subject" placeholder="Napr. Matematika">
+    </div>
+
+    <div class="form-group">
+        <label for="date">Dátum:</label>
+        <input type="date" id="date">
+    </div>
+
+    <div class="form-group">
+        <label for="names">Mená osôb (každé meno na zvláštny riadok):</label>
+        <textarea id="names" rows="12" placeholder="Jozef Mrkvička&#10;Anna Kováčová&#10;..."></textarea>
+    </div>
+
+    <div class="btn-group">
+        <button onclick="exportJSON()">Exportovať do súboru .json</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(event)">
+        <button onclick="document.getElementById('importFile').click()">Importovať zo súboru .json</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <button class="btn-success" onclick="generateApp()">Stiahnuť rozdelenie do skupín ako súbor .html</button>
+    </div>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+<br><br>
+    <script>
+        // Funkcia pre export do JSON
+        function exportJSON() {
+            const data = {
+                teacher: document.getElementById('teacher').value,
+                subject: document.getElementById('subject').value,
+                date: document.getElementById('date').value,
+                names: document.getElementById('names').value
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'nastavenia_skupin.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Funkcia pre import z JSON
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.teacher !== undefined) document.getElementById('teacher').value = data.teacher;
+                    if (data.subject !== undefined) document.getElementById('subject').value = data.subject;
+                    if (data.date !== undefined) document.getElementById('date').value = data.date;
+                    if (data.names !== undefined) document.getElementById('names').value = data.names;
+                } catch (err) {
+                    alert('Chyba pri čítaní súboru JSON. Uistite sa, že má správny formát.');
+                }
+                event.target.value = ''; // Reset file input
+            };
+            reader.readAsText(file);
+        }
+
+        // Funkcia pre vygenerovanie a stiahnutie finálneho HTML súboru
+        function generateApp() {
+            const rawNames = document.getElementById('names').value;
+            const namesArray = rawNames.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+            
+            if (namesArray.length === 0) {
+                alert('Prosím, zadajte aspoň jedno meno.');
+                return;
+            }
+
+            const teacher = document.getElementById('teacher').value;
+            const subject = document.getElementById('subject').value;
+            const date = document.getElementById('date').value;
+
+            // Template pre vygenerovaný súbor
+            const htmlContent = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rozdelenie osôb do skupín</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f9f9f9; color: #333; }
+        .header-info { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .header-info p { margin: 5px 0; }
+        .control-panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        input[type="number"] { padding: 8px; width: 80px; font-size: 16px; margin-left: 10px; }
+        button { background-color: #e67e22; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; margin-top: 15px; font-weight: bold; }
+        button:hover { background-color: #d35400; }
+        
+        /* Modálne okno "bez zablokovania" */
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+        #modal-content { position: fixed; top: 5%; left: 5%; width: 90%; height: 90%; background: white; z-index: 1000; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); overflow-y: auto; display: none; flex-direction: column; }
+        .modal-header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { margin: 0; color: #2c3e50; }
+        .close-btn { background: #e74c3c; padding: 8px 15px; margin: 0; border-radius: 4px; }
+        .close-btn:hover { background: #c0392b; }
+        .print-hint { color: #7f8c8d; font-size: 14px; margin-left: 15px; }
+        
+        /* Informácie pre tlač vo vnútri modálneho okna */
+        .modal-info { padding: 15px 20px; background-color: #f8f9fa; border-bottom: 1px solid #eee; font-size: 15px; }
+        .modal-info p { margin: 5px 0; color: #34495e; }
+
+        /* Mriežka pre skupiny - max 4 vedľa seba */
+        #groups-grid { padding: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .group-card { background: #fdfdfd; border: 1px solid #e1e1e1; border-radius: 6px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .group-card h3 { margin-top: 0; color: #2980b9; border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 18px; }
+        .group-card ul { list-style-type: none; padding: 0; margin: 0; }
+        .group-card li { padding: 5px 0; border-bottom: 1px dashed #f1f1f1; }
+        .group-card li:last-child { border-bottom: none; }
+
+        @media (max-width: 1000px) { #groups-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { #groups-grid { grid-template-columns: 1fr; } }
+
+        /* Nastavenia pre tlač (CTRL+P) */
+        @media print {
+            body > *:not(#modal-content) { display: none !important; }
+            #modal-overlay { display: none !important; }
+            #modal-content { display: block !important; position: static; width: 100%; height: auto; box-shadow: none; border: none; }
+            .modal-header .close-btn, .modal-header .print-hint { display: none !important; }
+            
+            .modal-info { background-color: transparent; border-bottom: 2px solid #000; padding-left: 0; padding-right: 0; }
+            .modal-info p { color: #000; }
+
+            #groups-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 10px; padding: 0; margin-top: 20px; }
+            .group-card { break-inside: avoid; border: 1px solid #000; box-shadow: none; padding: 10px; }
+            .group-card h3 { color: #000; border-bottom: 1px solid #000; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Rozdelenie osôb do skupín</h1>
+    
+    <div class="header-info">
+        <p><strong>Učiteľ:</strong> ${teacher || 'Neuvedený'}</p>
+        <p><strong>Predmet:</strong> ${subject || 'Neuvedený'}</p>
+        <p><strong>Dátum:</strong> ${date ? new Date(date).toLocaleDateString('sk-SK') : 'Neuvedený'}</p>
+        <p><strong>Celkový počet osôb:</strong> ${namesArray.length}</p>
+    </div>
+
+    <div class="control-panel">
+        <label for="numGroups">Počet skupín:
+            <input type="number" id="numGroups" value="2" min="1" max="${namesArray.length}">
+        </label>
+        <br>
+        <button onclick="divideIntoGroups()">Rozdeliť</button>
+    </div>
+
+    <div id="modal-overlay"></div>
+    <div id="modal-content">
+        <div class="modal-header">
+            <div>
+                <h2>Rozpis skupín</h2>
+                <span class="print-hint">(Pre tlač stlačte CTRL + P)</span>
+            </div>
+            <button class="close-btn" onclick="closeModal()">Zavrieť</button>
+        </div>
+        
+        <div class="modal-info">
+            <p><strong>Učiteľ:</strong> ${teacher || 'Neuvedený'} &nbsp; | &nbsp; <strong>Predmet:</strong> ${subject || 'Neuvedený'} &nbsp; | &nbsp; <strong>Dátum:</strong> ${date ? new Date(date).toLocaleDateString('sk-SK') : 'Neuvedený'}</p>
+        </div>
+
+        <div id="groups-grid"></div>
+    </div>
+
+    <script>
+        const namesList = ${JSON.stringify(namesArray)};
+        const originalTitle = document.title; // Uloženie pôvodného názvu okna
+
+        function divideIntoGroups() {
+            let numGroups = parseInt(document.getElementById('numGroups').value);
+            
+            // Kontroly vstupov
+            if (isNaN(numGroups) || numGroups < 1) numGroups = 1;
+            if (numGroups > namesList.length) numGroups = namesList.length;
+            document.getElementById('numGroups').value = numGroups;
+
+            // Náhodné zamiešanie poľa pomocou Fisher-Yates algoritmu
+            let shuffled = [...namesList];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+
+            // Rozdelenie do skupín
+            let groups = Array.from({ length: numGroups }, () => []);
+            shuffled.forEach((name, index) => {
+                groups[index % numGroups].push(name);
+            });
+
+            // Vykreslenie do mriežky
+            const grid = document.getElementById('groups-grid');
+            grid.innerHTML = '';
+
+            groups.forEach((group, index) => {
+                const card = document.createElement('div');
+                card.className = 'group-card';
+                
+                const title = document.createElement('h3');
+                title.innerText = 'Skupina ' + (index + 1);
+                card.appendChild(title);
+
+                const ul = document.createElement('ul');
+                group.forEach(person => {
+                    const li = document.createElement('li');
+                    li.innerText = person;
+                    ul.appendChild(li);
+                });
+                
+                card.appendChild(ul);
+                grid.appendChild(card);
+            });
+
+            // Dynamická zmena názvu dokumentu pre správny názov PDF pri tlači (datum_hh_mm.pdf)
+            const now = new Date();
+            const d = String(now.getDate()).padStart(2, '0');
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const y = now.getFullYear();
+            const h = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            
+            document.title = d + "." + m + "." + y + "_" + h + "_" + min;
+
+            // Zobrazenie modálneho okna
+            document.getElementById('modal-overlay').style.display = 'block';
+            document.getElementById('modal-content').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').style.display = 'none';
+            document.getElementById('modal-content').style.display = 'none';
+            document.title = originalTitle; // Obnovenie pôvodného názvu pri zavretí okna
+        }
+    <\/script>
+</body>
+</html>`;
+
+            // Vytvorenie .html súboru a automatické stiahnutie
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            
+            // Prednastavený názov súboru aj s dátumom, ak je zadaný
+            let fileName = 'rozdelenie_skupin.html';
+            if (date) {
+                fileName = `rozdelenie_skupin_${date}.html`;
+            }
+            
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

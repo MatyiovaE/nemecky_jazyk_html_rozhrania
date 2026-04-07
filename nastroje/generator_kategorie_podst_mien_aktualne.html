@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Kategórie podstatných mien - generátor cvičenia</title>
+<style>
+:root{
+  --bg:#f7f9fc; --card:#ffffff; --text:#1b2733; --muted:#6b7785; --accent:#3b82f6;
+  --border:#d6dde8; --ok:#c8f7c5; --err:#f9d5d3; --chip:#eef2f7;
+}
+body{margin:0;font-family: Courier bold, monospace; background: var(--bg); color: var(--text)}
+header{padding:16px 20px;background:#fff;border-bottom:1px solid var(--border)}
+.container{max-width:1000px;margin:20px auto;padding:0 16px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+textarea{width:100%;min-height:160px;padding:12px;border:1px solid var(--border);border-radius:8px;
+  font-family: ui-monospace, monospace; line-height:1.5; font-size:100%; background:#fff;resize:vertical}
+.hint{color:var(--muted);font-size:13px;margin-top:6px}
+input[type=number]{width:240px;padding:10px;border:1px solid var(--border);border-radius:8px;background:#fff;margin-top:8px}
+.btnRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+button{appearance:none;border:none;background:var(--accent);color:#fff;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600;margin-top:12px}
+button.secondary{background:#e5eaf3;color:#0f172a}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+.taskHeader{font-weight: normal; font-size: 18px; margin-bottom: 10px}
+.flex{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.nounBox{min-width:220px;background:#fff;border:1px dashed var(--border);border-radius:12px;padding:12px}
+.noun{font-size:20px;font-weight:700}
+.picked{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{background:var(--chip);border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:13px}
+.choices{display:grid;grid-template-columns:repeat(3,minmax(120px,1fr));gap:8px}
+.choice{background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px;cursor:pointer;user-select:none;text-align:center}
+.choice:hover{border-color:#b8c2d3}
+.twoCols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.colBox{background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px}
+.colTitle{font-weight:700;margin-bottom:8px}
+.rowSummary{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px;border-radius:8px;border:1px solid var(--border);background:#fff}
+.rowSummary .part{padding:6px 10px;border-radius:6px}
+.resultOK{background:var(--ok)}
+.resultERR{background:var(--err)}
+.footerActions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.scoreBox{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:20px}
+.small{font-size:13px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+ <h1>Generátor cvičenia – Kategórie podstatných mien</h1>
+  <div class="hint">Vložte údaje v stĺpcoch cez [TAB].</div><br>
+  <span><b>podstatné meno</b>[TAB]<b>rod</b>[TAB]<b>číslo-pád</b>[TAB]<b>vzor</b><br>
+    <b>kalkulačka</b>[TAB]<b>ZR</b>[TAB]<b>JC-N</b>[TAB]<b>žena</b></span>
+</header>
+
+<div class="container">
+  <div class="panel">
+    <label for="dataInput"><strong>Vstupné pole:</strong></label>
+    <textarea id="dataInput" placeholder="mobil[TAB]MR[TAB]JC-N/JC-A[TAB]dub
+vety[TAB]ZR[TAB]JC-G/MC-N/MC-A[TAB]žena
+kniha[TAB]ZR[TAB]JC-N[TAB]žena"></textarea>
+    <label for="taskCount"><strong>Počet úloh:</strong></label>
+    <input id="taskCount" type="number" min="0" step="1" placeholder="napr. 10"/>
+    <div class="btnRow">
+      <button id="generateBtn">Generovať a uložiť HTML cvičenie</button>
+      <button class="secondary" id="saveInputBtn">Uložiť vstup</button>
+      <button class="secondary" id="loadInputBtn">Načítať vstup</button>
+      <button class="secondary" id="clearInputBtn">Vyčistiť uložené</button>
+    </div>
+    <div class="hint small">Automatické lokálne ukladanie vstupu počas písania.</div>
+  </div>
+</div>
+
+<script>
+/* Local storage helpers */
+const LS_KEYS = { data: 'sj_noun_data_final_v2', count: 'sj_task_count_final_v2' };
+function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function lsGet(k,def=''){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def;}catch(e){return def} }
+function lsRemove(k){ try{ localStorage.removeItem(k); }catch(e){} }
+
+/* UI save/restore */
+const ta = document.getElementById('dataInput');
+
+/* >>> NOVÝ KÓD – podpora klávesy TAB <<< */
+ta.addEventListener('keydown', function(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const start = this.selectionStart;
+    const end = this.selectionEnd;
+    this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+    this.selectionStart = this.selectionEnd = start + 1;
+  }
+});
+/* >>> KONIEC NOVÉHO KÓDU <<< */
+
+const cnt = document.getElementById('taskCount');
+ta.addEventListener('input', ()=> lsSet(LS_KEYS.data, ta.value));
+cnt.addEventListener('input', ()=> lsSet(LS_KEYS.count, cnt.value));
+(function restore(){ const sd = lsGet(LS_KEYS.data, ''); const sc = lsGet(LS_KEYS.count, ''); if(sd) ta.value = sd; if(sc !== '' && !isNaN(sc)) cnt.value = sc; })();
+document.getElementById('saveInputBtn').addEventListener('click', ()=>{ lsSet(LS_KEYS.data, ta.value); lsSet(LS_KEYS.count, cnt.value); alert('Uložené.'); });
+document.getElementById('loadInputBtn').addEventListener('click', ()=>{ ta.value = lsGet(LS_KEYS.data, ''); cnt.value = lsGet(LS_KEYS.count, ''); alert('Načítané.'); });
+document.getElementById('clearInputBtn').addEventListener('click', ()=>{ lsRemove(LS_KEYS.data); lsRemove(LS_KEYS.count); alert('Vymazané.'); });
+
+/* maps */
+const GENDER_LABEL = { MR:'mužský rod', ZR:'ženský rod', SR:'stredný rod' };
+const CASE_MAP = {
+  'JC-N':'jednotné číslo - nominatív','JC-G':'jednotné číslo - genitív','JC-D':'jednotné číslo - datív',
+  'JC-A':'jednotné číslo - akuzatív','JC-L':'jednotné číslo - lokál','JC-I':'jednotné číslo - inštrumentál',
+  'MC-N':'množné číslo - nominatív','MC-G':'množné číslo - genitív','MC-D':'množné číslo - datív',
+  'MC-A':'množné číslo - akuzatív','MC-L':'množné číslo - lokál','MC-I':'množné číslo - inštrumentál'
+};
+const PATTERNS = {
+  MR:['chlap','hrdina','dub','stroj'],
+  ZR:['žena','ulica','dlaň','kosť'],
+  SR:['mesto','srdce','vysvedčenie','dievča']
+};
+
+/* parse input (normalize while parsing) */
+function parseInput(raw){
+  const lines = raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const out = [];
+  for(const line of lines){
+    const parts = line.split(/\t+| {2,}/).map(p=>p.trim()).filter(Boolean);
+    if(parts.length < 4) continue;
+    const [formRaw, genderCodeRaw, caseRaw, patternRaw] = parts;
+    const form = (formRaw||'').toString().trim();
+    const genderCode = (genderCodeRaw||'').toString().trim().toUpperCase();
+    if(!GENDER_LABEL[genderCode]) continue;
+    const expandCaseTokens = token=>{
+      token = token.trim();
+      if(/^[JM]C-[NGDALI]$/.test(token)) return [token.toUpperCase()];
+      const m = token.match(/^([JM]C)-([NGDALI](?:\/[NGDALI])*)$/i);
+      if(m){ const pref=m[1].toUpperCase(); return m[2].split('/').map(c=>pref+'-'+c.toUpperCase()); }
+      return token.split('/').map(t=>t.trim().toUpperCase());
+    };
+    const caseTokens = caseRaw.split('/').flatMap(expandCaseTokens).map(x=>x.toUpperCase());
+    const valid = Array.from(new Set(caseTokens.filter(c=>CASE_MAP[c])));
+    for(const c of valid){
+      out.push({
+        form,
+        genderCode,
+        genderLabel: GENDER_LABEL[genderCode],
+        caseCode: c,
+        caseLabel: CASE_MAP[c],
+        pattern: (patternRaw||'').toString().trim()
+      });
+    }
+  }
+  return out;
+}
+
+/* shuffle (defined before use) */
+function shuffleInPlace(arr){ for(let i=arr.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [arr[i],arr[j]] = [arr[j],arr[i]]; } return arr; }
+
+/* build exercise HTML (all tasks on one page) */
+function buildExerciseHTML(dataset, requestedCount){
+  // Build normalized MASTER: form -> array of normalized assignments
+  const master = {};
+  dataset.forEach(item=>{
+    const f = (item.form||'').toString().trim();
+    master[f] = master[f] || [];
+    master[f].push({
+      genderCode: (item.genderCode||'').toString().trim(),
+      caseCode: (item.caseCode||'').toString().trim().toUpperCase(),
+      pattern: ((item.pattern||'')||'').toString().trim().toLowerCase()
+    });
+  });
+
+  // choose sample
+  let sample = [...dataset];
+  shuffleInPlace(sample);
+  if(typeof requestedCount === 'number' && requestedCount > 0 && requestedCount < sample.length){
+    sample = sample.slice(0, requestedCount);
+  }
+
+  const css = document.querySelector('style').innerHTML;
+  const js = `
+  const DATA = ${JSON.stringify(sample, null, 2)};
+  const MASTER = ${JSON.stringify(master, null, 2)};
+  const GENDER_LABEL = ${JSON.stringify(GENDER_LABEL, null, 2)};
+  const CASE_MAP = ${JSON.stringify(CASE_MAP, null, 2)};
+  const PATTERNS = ${JSON.stringify(PATTERNS, null, 2)};
+
+  let state = { score:0, scored: {}, usedByForm: {} };
+
+  function shuffleInPlace(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+  function normalizeAssign(a){ return { genderCode: (a.genderCode||'').toString().trim(), caseCode: (a.caseCode||'').toString().trim().toUpperCase(), pattern: ((a.pattern||'')||'').toString().trim().toLowerCase() }; }
+  function assignKey(a){ const n=normalizeAssign(a); return n.genderCode + '||' + n.caseCode + '||' + n.pattern; }
+  function taskKey(task){ return (task.form||'') + '||' + (task.caseCode||'') + '||' + ((task.pattern||'').toLowerCase()) + '||' + (task.genderCode||''); }
+
+  function updateScoreBox(){
+    const box = document.getElementById('scoreBox');
+    if(!box) return;
+    const maxPoints = DATA.length * 3;
+    const percent = maxPoints === 0 ? 0 : Math.round((state.score / maxPoints) * 100);
+    box.innerHTML = '<h2>Hodnotenie</h2>'
+      + '<p><strong>Body:</strong> ' + state.score + ' / ' + maxPoints + '</p>'
+      + '<p><strong>Percentá:</strong> ' + percent + ' %</p>';
+  }
+
+  function createChoice(text, meta={}, onClick){
+    const el = document.createElement('div'); el.className='choice'; el.textContent=text;
+    Object.entries(meta).forEach(([k,v])=>el.dataset[k]=v);
+    if(onClick) el.addEventListener('click', onClick);
+    return el;
+  }
+
+  // Akceptačné pravidlo:
+  // - prvýkrát pre daný form: prijmi hociktorú povolenú kombináciu, ktorú žiak zvolí
+  // - neskôr: prijmi len takú povolenú kombináciu, ktorá ešte nebola použitá
+  function evaluateSelectionForForm(form, selections){
+    const sel = {
+      gender: (selections.gender||'').toString().trim(),
+      caseCode: (selections.caseCode||'').toString().trim().toUpperCase(),
+      pattern: ((selections.pattern||'')||'').toString().trim().toLowerCase()
+    };
+    const allowed = (MASTER[form]||[]).map(normalizeAssign);
+    const matching = allowed.filter(a=> a.genderCode===sel.gender && a.caseCode===sel.caseCode && a.pattern===sel.pattern);
+    if(matching.length===0) return { ok:false, key:null };
+    const matchKeys = matching.map(assignKey);
+    const usedSet = new Set(state.usedByForm[form]||[]);
+    if(!state.usedByForm[form] || state.usedByForm[form].length===0){
+      return { ok:true, key: matchKeys[0] };
+    }
+    for(const k of matchKeys) if(!usedSet.has(k)) return { ok:true, key:k };
+    return { ok:false, key:null };
+  }
+
+  function renderTaskInto(wrapper, task){
+    const card = document.createElement('div'); card.className='card';
+    wrapper.appendChild(card);
+
+    const header = document.createElement('div'); header.className='taskHeader'; header.textContent='Urč kategórie podstatného mena.';
+    card.appendChild(header);
+
+    const flex = document.createElement('div'); flex.className='flex'; card.appendChild(flex);
+
+    const nounBox = document.createElement('div'); nounBox.className='nounBox';
+    nounBox.innerHTML = '<div class="noun">'+task.form+'</div>';
+    const picked = document.createElement('div'); picked.className='picked'; nounBox.appendChild(picked);
+    flex.appendChild(nounBox);
+
+    const genderCard = document.createElement('div'); genderCard.className='card';
+    genderCard.innerHTML = '<div><strong>Rod</strong></div>';
+    const genderChoices = document.createElement('div'); genderChoices.className='choices';
+    ['MR','ZR','SR'].forEach(code=>{
+      const ch = createChoice(GENDER_LABEL[code]||code, {code}, ()=> onGenderSelect(code));
+      genderChoices.appendChild(ch);
+    });
+    genderCard.appendChild(genderChoices);
+    flex.appendChild(genderCard);
+
+    const casesCard = document.createElement('div'); casesCard.className='card'; casesCard.style.display='none';
+    casesCard.innerHTML = '<div><strong>Číslo a pád</strong></div>';
+    const two = document.createElement('div'); two.className='twoCols';
+    const left = document.createElement('div'); left.className='colBox'; left.innerHTML='<div class="colTitle">Jednotné číslo</div>';
+    const leftChoices = document.createElement('div'); left.appendChild(leftChoices);
+    const right = document.createElement('div'); right.className='colBox'; right.innerHTML='<div class="colTitle">Množné číslo</div>';
+    const rightChoices = document.createElement('div'); right.appendChild(rightChoices);
+    two.appendChild(left); two.appendChild(right); casesCard.appendChild(two);
+    flex.appendChild(casesCard);
+
+    const patternCard = document.createElement('div'); patternCard.className='card'; patternCard.style.display='none';
+    patternCard.innerHTML = '<div><strong>Vzor</strong></div>';
+    const patternChoices = document.createElement('div'); patternChoices.className='choices';
+    patternCard.appendChild(patternChoices);
+    flex.appendChild(patternCard);
+
+    const summaryRow = document.createElement('div'); summaryRow.style.display='none'; summaryRow.className='rowSummary';
+    const partForm = document.createElement('div'); partForm.className='part'; partForm.textContent = task.form;
+    const partGender = document.createElement('div'); partGender.className='part';
+    const partCase = document.createElement('div'); partCase.className='part';
+    const partPattern = document.createElement('div'); partPattern.className='part';
+    summaryRow.appendChild(partForm); summaryRow.appendChild(partGender); summaryRow.appendChild(partCase); summaryRow.appendChild(partPattern);
+    card.appendChild(summaryRow);
+
+    const footer = document.createElement('div'); footer.className='footerActions'; card.appendChild(footer);
+    const btnEval = document.createElement('button'); btnEval.textContent='Vyhodnotiť úlohu'; btnEval.disabled=true;
+    const btnRetry = document.createElement('button'); btnRetry.textContent='Skúsiť znova'; btnRetry.className='secondary'; btnRetry.disabled=true;
+    footer.appendChild(btnEval); footer.appendChild(btnRetry);
+
+    let selections = { gender:null, caseCode:null, pattern:null, caseLabel:null };
+    let evaluated = false;
+    const cardKey = taskKey(task);
+    const form = task.form;
+
+    function onGenderSelect(code){
+      selections.gender = (code||'').toString().trim();
+      genderCard.style.display='none';
+      casesCard.style.display='';
+      pickedUpdate();
+      leftChoices.innerHTML=''; rightChoices.innerHTML='';
+      Object.entries(CASE_MAP).forEach(([codeC,label])=>{
+        const ch = createChoice(label, {code:codeC}, ()=> onCaseSelect(codeC,label));
+        if(codeC.startsWith('JC-')) leftChoices.appendChild(ch); else rightChoices.appendChild(ch);
+      });
+    }
+
+    function onCaseSelect(codeC,label){
+      selections.caseCode = (codeC||'').toString().trim().toUpperCase();
+      selections.caseLabel = label || CASE_MAP[selections.caseCode] || selections.caseCode;
+      casesCard.style.display='none';
+      renderPatternChoices(selections.gender);
+      patternCard.style.display='';
+      pickedUpdate();
+    }
+
+    function renderPatternChoices(gender){
+      patternChoices.innerHTML='';
+      if(!gender) return;
+      (PATTERNS[gender]||[]).forEach(p=>{
+        const ch = createChoice(p, {pattern:p}, ()=> onPatternSelect(p));
+        patternChoices.appendChild(ch);
+      });
+    }
+
+    function onPatternSelect(p){
+      selections.pattern = ((p||'')||'').toString().trim().toLowerCase();
+      patternCard.style.display='none';
+      partGender.textContent = 'rod: ' + (selections.gender? (GENDER_LABEL[selections.gender]||selections.gender) : '-');
+      partCase.textContent = 'číslo a pád: ' + (selections.caseLabel || selections.caseCode || '-');
+      partPattern.textContent = 'vzor: ' + (selections.pattern || '-');
+      summaryRow.style.display='';
+      btnEval.disabled=false;
+      pickedUpdate();
+    }
+
+    function pickedUpdate(){
+      picked.innerHTML='';
+      const chips = [];
+      const c0 = document.createElement('div'); c0.className='chip'; c0.textContent = task.form; chips.push(c0);
+      if(selections.gender){ const c1=document.createElement('div'); c1.className='chip'; c1.textContent='rod: '+(GENDER_LABEL[selections.gender]||selections.gender); chips.push(c1); }
+      if(selections.caseCode){ const c2=document.createElement('div'); c2.className='chip'; c2.textContent='číslo a pád: '+(CASE_MAP[selections.caseCode]||selections.caseCode); chips.push(c2); }
+      if(selections.pattern){ const c3=document.createElement('div'); c3.className='chip'; c3.textContent='vzor: '+selections.pattern; chips.push(c3); }
+      chips.forEach(c=>picked.appendChild(c));
+    }
+
+    btnEval.addEventListener('click', ()=>{
+  if(evaluated) return;
+  evaluated = true;
+
+  // Vyhodnotenie podľa form-level pravidla (akceptovanie pri viacerých priradeniach)
+  const evalRes = evaluateSelectionForForm(form, selections);
+
+  // Presná zhoda voči tejto karte – používa sa pri NEprijatí
+  const genderOK_exact = (selections.gender||'').toString().trim() === (task.genderCode||'').toString().trim();
+  const caseOK_exact = (selections.caseCode||'').toString().trim().toUpperCase() === (task.caseCode||'').toString().trim().toUpperCase();
+  const patternOK_exact = ((selections.pattern||'')||'').toString().trim().toLowerCase() === ((task.pattern||'')||'').toString().trim().toLowerCase();
+
+  // Bodovanie len raz za kartu:
+  // - ak boli prijaté (evalRes.ok) -> plné 3 body
+  // - ak neboli prijaté -> pôvodné čiastočné body podľa presnej zhody
+  if(!state.scored[cardKey]){
+    let gained = 0;
+    if(evalRes.ok){
+      gained = 3;
+    }else{
+      if(genderOK_exact) gained++;
+      if(caseOK_exact) gained++;
+      if(patternOK_exact) gained++;
+    }
+    state.score += gained;
+    state.scored[cardKey] = true;
+  }
+
+  // Ak prijaté, označ túto kombináciu ako použitú
+  if(evalRes.ok && evalRes.key){
+    state.usedByForm[form] = state.usedByForm[form] || [];
+    if(!state.usedByForm[form].includes(evalRes.key)) state.usedByForm[form].push(evalRes.key);
+  }
+
+  // Vizuálna spätná väzba:
+  if(evalRes.ok){
+    partGender.classList.add('resultOK');
+    partCase.classList.add('resultOK');
+    partPattern.classList.add('resultOK');
+  } else {
+    partGender.classList.add(genderOK_exact? 'resultOK':'resultERR');
+    partCase.classList.add(caseOK_exact? 'resultOK':'resultERR');
+    partPattern.classList.add(patternOK_exact? 'resultOK':'resultERR');
+  }
+
+  btnEval.disabled = true;
+  btnRetry.disabled = evalRes.ok;
+  updateScoreBox();
+});
+
+
+    btnRetry.addEventListener('click', ()=>{
+      wrapper.innerHTML = '';
+      renderTaskInto(wrapper, task);
+    });
+  }
+
+  // render all tasks and final score box
+  function renderAll(){
+    const root = document.createElement('div'); root.id='exerciseRoot'; root.className='container';
+    document.body.appendChild(root);
+
+    const tasks = shuffleInPlace([...DATA]);
+    tasks.forEach(task=>{
+      const wrapper = document.createElement('div');
+      root.appendChild(wrapper);
+      renderTaskInto(wrapper, task);
+    });
+
+    const box = document.createElement('div'); box.className='scoreBox'; box.id='scoreBox';
+    root.appendChild(box);
+    updateScoreBox();
+	
+	// Footer s autorom
+const footerNote = document.createElement('div');
+footerNote.style.textAlign = 'left';
+footerNote.style.marginTop = '40px';
+footerNote.innerHTML = "<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)";
+root.appendChild(footerNote);
+
+  }
+
+  document.addEventListener('DOMContentLoaded', renderAll);
+  `;
+
+  const html = `<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Cvičenie</title>
+  <style>
+    ${css}
+	.nadpis {
+	font-weight: bold;
+    margin-left: 2em; /* Rovnomerné odsadenie od ľavého okraja */
+    }
+    .instruction {
+      font-weight: bold;
+      margin-left: 2em; /* Rovnomerné odsadenie od ľavého okraja */
+    }
+  </style>
+</head>
+<body>
+  <div class="nadpis">
+  <h1>Kategórie podstatných mien – cvičenie</h1>
+  </div>
+  <div class="instruction">
+    Urč kategórie podstatných mien.<br>
+    Ak sa tvar podstatného mena opakuje (to znamená, že môže byť priradené k rôznym pádom v jednotnom či množnom čísle),<br>
+    urč v každom prípade kategórie ináč.
+  </div>
+  <script>${js}<\/script>
+</body>
+</html>`;
+
+  return html;
+}
+
+/* download helper */
+function downloadFile(content, filename){
+  const blob = new Blob([content], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+}
+
+/* generate handler */
+document.getElementById('generateBtn').addEventListener('click', ()=>{
+  const raw = document.getElementById('dataInput').value;
+  const count = parseInt(document.getElementById('taskCount').value, 10);
+  const rows = parseInput(raw);
+  if(!rows.length){ alert('Žiadne platné riadky. Skontroluj formát.'); return; }
+  const html = buildExerciseHTML(rows, Number.isFinite(count) && count>0 ? count : undefined);
+  downloadFile(html, 'cvicenie_kategorie.html');
+});
+</script>
+<br><br>
+ &nbsp;&nbsp;<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

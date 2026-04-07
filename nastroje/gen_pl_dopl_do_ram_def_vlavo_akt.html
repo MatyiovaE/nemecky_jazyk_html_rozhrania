@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor PL (doplňovanie a riešenie)</title>
+    <style>
+        body {
+            font-family: Courier bold, monospace;
+            background-color: #f0f2f5;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .flex-row {
+            display: flex;
+            gap: 15px;
+        }
+        .flex-row > div {
+            flex: 1;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-family: 'Courier bold', monospace;
+            font-size: 16px;
+            box-sizing: border-box;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+        .hint {
+            font-size: 0.9em;
+            color: #555;
+            background-color: #e9ecef;
+            padding: 15px;
+            border-left: 5px solid #007bff;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        /* Hlavné tlačidlo (Modré) */
+        .btn-generate {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-generate:hover {
+            background-color: #0056b3;
+        }
+        .btn-preview {
+            background-color: #28a745;
+        }
+        .btn-preview:hover {
+            background-color: #218838;
+        }
+        /* Pomocné tlačidlo (Sivé) */
+        .btn-insert {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 8px 20px;
+            width: auto;
+            transition: background 0.3s;
+        }
+        .btn-insert:hover {
+            background-color: #5a6268;
+        }
+        .key {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-family: monospace;
+			font-size: 13px;
+            font-weight: bold;
+            box-shadow: 0 1px 1px rgba(0 0 0 / 20%);
+        }
+        code {
+            background-color: #fff;
+            padding: 2px 4px;
+            border-radius: 3px;
+            color: #d63384;
+        }
+        /* Štýl pre ovládací panel vkladania */
+        .insert-panel {
+            background-color: #e9ecef; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin-top: 10px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            gap: 15px; 
+            border: 1px solid #ced4da;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Doplňovanie do rámčekov - generátor PL s riešením<br>
+	(definície v mriežke)</h1>
+
+    <div class="flex-row">
+        <div>
+            <label for="title">Názov pracovného listu:</label>
+            <input type="text" id="title" placeholder="Zadajte nadpis.">
+        </div>
+        <div>
+            <label for="taskCount">Počet úloh na generovanie:</label>
+            <input type="number" id="taskCount" placeholder="Všetky úlohy (napr. 10)" min="1">
+        </div>
+    </div>
+
+    <div class="flex-row">
+        <div>
+            <label for="author">Autor:</label>
+            <input type="text" id="author" placeholder="Meno autora">
+        </div>
+        <div>
+            <label for="year">Rok:</label>
+            <input type="number" id="year" placeholder="Napr. 2026">
+        </div>
+    </div>
+
+    <label for="dataInput">Vstupné údaje:</label>
+    <div class="hint">
+        <p style="font-size: 110%;"><strong>Formáty zadania (Podporované 3 spôsoby):</strong></p>
+        <p>1. <code style="font-size: 110%;">definícia</code><span class="key">[TAB]</span><code style="font-size: 110%;">pojem</code> <em>(Automatické vytvorenie rámčekov podľa slova)</em></p>
+        <p>2. <code style="font-size: 110%;">Zadanie</code><span class="key">[TAB]</span><code style="font-size: 110%;">/slovo\</code> <em>(Klasický formát)</em></p>
+        <p>3. <code style="font-size: 110%;">Zadanie</code><span class="key">[TAB]</span><code style="font-size: 110%;">------</code> <em>(Manuálne pomlčky - bez riešenia)</em></p>
+        <p>Generátor zamieša údaje, vyberie zadaný počet úloh a vytvorí riešenie.<br>
+        <em>(V riešení sa malé <strong>ß</strong> prevedie na veľké <strong>ẞ</strong>.)</em></p>
+    </div>
+    
+    <textarea id="dataInput" placeholder="Sem vložte údaje."></textarea>
+
+    <div class="insert-panel">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label for="slashCount" style="margin: 0; white-space: nowrap;">Počet riadkov "/\":</label>
+            <input type="number" id="slashCount" value="5" min="1" style="width: 70px; padding: 5px;">
+            <button onclick="insertSlashRows()" class="btn-insert">Vložiť</button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="exportJSON()" class="btn-insert" style="background-color: #17a2b8;">Export JSON</button>
+            <button onclick="document.getElementById('importFile').click()" class="btn-insert" style="background-color: #ffc107; color: black;">Import JSON</button>
+            <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(event)">
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <button onclick="openPreview()" class="btn-generate btn-preview">Náhľad a Tlač (PDF)</button>
+        <button onclick="generateRTF()" class="btn-generate">Vygenerovať a stiahnuť .rtf</button>
+    </div>
+</div>
+
+<script>
+    // Kľúče pre localStorage
+    const STORAGE_KEY_DATA = 'rtfGeneratorData_2Cols_Eszett9mm';
+    const STORAGE_KEY_TITLE = 'rtfGeneratorTitle_2Cols_Eszett9mm';
+    const STORAGE_KEY_COUNT = 'rtfGeneratorCount_2Cols_Eszett9mm';
+    const STORAGE_KEY_AUTHOR = 'rtfGeneratorAuthor_2Cols_Eszett9mm';
+    const STORAGE_KEY_YEAR = 'rtfGeneratorYear_2Cols_Eszett9mm';
+    
+    const dataInput = document.getElementById('dataInput');
+    const titleInput = document.getElementById('title');
+    const taskCountInput = document.getElementById('taskCount');
+    const authorInput = document.getElementById('author');
+    const yearInput = document.getElementById('year');
+
+    // --- 1. LocalStorage a správa vstupov ---
+    function loadData() {
+        const savedData = localStorage.getItem(STORAGE_KEY_DATA);
+        if (savedData) dataInput.value = savedData;
+        else dataInput.value = `Nemecké slovo pre 30\tdreißig\nBiela farba\tweiß\nVeľký\t/groß\\\n20\t/zwanzig\\\n11\t------\n12\t/zwölf\\\n5\tfünf\n10\tzehn`;
+
+        const savedTitle = localStorage.getItem(STORAGE_KEY_TITLE);
+        if (savedTitle) titleInput.value = savedTitle;
+        else titleInput.value = "Test slovíčok";
+
+        const savedCount = localStorage.getItem(STORAGE_KEY_COUNT);
+        if (savedCount) taskCountInput.value = savedCount;
+
+        const savedAuthor = localStorage.getItem(STORAGE_KEY_AUTHOR);
+        if (savedAuthor) authorInput.value = savedAuthor;
+
+        const savedYear = localStorage.getItem(STORAGE_KEY_YEAR);
+        if (savedYear) yearInput.value = savedYear;
+    }
+
+    function saveData() {
+        localStorage.setItem(STORAGE_KEY_DATA, dataInput.value);
+        localStorage.setItem(STORAGE_KEY_TITLE, titleInput.value);
+        localStorage.setItem(STORAGE_KEY_COUNT, taskCountInput.value);
+        localStorage.setItem(STORAGE_KEY_AUTHOR, authorInput.value);
+        localStorage.setItem(STORAGE_KEY_YEAR, yearInput.value);
+    }
+    
+    loadData();
+    dataInput.addEventListener('input', saveData);
+    titleInput.addEventListener('input', saveData);
+    taskCountInput.addEventListener('input', saveData);
+    authorInput.addEventListener('input', saveData);
+    yearInput.addEventListener('input', saveData);
+
+    dataInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 1;
+            saveData();
+        }
+    });
+
+    // --- POMOCNÁ FUNKCIA NA ANALÝZU RIADKU ---
+    function parseTaskLine(line) {
+        const tabSplit = line.split('\t');
+        if (tabSplit.length < 2) return null;
+
+        const zadanie = tabSplit[0].trim();
+        const pravaStrana = tabSplit[1].trim();
+
+        let count = 0;
+        let solutionWord = "";
+
+        const pattern = /^(.*?)\s*\/([^\\]+)\\$/;
+        const match = pravaStrana.match(pattern);
+
+        if (match) {
+            // Klasický formát /slovo\
+            solutionWord = match[2].trim();
+            count = solutionWord.length;
+        } else if (/^[-\s]+$/.test(pravaStrana)) {
+            // Formát pomlčiek (len pomlčky a medzery)
+            count = pravaStrana.replace(/\s/g, '').length;
+        } else {
+            // Nový formát: definícia [TAB] pojem
+            solutionWord = pravaStrana;
+            count = solutionWord.length;
+        }
+
+        return { zadanie, solutionWord, count };
+    }
+
+    // --- PRÍPRAVA DÁT (Zdieľané pre Náhľad aj RTF) ---
+    function prepareLines() {
+        let lines = dataInput.value.trim().split('\n').filter(line => line.trim() !== "");
+        const limitCount = parseInt(taskCountInput.value, 10);
+        
+        for (let i = lines.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [lines[i], lines[j]] = [lines[j], lines[i]];
+        }
+
+        if (!isNaN(limitCount) && limitCount > 0 && limitCount < lines.length) {
+            lines = lines.slice(0, limitCount);
+        }
+        return lines;
+    }
+
+    // --- 2. GENERÁTOR RTF ---
+    function generateRTF() {
+        const title = titleInput.value;
+        const lines = prepareLines();
+
+        const footerRTF = `{\\footer\\pard\\qr\\fs24 {\\field{\\*\\fldinst PAGE}} / {\\field{\\*\\fldinst NUMPAGES}}\\par}`;
+
+        let rtf = `{\\rtf1\\ansi\\ansicpg1250\\deff0\\nouicompat\\deflang1051
+{\\fonttbl{\\f0\\fnil\\fcharset238 Comic Sans MS;}{\\f1\\fnil\\fcharset238 Calibri;}}
+{\\colortbl ;\\red0\\green0\\blue0;}
+${footerRTF}
+\\viewkind4\\uc1 
+\\pard\\plain\\sectd 
+\\pgwsxn11906\\pghsxn16838\\marglsxn1800\\margrsxn1800\\margtsxn1440\\margbsxn1440
+`;
+        rtf += renderSectionRTF(lines, title, false);
+        rtf += `\\page `;
+        rtf += renderSectionRTF(lines, title, true);
+        rtf += `}`;
+
+        downloadFile(rtf, "pracovny_list_ẞ_9mm.rtf");
+    }
+
+    function renderSectionRTF(lines, mainTitle, isSolution) {
+        const author = authorInput.value.trim();
+        const year = yearInput.value.trim();
+        let output = "";
+
+        // Nadpis
+        output += `\\pard\\sa300\\sl276\\slmult1\\qc\\b\\f0\\fs40 ${escapeRTF(mainTitle || "Pracovný list")} \\par\n`;
+
+        // Autor a Rok
+        if (author || year) {
+            let info = [];
+            if (author) info.push(`Autor: ${author}`);
+            if (year) info.push(year);
+            output += `\\pard\\sa200\\sl276\\slmult1\\qc\\b0\\f0\\fs24 ${escapeRTF(info.join(', '))} \\par\n`;
+        }
+
+        if (isSolution) {
+            output += `\\pard\\sa200\\sl276\\slmult1\\ql\\b\\f0\\fs32 ${escapeRTF("RIEŠENIE")} \\par\n`;
+        }
+
+        // Pokyny
+        output += `\\pard\\sa300\\sl276\\slmult1\\ql\\b\\f0\\fs28 ${escapeRTF("Pozorne si prečítaj definície a doplň pojmy do mriežky.")} \\par\n`;
+        output += `\\pard\\sa200\\sl276\\slmult1\\ql\\b0\\fs24\n`;
+
+        let index = 0;
+
+        lines.forEach((line) => {
+            const task = parseTaskLine(line);
+            if (!task) return;
+
+            let tempIndex = index;
+            let letterLabel = "";
+            while (tempIndex >= 0) {
+                letterLabel = String.fromCharCode(97 + (tempIndex % 26)) + letterLabel;
+                tempIndex = Math.floor(tempIndex / 26) - 1;
+            }
+            const letterString = `${letterLabel}) `;
+            index++;
+
+            const BOX_WIDTH = 510; 
+            const ROW_HEIGHT = 510;
+            
+            let rowDef = `\\trowd\\trgaph70\\trleft-70\\trrh${ROW_HEIGHT}`; 
+            let rowContent = "";
+            let currentX = 0;
+
+            // Stĺpec: ČÍSLOVANIE
+            currentX += 600;
+            rowDef += `\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\clvertalc\\cellx${currentX}`;
+            rowContent += `\\pard\\intbl\\ql\\fs24 \\f1\\b ${letterString} \\cell `;
+
+            // Stĺpec: ZADANIE
+            currentX += 2000; 
+            rowDef += `\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\clvertalc\\cellx${currentX}`;
+            rowContent += `\\pard\\intbl\\ql\\fs24 \\f0\\b0 ${escapeRTF(task.zadanie)} \\cell `;
+
+            // Stĺpec: RÁMČEKY
+            for (let i = 0; i < task.count; i++) {
+                currentX += BOX_WIDTH;
+                rowDef += `\\clbrdrt\\brdrs\\brdrw10\\clbrdrl\\brdrs\\brdrw10\\clbrdrb\\brdrs\\brdrw10\\clbrdrr\\brdrs\\brdrw10\\clvertalc\\cellx${currentX}`;
+                
+                let cellContent = "";
+                if (isSolution && task.solutionWord.length > 0 && i < task.solutionWord.length) {
+                    let char = task.solutionWord[i];
+                    let upperChar = (char === 'ß') ? 'ẞ' : char.toUpperCase();
+                    cellContent = `\\qc\\b ${escapeRTF(upperChar)}`; 
+                }
+                rowContent += `\\pard\\intbl${cellContent} \\cell `;
+            }
+            output += `${rowDef}\n${rowContent}\\row\n`;
+        });
+
+        return output;
+    }
+
+    function escapeRTF(str) {
+        let result = "";
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i);
+            if (code > 127) result += `\\u${code}?`;
+            else if (code === 92 || code === 123 || code === 125) result += `\\${str[i]}`;
+            else result += str[i];
+        }
+        return result;
+    }
+
+    function downloadFile(content, filename) {
+        const blob = new Blob([content], { type: "application/rtf" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // --- 3. NÁHĽAD A TLAČ DO PDF (HTML) ---
+    function openPreview() {
+        const title = titleInput.value || "Pracovný list";
+        const lines = prepareLines();
+
+        const printWin = window.open('', '_blank');
+        if (!printWin) {
+            alert("Vyskakovacie okno bolo zablokované. Povoľte prosím kontextové okná pre túto stránku.");
+            return;
+        }
+
+        let html = `
+        <!DOCTYPE html>
+        <html lang="sk">
+        <head>
+            <meta charset="UTF-8">
+            <title>Náhľad - ${title}</title>
+            <style>
+                body { 
+                    font-family: 'Comic Sans MS', 'Calibri', sans-serif; 
+                    padding: 30px; 
+                    color: #000; 
+                    max-width: 900px;
+                    margin: 0 auto;
+                }
+                .page { page-break-after: always; padding-top: 20px;}
+                .header { text-align: center; margin-bottom: 20px; }
+                .title { font-size: 24px; font-weight: bold; }
+                .author-year { font-size: 14px; margin-top: 5px; }
+                .solution-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+                .instructions { font-weight: bold; font-size: 16px; margin-bottom: 25px; }
+                
+                .task-row { display: flex; align-items: center; margin-bottom: 15px; page-break-inside: avoid; }
+                .letter { width: 40px; font-weight: bold; font-family: 'Calibri', sans-serif; font-size: 16px;}
+                .definition { width: 250px; padding-right: 15px; font-size: 16px; }
+                .boxes { display: flex; gap: 0px; }
+                .box { 
+                    width: 28px; 
+                    height: 28px; 
+                    border: 1px solid #000; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    font-weight: bold; 
+                    font-size: 18px;
+                    margin-right: -1px; /* Spojenie mriežok */
+                }
+                
+                @media print {
+                    body { padding: 0; }
+                    .no-print { display: none; }
+                }
+                .print-btn {
+                    display: block; width: 100%; padding: 15px; background: #28a745; color: white; border: none; font-size: 18px; cursor: pointer; margin-bottom: 20px; border-radius: 5px; font-weight: bold;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="no-print">
+                <button class="print-btn" onclick="window.print()">Vytlačiť alebo uložiť ako PDF (Ctrl + P)</button>
+            </div>
+        `;
+
+        html += renderHTMLSection(lines, title, false);
+        html += `<div class="page"></div>`;
+        html += renderHTMLSection(lines, title, true);
+        
+        html += `</body></html>`;
+
+        printWin.document.open();
+        printWin.document.write(html);
+        printWin.document.close();
+    }
+
+    function renderHTMLSection(lines, mainTitle, isSolution) {
+        const author = authorInput.value.trim();
+        const year = yearInput.value.trim();
+        let out = `<div>`;
+        
+        out += `<div class="header">`;
+        out += `<div class="title">${mainTitle}</div>`;
+        if (author || year) {
+            let info = [];
+            if (author) info.push(`Autor: ${author}`);
+            if (year) info.push(year);
+            out += `<div class="author-year">${info.join(', ')}</div>`;
+        }
+        out += `</div>`;
+
+        if (isSolution) {
+            out += `<div class="solution-title">RIEŠENIE</div>`;
+        }
+        out += `<div class="instructions">Pozorne si prečítaj definície a doplň pojmy do mriežky.</div>`;
+
+        lines.forEach((line, index) => {
+            const task = parseTaskLine(line);
+            if (!task) return;
+
+            let tempIndex = index;
+            let letterLabel = "";
+            while (tempIndex >= 0) {
+                letterLabel = String.fromCharCode(97 + (tempIndex % 26)) + letterLabel;
+                tempIndex = Math.floor(tempIndex / 26) - 1;
+            }
+
+            out += `<div class="task-row">`;
+            out += `<div class="letter">${letterLabel})</div>`;
+            out += `<div class="definition">${task.zadanie}</div>`;
+            out += `<div class="boxes">`;
+
+            for (let i = 0; i < task.count; i++) {
+                let char = "";
+                if (isSolution && task.solutionWord[i]) {
+                    char = task.solutionWord[i] === 'ß' ? 'ẞ' : task.solutionWord[i].toUpperCase();
+                }
+                out += `<div class="box">${char}</div>`;
+            }
+            out += `</div></div>`;
+        });
+
+        out += `</div>`;
+        return out;
+    }
+
+    // --- 4. EXPORT A IMPORT JSON ---
+    function exportJSON() {
+        const data = {
+            title: titleInput.value,
+            taskCount: taskCountInput.value,
+            author: authorInput.value,
+            year: yearInput.value,
+            dataInput: dataInput.value
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "nastavenia_pl.json";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function importJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.title !== undefined) titleInput.value = data.title;
+                if (data.taskCount !== undefined) taskCountInput.value = data.taskCount;
+                if (data.author !== undefined) authorInput.value = data.author;
+                if (data.year !== undefined) yearInput.value = data.year;
+                if (data.dataInput !== undefined) dataInput.value = data.dataInput;
+                
+                saveData();
+                alert("Nastavenia boli úspešne importované.");
+            } catch (err) {
+                alert("Došlo k chybe pri čítaní súboru. Uistite sa, že ide o platný JSON formát.");
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; // Resetovanie pre opätovný import
+    }
+
+    // --- 5. FUNKCIA NA VKLADANIE /\ ---
+    function insertSlashRows() {
+        const countInput = document.getElementById('slashCount');
+        let count = parseInt(countInput.value, 10);
+        if (isNaN(count) || count < 1) count = 1;
+
+        const startPos = dataInput.selectionStart;
+        const endPos = dataInput.selectionEnd;
+        const text = dataInput.value;
+
+        let prefix = (startPos > 0 && text[startPos - 1] !== '\n') ? "\n" : "";
+        let insertText = prefix;
+        for (let i = 0; i < count; i++) insertText += "/\\\n"; 
+        
+        insertText = insertText.trimEnd();
+        dataInput.value = text.substring(0, startPos) + insertText + text.substring(endPos);
+        saveData();
+
+        const newCursorPos = startPos + prefix.length + 1;
+        dataInput.focus();
+        dataInput.setSelectionRange(newCursorPos, newCursorPos);
+    }
+</script>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025, upravené 2026)
+<br><br>
+</body>
+</html>

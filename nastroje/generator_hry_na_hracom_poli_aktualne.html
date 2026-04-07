@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor edukačnej hry</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #8BC34A; /* Zelená Štart */
+            --danger: #FF0000; /* Červená Cieľ */
+            --warning: #FF9800; /* Oranžová - Skip */
+            --info: #17a2b8;    /* Tyrkysová - Export/Import */
+            --bg: #f4f4f9;
+            --cell-size: 110px;
+            --token-size: 36px; 
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: var(--bg); }
+        h1, h2 { text-align: center; color: #333; }
+        
+        /* --- EDITOR STYLES --- */
+        #editor-interface { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; font-size: 115%; margin-bottom: 5px; }
+        input[type="text"], textarea, select { width: 100%; font-size: 120%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        
+        input[type="file"] { margin-top: 5px; }
+        .img-preview { max-height: 80px; display: none; margin-top: 10px; border: 1px solid #ccc; padding: 2px; }
+
+        .task-list { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .task-item { background: #f9f9f9; padding: 15px; border: 1px solid #eee; border-radius: 5px; }
+        .btn { display: inline-block; padding: 12px 24px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-right: 10px; margin-bottom: 5px; transition: transform 0.1s; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); }
+        .btn-warning { background: var(--warning); color: #fff; }
+        .btn-info { background: var(--info); color: #fff; }
+        
+        /* --- GAME STYLES --- */
+        #game-interface { display: none; width: 100%; margin: 0 auto; }
+        
+        #displayAuthor {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin-top: -15px;
+            margin-bottom: 25px;
+            font-size: 1.1em;
+        }
+
+        /* Setup Screen */
+        #setup-screen { text-align: center; background: white; padding: 40px; border-radius: 10px; max-width: 1000px; margin: 50px auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        /* Game Wrapper */
+        .game-wrapper {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+        }
+
+        /* Board Layout */
+        .board-container { display: flex; flex-direction: column; align-items: center; gap: 5px; position: relative; }
+        .board-row { display: flex; gap: 5px; }
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            border: 2px solid #ccc;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.5rem;
+            position: relative;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .cell.start { background-color: var(--success); color: white; border-color: #558b2f; }
+        .cell.finish { background-color: var(--danger); color: white; border-color: #c62828; }
+        .cell.empty { border: none; background: transparent; box-shadow: none; }
+        
+        /* Player Tokens */
+        .player-token {
+            width: var(--token-size);  
+            height: var(--token-size); 
+            border-radius: 50%;
+            border: 2px solid white; 
+            box-shadow: 0 3px 6px rgba(0,0,0,0.5);
+            position: absolute;
+            transition: all 0.5s ease;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: 900; 
+            font-size: 1.3rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); 
+        }
+
+        /* Arrows */
+        .arrow-right::after { content: '➔'; position: absolute; right: -18px; z-index: 5; color: #aaa; font-size: 24px; top: 35%; }
+        .arrow-left::after { content: '➔'; position: absolute; left: -18px; transform: rotate(180deg); z-index: 5; color: #aaa; font-size: 24px; top: 35%; }
+        .arrow-down::after { content: '➔'; position: absolute; bottom: -28px; transform: rotate(90deg); z-index: 5; color: #aaa; font-size: 24px; left: 40%; }
+
+        /* Controls */
+        #game-controls { 
+            text-align: center; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
+            min-width: 250px;
+            position: sticky;
+            top: 20px;
+        }
+        .dice-box { font-size: 60px; margin: 20px auto; display: flex; justify-content: center; align-items: center; width: 100px; height: 100px; border: 4px solid #333; border-radius: 15px; background: #fff; }
+        
+        /* Modal for Questions */
+        #question-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center;
+        }
+        
+        .modal-content { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 15px; 
+            max-width: 1100px; 
+            width: 95%; 
+            text-align: center; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        .modal-body-split {
+            display: flex;
+            flex-direction: row;
+            gap: 30px;
+            text-align: left;
+            align-items: stretch;
+            margin-top: 10px;
+        }
+
+        .modal-left-col {
+            flex: 6; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .modal-right-col {
+            flex: 4; 
+            display: flex;
+            flex-direction: column; 
+            justify-content: flex-end; 
+            padding-top: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .modal-image { max-width: 100%; max-height: 200px; margin-bottom: 15px; object-fit: contain; border-radius: 8px; align-self: center; }
+        
+        #answerInput {
+            width: 100%;
+            font-size: 1.5em;
+            padding: 10px;    
+            height: 60px;
+            text-align: center;
+            border: 3px solid var(--primary);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        /* Virtual Keyboard */
+        #virtual-keyboard { 
+            display: block; 
+            user-select: none; 
+            width: 100%;
+        }
+        .kb-row { 
+            display: flex; 
+            justify-content: center; 
+            gap: 5px; 
+            margin-bottom: 5px; 
+            flex-wrap: wrap;
+        }
+        .kb-key { 
+            padding: 10px; 
+            background: white; 
+            border: 1px solid #ccc; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            width: 45px; 
+            font-weight: bold; 
+            box-shadow: 0 2px 0 #ddd; 
+            flex-grow: 0; 
+            text-align: center;
+        }
+        .kb-key:active { 
+            background: #d0d0d0; 
+            transform: translateY(2px); 
+            box-shadow: none; 
+        }
+        .kb-key.action { 
+            background: #dbeafe; 
+            font-weight: bold; 
+            color: #1e40af; 
+            width: auto; 
+            min-width: 60px;
+            padding-left: 15px; 
+            padding-right: 15px;
+        }
+
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; width: 100%; }
+        .option-btn { padding: 20px; background: #f8f9fa; border: 2px solid #e9ecef; cursor: pointer; border-radius: 8px; font-size: 1.3em; transition: all 0.2s; }
+        .option-btn:hover { background: #e2e6ea; border-color: #adb5bd; }
+
+        /* --- WIN SCREEN --- */
+        #win-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: white;
+            z-index: 2000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        #win-headline {
+            font-size: 4em;
+            color: var(--primary);
+            margin-bottom: 20px;
+            animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #win-custom-msg {
+            font-size: 2em;
+            color: #555;
+            margin-bottom: 30px;
+            max-width: 80%;
+        }
+        #win-stats {
+            margin-bottom: 40px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            width: 90%;
+        }
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 1.2em;
+        }
+        .stats-table th, .stats-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+        }
+        .stats-table th { background-color: #e9ecef; }
+        
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @media (max-width: 900px) {
+            .game-wrapper { flex-direction: column; align-items: center; }
+            #game-controls { width: 100%; max-width: 400px; margin-top: 20px; }
+            .modal-body-split { flex-direction: column; }
+            .modal-left-col, .modal-right-col { width: 100%; flex: auto; }
+            .modal-right-col { margin-top: 15px; }
+            #answerInput { font-size: 1.4em; height: 50px; }
+            #win-headline { font-size: 2.5em; }
+        }
+        @media (max-width: 800px) {
+            :root { --cell-size: 70px; --token-size: 30px; }
+            .task-list { grid-template-columns: 1fr; }
+        }
+        
+        body.is-game #editor-interface { display: none !important; }
+        body.is-game #game-interface { display: block !important; }
+    </style>
+</head>
+<body>
+
+    <div id="editor-interface">
+        <h1>Generátor edukačnej hry</h1>
+        <p>Vyplňte údaje. Texty sa ukladajú automaticky.</p>
+        
+        <div class="form-group">
+            <label>Názov hry:</label>
+            <input type="text" id="gameTitle" value="Hra" oninput="saveToLocal()">
+        </div>
+        <div class="form-group">
+            <label>Autor hry:</label>
+            <input type="text" id="gameAuthor" value="Mgr. XY " oninput="saveToLocal()">
+        </div>
+        <div class="form-group">
+            <label>Pokyny pre žiaka:</label>
+            <textarea id="gameInstructions" oninput="saveToLocal()" style="font-size: 120%;">Odpovedaj správne na otázky a dostaň sa do cieľa. Pozor na koniec hry - ak od políčka 12 hodíš príliš veľa, vrátiš sa na začiatok!</textarea>
+        </div>
+        <div class="form-group">
+            <label>Správa po výhre (doplňujúci text):</label>
+            <input type="text" id="winMessage" value="Toto kolo si zvládol/zvládla úžasne!" oninput="saveToLocal()">
+        </div>
+        
+        <hr>
+        <h3>Úlohy (1-16)</h3>
+        <p style="font-size: 1.1em; color: #666;">Pre každú úlohu zvoľte typ a zadajte otázku.</p>
+        <div id="tasks-container" class="task-list"></div>
+
+        <hr>
+        <div style="text-align: center; margin-top: 30px; margin-bottom: 50px;">
+            <button class="btn btn-primary" onclick="generateAndPlay()">▶ Spustiť hru (otestovať)</button>
+            <button class="btn btn-success" onclick="downloadGame()">⬇ Stiahnuť hru (HTML)</button>
+            
+            <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px;">
+                <p style="margin-top: 0; color: #666; font-size: 0.9em;">Správa údajov (prenos na iný počítač):</p>
+                <button class="btn btn-info" onclick="exportData()">⬆ Export dát (záloha)</button>
+                <button class="btn btn-info" onclick="triggerImport()">⬇ Import dát (obnova)</button>
+                <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(this)">
+            </div>
+            
+            <br>
+            <button class="btn btn-danger" onclick="clearLocalData()" style="font-size: 0.8em; opacity: 0.7; margin-top: 10px;">Vymazať dáta</button>
+        </div>
+		<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+  <br><br>
+    </div>
+
+    <div id="game-interface">
+        <h1 id="displayTitle">Názov hry:</h1>
+        <h3 id="displayAuthor">Autor: </h3>
+        
+        <div id="setup-screen">
+            <h2>Nastavenie hry</h2>
+            <p id="displayInstructions" style="margin-bottom: 20px; font-size: 1.1em;"></p>
+            <div class="form-group">
+                <label>Počet hráčov:</label>
+                <select id="playerCount" style="font-size: 1.2em; padding: 10px;">
+                    <option value="1">1 hráč (A)</option>
+                    <option value="2" selected>2 hráči (A, B)</option>
+                    <option value="3">3 hráči (A, B, C)</option>
+                    <option value="4">4 hráči (A, B, C, D)</option>
+                </select>
+            </div>
+            <br>
+            <button class="btn btn-primary" style="font-size: 1.2em;" onclick="initGame()">Začať hru</button>
+            <br><br>
+            <button class="btn btn-danger" id="backBtn" onclick="window.close()">Zavrieť hru</button>
+        </div>
+
+        <div id="game-board-area" style="display:none;">
+            <div class="game-wrapper">
+                <div class="board-container" id="board"></div>
+
+                <div id="game-controls">
+                    <h3 id="currentPlayerName">Na ťahu je: Hráč A</h3>
+                    <div class="dice-box" id="diceDisplay">🎲</div>
+                    <br>
+                    <button id="rollBtn" class="btn btn-primary" onclick="rollDice()">Hodiť kockou</button>
+                    
+                    <div id="danger-decision-area" style="display:none; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px;">
+                        <p style="color: #d32f2f; font-weight: bold; margin-bottom: 10px;">⚠ Si v nebezpečnej zóne! ⚠</p>
+                        <p style="font-size: 0.9em; margin-bottom: 15px;">Chceš odpovedať a posunúť sa, alebo radšej vynechať kolo?</p>
+                        <button class="btn btn-primary" onclick="proceedToQuestion()" style="width: 100%; margin-bottom: 10px;">Odpovedať na otázku</button>
+                        <button class="btn btn-warning" onclick="skipQuestion()" style="width: 100%;">Neodpovedať (Vynechať kolo)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="question-modal">
+        <div class="modal-content">
+            <h2 id="q-title" style="margin-top: 0; margin-bottom: 15px;">Úloha</h2>
+            
+            <div class="modal-body-split">
+                
+                <div class="modal-left-col">
+                    <img id="q-image" class="modal-image" src="" style="display:none;">
+                    <p id="q-text" style="font-size: 1.4em; margin: 5px 0 20px 0; font-weight: 500; text-align: center;"></p>
+                    
+                    <div id="input-area" style="display:none; width: 100%;">
+                        <p style="margin-bottom:5px; color:#666; font-size:1em; text-align:center;">Napíš odpoveď:</p>
+                        <input type="text" id="answerInput" placeholder="..." onkeydown="handlePhysicalEnter(event)">
+                        
+                        <div style="text-align: center;">
+                            <button class="btn btn-primary" style="font-size: 1.2em; padding: 12px 30px;" onclick="checkAnswer('input')">Potvrdiť odpoveď</button>
+                        </div>
+                    </div>
+
+                    <div id="choice-area" class="options-grid" style="display:none;"></div>
+                </div>
+
+                <div class="modal-right-col" id="keyboard-col" style="display:none;">
+                    <div id="virtual-keyboard"></div>
+                </div>
+            </div>
+
+            <p id="feedback" style="font-weight:bold; margin-top:20px; min-height: 30px; font-size: 1.2em;"></p>
+        </div>
+    </div>
+
+    <div id="win-screen">
+        <h1 id="win-headline">Blahoželám</h1>
+        <h2 id="win-custom-msg">Bolo to úžasné kolo!</h2>
+        
+        <div id="win-stats"></div>
+
+        <button class="btn btn-success" style="font-size: 1.5em; padding: 15px 40px;" onclick="location.reload()">Hrať znova</button>
+    </div>
+
+    <script>
+        // --- 1. LOCAL STORAGE LOGIC ---
+        const STORAGE_KEY = 'eduGameGeneratorData_v11'; 
+
+        function saveToLocal() {
+            if (window.isStandalone) return;
+
+            const data = {
+                title: document.getElementById('gameTitle').value,
+                author: document.getElementById('gameAuthor').value,
+                instructions: document.getElementById('gameInstructions').value,
+                winMessage: document.getElementById('winMessage').value,
+                tasks: []
+            };
+
+            const taskItems = document.querySelectorAll('.task-item');
+            taskItems.forEach((item, index) => {
+                data.tasks.push({
+                    id: index,
+                    type: item.querySelector('.inp-type').value,
+                    question: item.querySelector('.inp-q').value,
+                    answer: item.querySelector('.inp-ans').value,
+                    distractors: item.querySelector('.inp-dist').value,
+                    imgBase64: item.querySelector('.inp-img-base64').value
+                });
+            });
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function loadFromLocal() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) return;
+
+            try {
+                const data = JSON.parse(saved);
+                document.getElementById('gameTitle').value = data.title || '';
+                document.getElementById('gameAuthor').value = data.author || '';
+                document.getElementById('gameInstructions').value = data.instructions || '';
+                document.getElementById('winMessage').value = data.winMessage || '';
+
+                if (data.tasks && data.tasks.length > 0) {
+                    const taskItems = document.querySelectorAll('.task-item');
+                    data.tasks.forEach((t, i) => {
+                        if (taskItems[i]) {
+                            taskItems[i].querySelector('.inp-type').value = t.type;
+                            taskItems[i].querySelector('.inp-q').value = t.question;
+                            taskItems[i].querySelector('.inp-ans').value = t.answer;
+                            taskItems[i].querySelector('.inp-dist').value = t.distractors;
+                            
+                            if(t.imgBase64) {
+                                taskItems[i].querySelector('.inp-img-base64').value = t.imgBase64;
+                                const preview = taskItems[i].querySelector('.img-preview');
+                                preview.src = t.imgBase64;
+                                preview.style.display = 'block';
+                            }
+                            toggleTaskType(taskItems[i].querySelector('.inp-type'));
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Chyba pri načítaní dát", e);
+            }
+        }
+
+        function clearLocalData() {
+            if(confirm("Naozaj chcete vymazať uložené texty?")) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
+            }
+        }
+
+        function exportData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) {
+                alert("Zatiaľ nie sú uložené žiadne dáta (skúste najprv niečo napísať).");
+                return;
+            }
+            const blob = new Blob([saved], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const title = document.getElementById('gameTitle').value.replace(/[^a-z0-9]/gi, '_') || 'hra';
+            a.download = `zaloha_${title}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function triggerImport() {
+            document.getElementById('importFile').click();
+        }
+
+        function importData(inputElement) {
+            const file = inputElement.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const jsonContent = e.target.result;
+                    const parsedData = JSON.parse(jsonContent);
+                    if (!parsedData.tasks || !Array.isArray(parsedData.tasks)) {
+                        throw new Error("Súbor neobsahuje správne dáta hry.");
+                    }
+                    localStorage.setItem(STORAGE_KEY, jsonContent);
+                    alert("Dáta boli úspešne načítané. Stránka sa teraz obnoví.");
+                    location.reload();
+                } catch (err) {
+                    alert("Chyba pri importovaní: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+            inputElement.value = '';
+        }
+
+        // --- 2. EDITOR INITIALIZATION ---
+        
+        const tasksContainer = document.getElementById('tasks-container');
+        for (let i = 1; i <= 16; i++) {
+            const div = document.createElement('div');
+            div.className = 'task-item';
+            div.innerHTML = `
+                <h4>Úloha ${i}</h4>
+                <div class="form-group">
+                    <label>Typ úlohy:</label>
+                    <select class="inp-type" onchange="toggleTaskType(this); saveToLocal()">
+                        <option value="textInput">Zapisovanie odpovede (klávesnica)</option>
+                        <option value="choice">Výber z možností (A, B, C, D)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Text úlohy:</label>
+                    <input type="text" class="inp-q" value="Čo je to?" oninput="saveToLocal()">
+                </div>
+                <div class="form-group">
+                    <label>Obrázok (nepovinné):</label>
+                    <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+                    <textarea class="inp-img-base64" style="display:none;" oninput="saveToLocal()"></textarea>
+                    <img class="img-preview" src="">
+                </div>
+                <div class="form-group">
+                    <label>Správna odpoveď:</label>
+                    <input type="text" class="inp-ans" placeholder="Odpoveď" oninput="saveToLocal()">
+                </div>
+                <div class="form-group distractors-group" style="display:none;">
+                    <label>Nesprávne odpovede (oddelené čiarkou):</label>
+                    <input type="text" class="inp-dist" placeholder="Napr. 5, 3, 1" oninput="saveToLocal()">
+                </div>
+            `;
+            tasksContainer.appendChild(div);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.isStandalone) {
+                document.body.classList.add('is-game');
+                initializeStandaloneMode();
+            } else {
+                loadFromLocal();
+            }
+        });
+
+        function initializeStandaloneMode() {
+            if (window.currentGameConfig) {
+                document.getElementById('editor-interface').style.display = 'none';
+                document.getElementById('game-interface').style.display = 'block';
+                document.getElementById('displayTitle').innerText = window.currentGameConfig.title;
+                const authorText = window.currentGameConfig.author ? `Autor: ${window.currentGameConfig.author}` : "";
+                document.getElementById('displayAuthor').innerText = authorText;
+                document.getElementById('displayInstructions').innerText = window.currentGameConfig.instructions;
+                if(!window.opener) {
+                    const btn = document.getElementById('backBtn');
+                    btn.innerText = "Reštartovať hru";
+                    btn.className = "btn btn-success";
+                    btn.onclick = () => location.reload();
+                }
+            }
+        }
+
+        function toggleTaskType(selectElement) {
+            const container = selectElement.closest('.task-item');
+            const distGroup = container.querySelector('.distractors-group');
+            if (selectElement.value === 'choice') {
+                distGroup.style.display = 'block';
+            } else {
+                distGroup.style.display = 'none';
+            }
+        }
+
+        function handleImageUpload(inputElement) {
+            const container = inputElement.parentElement;
+            const hiddenTextarea = container.querySelector('.inp-img-base64');
+            const previewImg = container.querySelector('.img-preview');
+            if (inputElement.files && inputElement.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    hiddenTextarea.value = e.target.result;
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                    saveToLocal();
+                }
+                reader.readAsDataURL(inputElement.files[0]);
+            }
+        }
+
+        function getGameData() {
+            const tasks = [];
+            const taskItems = document.querySelectorAll('.task-item');
+            taskItems.forEach((item, index) => {
+                tasks.push({
+                    id: index + 1,
+                    type: item.querySelector('.inp-type').value,
+                    question: item.querySelector('.inp-q').value || `Otázka ${index + 1}`,
+                    image: item.querySelector('.inp-img-base64').value, 
+                    answer: item.querySelector('.inp-ans').value,
+                    distractors: item.querySelector('.inp-dist').value.split(',').map(s => s.trim()).filter(s => s)
+                });
+            });
+
+            return {
+                title: document.getElementById('gameTitle').value,
+                author: document.getElementById('gameAuthor').value,
+                instructions: document.getElementById('gameInstructions').value,
+                winMessage: document.getElementById('winMessage').value,
+                tasks: tasks
+            };
+        }
+
+        function generateAndPlay() {
+            const data = getGameData();
+            const currentHTML = document.documentElement.outerHTML;
+            const scriptContent = `window.currentGameConfig = ${JSON.stringify(data)}; window.isStandalone = true;`;
+            let newHTML = currentHTML.replace('<head>', `<head><script>${scriptContent}<\/script>`);
+            
+            const win = window.open('', '_blank');
+            if(win) {
+                win.document.open();
+                win.document.write(newHTML);
+                win.document.close();
+            } else {
+                alert('Prosím, povoľte otváranie vyskakovacích okien.');
+            }
+        }
+
+        function downloadGame() {
+            const data = getGameData();
+            const currentHTML = document.documentElement.outerHTML;
+            const scriptContent = `window.currentGameConfig = ${JSON.stringify(data)}; window.isStandalone = true;`;
+            let newHTML = currentHTML.replace('<head>', `<head><script>${scriptContent}<\/script>`);
+            
+            const blob = new window.Blob([newHTML], { type: 'text/html' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.html';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // --- 3. GAME LOGIC ---
+
+        let gameState = {
+            players: [],
+            currentPlayerIndex: 0,
+            currentRoll: 0
+        };
+
+        const playerColors = [
+            { name: 'Red', hex: '#ff5252' },
+            { name: 'Blue', hex: '#448aff' },
+            { name: 'Green', hex: '#69f0ae' },
+            { name: 'Orange', hex: '#ffd740' }
+        ];
+        
+        const playerLetters = ['A', 'B', 'C', 'D'];
+
+        function initGame() {
+            const count = parseInt(document.getElementById('playerCount').value);
+            gameState.players = [];
+            for(let i=0; i<count; i++) {
+                gameState.players.push({
+                    id: i,
+                    name: `Hráč ${playerLetters[i]}`, 
+                    letter: playerLetters[i],
+                    color: playerColors[i].hex,
+                    position: 0,
+                    usedQuestionIds: [],
+                    // STATS
+                    points: 0,
+                    rolls: 0,
+                    skipped: 0
+                });
+            }
+            gameState.currentPlayerIndex = 0;
+            
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-board-area').style.display = 'block';
+            
+            renderBoard();
+            updatePlayerPositions();
+            updateTurnInfo();
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            
+            const rows = [
+                ['start', 1, 2, 3, 4],
+                ['empty', 8, 7, 6, 5],
+                ['empty', 9, 10, 11, 12],
+                ['finish', 16, 15, 14, 13]
+            ];
+
+            rows.forEach((rowItems, rIndex) => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'board-row';
+                
+                rowItems.forEach((item, cIndex) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    if (item === 'start') {
+                        cell.classList.add('start', 'arrow-right');
+                        cell.innerText = 'Štart';
+                        cell.id = 'cell-0';
+                    } else if (item === 'finish') {
+                        cell.classList.add('finish'); 
+                        cell.innerText = 'Cieľ';
+                        cell.id = 'cell-17';
+                    } else if (item === 'empty') {
+                        cell.classList.add('empty');
+                    } else {
+                        cell.innerText = item;
+                        cell.id = `cell-${item}`;
+                        
+                        if (rIndex === 0 && cIndex < 4) cell.classList.add('arrow-right'); 
+                        if (item === 4) cell.classList.add('arrow-down'); 
+                        if (rIndex === 1) {
+                            if (cIndex > 1) cell.classList.add('arrow-left'); 
+                            if (item === 8) cell.classList.add('arrow-down'); 
+                        }
+                        if (rIndex === 2) {
+                             if (cIndex < 4) cell.classList.add('arrow-right'); 
+                             if (item === 12) cell.classList.add('arrow-down'); 
+                        }
+                        if (rIndex === 3) {
+                            if (cIndex > 1) cell.classList.add('arrow-left'); 
+                        }
+                    }
+                    rowDiv.appendChild(cell);
+                });
+                board.appendChild(rowDiv);
+            });
+        }
+
+        function updatePlayerPositions() {
+            document.querySelectorAll('.player-token').forEach(el => el.remove());
+            
+            document.querySelectorAll('.cell').forEach(c => {
+                if(!c.classList.contains('empty')) c.style.backgroundColor = '';
+            });
+
+            let cellOccupancy = {};
+
+            gameState.players.forEach((player) => {
+                const pos = player.position;
+                const cellId = pos === 0 ? 'cell-0' : (pos === 17 ? 'cell-17' : `cell-${pos}`);
+                if(!cellOccupancy[cellId]) cellOccupancy[cellId] = [];
+                cellOccupancy[cellId].push(player);
+            });
+
+            const tokenSize = 36; 
+            const centerOffset = tokenSize / 2; 
+            const stackOffsetStep = 15; 
+
+            for (const [cellId, players] of Object.entries(cellOccupancy)) {
+                const cell = document.getElementById(cellId);
+                if (!cell) continue;
+
+                if (players.length > 1) {
+                    cell.style.backgroundColor = '#e0e0e0';
+                } else if (players.length === 1) {
+                     cell.style.backgroundColor = players[0].color + '20';
+                }
+
+                players.forEach((player, stackIndex) => {
+                    const token = document.createElement('div');
+                    token.className = 'player-token';
+                    token.style.backgroundColor = player.color;
+                    token.innerText = player.letter; 
+                    
+                    const offset = stackIndex * stackOffsetStep;
+                    token.style.left = `calc(50% - ${centerOffset}px + ${offset}px)`;
+                    token.style.top = `calc(50% - ${centerOffset}px - ${offset}px)`;
+                    
+                    cell.appendChild(token);
+                });
+            }
+        }
+
+        function updateTurnInfo() {
+            const p = gameState.players[gameState.currentPlayerIndex];
+            const nameEl = document.getElementById('currentPlayerName');
+            nameEl.innerText = `Na ťahu je: ${p.name}`;
+            nameEl.style.color = p.color;
+            nameEl.style.textShadow = "1px 1px 0 #000"; 
+            
+            document.getElementById('rollBtn').disabled = false;
+            document.getElementById('diceDisplay').innerText = '🎲';
+            
+            document.getElementById('danger-decision-area').style.display = 'none';
+        }
+
+        // --- LOGIKA ROZHODOVANIA V NEBEZPEČNEJ ZÓNE ---
+
+        function proceedToQuestion() {
+            document.getElementById('danger-decision-area').style.display = 'none';
+            showQuestion();
+        }
+
+        function skipQuestion() {
+            document.getElementById('danger-decision-area').style.display = 'none';
+            alert("Rozhodol si sa neodpovedať. Zostávaš na mieste.");
+            
+            // Stats Update
+            gameState.players[gameState.currentPlayerIndex].skipped++;
+            
+            nextTurn();
+        }
+
+        function rollDice() {
+            const roll = Math.floor(Math.random() * 6) + 1;
+            let counter = 0;
+            
+            const interval = setInterval(() => {
+                document.getElementById('diceDisplay').innerText = Math.floor(Math.random() * 6) + 1;
+                counter++;
+                if(counter > 10) {
+                    clearInterval(interval);
+                    document.getElementById('diceDisplay').innerText = roll;
+                    gameState.currentRoll = roll;
+                    document.getElementById('rollBtn').disabled = true;
+
+                    // Stats Update
+                    gameState.players[gameState.currentPlayerIndex].rolls++;
+
+                    const player = gameState.players[gameState.currentPlayerIndex];
+                    if (player.position >= 12 && player.position < 17) {
+                         document.getElementById('danger-decision-area').style.display = 'block';
+                    } else {
+                         setTimeout(showQuestion, 500);
+                    }
+                }
+            }, 50);
+        }
+
+        function showQuestion() {
+            const tasks = window.currentGameConfig.tasks;
+            const player = gameState.players[gameState.currentPlayerIndex];
+            
+            const allTaskIndices = tasks.map((_, i) => i);
+            let availableIndices = allTaskIndices.filter(i => !player.usedQuestionIds.includes(i));
+            if (availableIndices.length === 0) {
+                player.usedQuestionIds = [];
+                availableIndices = allTaskIndices;
+            }
+            const randomIndex = Math.floor(Math.random() * availableIndices.length);
+            const selectedTaskIndex = availableIndices[randomIndex];
+            player.usedQuestionIds.push(selectedTaskIndex);
+            
+            const task = tasks[selectedTaskIndex];
+
+            const modal = document.getElementById('question-modal');
+            const qTitle = document.getElementById('q-title');
+            const qText = document.getElementById('q-text');
+            const qImage = document.getElementById('q-image');
+            const inputArea = document.getElementById('input-area');
+            const choiceArea = document.getElementById('choice-area');
+            const keyboardCol = document.getElementById('keyboard-col');
+            const feedback = document.getElementById('feedback');
+            
+            feedback.innerText = "";
+            modal.style.display = 'flex';
+            
+            qTitle.innerHTML = `
+                <div style="text-align: left;">${player.name}</div>
+                <br><br>
+                <div style="text-align: left; font-size: 0.8em;">Úloha:</div>
+            `;
+            qText.innerText = task.question;
+            
+            if (task.image && task.image.length > 0) {
+                qImage.src = task.image;
+                qImage.style.display = 'block';
+            } else {
+                qImage.style.display = 'none';
+            }
+
+            window.currentTaskAnswer = task.answer; 
+            
+            if (task.type === 'textInput') {
+                inputArea.style.display = 'block';
+                keyboardCol.style.display = 'flex'; 
+                choiceArea.style.display = 'none';
+                
+                const inp = document.getElementById('answerInput');
+                inp.value = '';
+                inp.focus(); 
+                
+                renderKeyboard(); 
+            } else {
+                inputArea.style.display = 'none';
+                keyboardCol.style.display = 'none'; 
+                choiceArea.style.display = 'grid';
+                choiceArea.innerHTML = '';
+                
+                let options = [task.answer, ...task.distractors];
+                options.sort(() => Math.random() - 0.5);
+                
+                options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = opt;
+                    btn.onclick = () => checkAnswer(opt);
+                    choiceArea.appendChild(btn);
+                });
+            }
+        }
+
+        function handlePhysicalEnter(event) {
+            if (event.key === "Enter") {
+                checkAnswer('input');
+            }
+        }
+
+        function checkAnswer(userAnswer) {
+            if (userAnswer === 'input') {
+                userAnswer = document.getElementById('answerInput').value;
+            }
+
+            const isCorrect = userAnswer.toLowerCase().trim() === window.currentTaskAnswer.toLowerCase().trim();
+            const feedback = document.getElementById('feedback');
+            
+            if (isCorrect) {
+                feedback.innerText = "Správne!";
+                feedback.style.color = "green";
+                setTimeout(() => {
+                    closeModal();
+                    performMove(true);
+                }, 1500);
+            } else {
+                feedback.innerText = `Nesprávne! Správna odpoveď bola: ${window.currentTaskAnswer}`;
+                feedback.style.color = "red";
+                setTimeout(() => {
+                    closeModal();
+                    performMove(false);
+                }, 2500);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('question-modal').style.display = 'none';
+        }
+
+        function performMove(success) {
+            const player = gameState.players[gameState.currentPlayerIndex];
+            const roll = gameState.currentRoll;
+            let newPos = player.position;
+
+            if (success) {
+                // STATS
+                player.points++;
+
+                const targetPos = player.position + roll;
+
+                if (player.position >= 12 && roll === 6) {
+                    alert(`Hodil si 6 v nebezpečnej zóne! Padáš na políčko 1.`);
+                    newPos = 1;
+                }
+                else if (targetPos === 17) {
+                    newPos = 17;
+                }
+                else if (targetPos > 17) {
+                    const excess = targetPos - 17;
+                    alert(`Žiaľ, teraz si prešvihol cieľ! Vraciaš sa na začiatok na políčko ${excess}. Do toho!`);
+                    newPos = excess;
+                }
+                else {
+                    newPos = targetPos;
+                }
+            } else {
+                // Nesprávna odpoveď: zostáva na mieste, 0 bodov
+                newPos = player.position;
+            }
+
+            player.position = newPos;
+            updatePlayerPositions();
+
+            if (player.position === 17) {
+                triggerWin(player);
+            } else {
+                nextTurn();
+            }
+        }
+
+        function nextTurn() {
+            gameState.currentPlayerIndex++;
+            if (gameState.currentPlayerIndex >= gameState.players.length) {
+                gameState.currentPlayerIndex = 0;
+            }
+            updateTurnInfo();
+        }
+
+        function triggerWin(player) {
+            document.getElementById('game-interface').style.display = 'none';
+            document.getElementById('question-modal').style.display = 'none';
+            
+            const winScreen = document.getElementById('win-screen');
+            winScreen.style.display = 'flex';
+            
+            document.getElementById('win-headline').innerText = `Blahoželám, ${player.name}!`;
+            document.getElementById('win-custom-msg').innerText = window.currentGameConfig.winMessage;
+
+            // --- VYPIS STATISTIK ---
+            let statsHtml = `
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Hráč</th>
+                            <th>Body (Správne)</th>
+                            <th>Počet hodov</th>
+                            <th>Vynechané (Skip)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            gameState.players.forEach(p => {
+                statsHtml += `
+                    <tr>
+                        <td><strong>${p.name}</strong></td>
+                        <td style="color:green; font-weight:bold;">${p.points}</td>
+                        <td>${p.rolls}</td>
+                        <td style="color:orange;">${p.skipped}</td>
+                    </tr>
+                `;
+            });
+            
+            statsHtml += `</tbody></table>`;
+            document.getElementById('win-stats').innerHTML = statsHtml;
+            // -----------------------
+
+            const duration = 15 * 1000; 
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 2000 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) return clearInterval(interval);
+                const particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+
+        // --- VIRTUAL KEYBOARD ---
+        
+        let kbLayout = {
+            sk: [ "ľščťž", "ýáíé", "qwert", "zuiop", "úäasd", "fghjk", "lôňyx", "cvbnm" ],
+            en: [ "qwert", "yuiop", "asdfg", "hjklz", "xcvbnm" ]
+        };
+        let isCaps = false;
+        let currentLang = 'sk';
+
+        function renderKeyboard() {
+            const kbDiv = document.getElementById('virtual-keyboard');
+            kbDiv.innerHTML = '';
+
+            const controls = document.createElement('div');
+            controls.className = 'kb-row';
+            controls.innerHTML = `
+                <div class="kb-key action" onclick="toggleCaps()">CAPS</div>
+                <div class="kb-key action" onclick="switchLang()">${currentLang.toUpperCase()}</div>
+                <div class="kb-key action" style="flex:2;" onclick="addChar('SPACE')">MEDZERA</div>
+                <div class="kb-key action" style="background:#ffcccc; color:red;" onclick="delChar()">⌫</div>
+            `;
+            kbDiv.appendChild(controls);
+
+            const layout = kbLayout[currentLang];
+            layout.forEach(rowStr => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'kb-row';
+                rowStr.split('').forEach(char => {
+                    const key = document.createElement('div');
+                    key.className = 'kb-key';
+                    const displayChar = isCaps ? char.toUpperCase() : char;
+                    key.innerText = displayChar;
+                    key.onclick = () => addChar(displayChar);
+                    rowDiv.appendChild(key);
+                });
+                kbDiv.appendChild(rowDiv);
+            });
+        }
+
+        function toggleCaps() { isCaps = !isCaps; renderKeyboard(); }
+        function switchLang() { currentLang = currentLang === 'sk' ? 'en' : 'sk'; renderKeyboard(); }
+        function addChar(char) {
+            const input = document.getElementById('answerInput');
+            if (char === 'SPACE') input.value += ' ';
+            else input.value += char;
+            input.focus();
+        }
+        function delChar() {
+            const input = document.getElementById('answerInput');
+            input.value = input.value.slice(0, -1);
+            input.focus();
+        }
+
+    </script>
+</body>
+</html>

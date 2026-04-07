@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Generátor PEXESA Pro (HTML support)</title>
+    <style>
+        body { font-family: sans-serif; max-width: 950px; margin: 0 auto; padding: 20px; background: #f4f4f4; line-height: 1.5; }
+        h1 { text-align: center; color: #333; }
+        
+        .main-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; border: 1px solid #ccc; }
+        
+        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd; flex-wrap: wrap; justify-content: center; }
+        .btn-tool { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .btn-tool:hover { background: #5a6268; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 0; border-bottom: 2px solid #ccc; }
+        .tab { padding: 12px 20px; cursor: pointer; background: #ddd; border-radius: 8px 8px 0 0; font-weight: bold; border: none; }
+        .tab.active { background: #fff; border: 2px solid #ccc; border-bottom: 2px solid #fff; margin-bottom: -2px; }
+        
+        .content { display: none; background: #fff; padding: 20px; border: 2px solid #ccc; border-radius: 0 0 8px 8px; }
+        .content.active { display: block; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #444; }
+        input[type="text"], textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
+        textarea { height: 160px; font-family: monospace; font-size: 110%; line-height: 1.4; }
+        
+        .btn-gen { background: #28a745; color: white; border: none; padding: 15px; font-size: 18px; cursor: pointer; border-radius: 6px; width: 100%; margin-top: 20px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .btn-gen:hover { background: #218838; }
+        
+        .uncovered-box { background: #e8f0fe; padding: 15px; border-radius: 8px; border: 1px solid #1a73e8; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .uncovered-box input { transform: scale(1.4); cursor: pointer; }
+
+        .settings-box { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ced4da; }
+        .settings-box label.inline { display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; margin: 0; }
+        .settings-row { display: flex; gap: 20px; flex-wrap: wrap; }
+        
+        .color-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; }
+        .color-item { display: flex; align-items: center; gap: 10px; background: #f9f9f9; padding: 8px 15px; border-radius: 6px; border: 1px solid #eee; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<h1>Generátor interaktívneho pexesa - rozšírené<br>(podpora tagov html)</h1>
+
+<div class="toolbar">
+    <button class="btn-tool" onclick="exportJSON()">💾 Exportovať nastavenia (JSON)</button>
+    <button class="btn-tool" onclick="document.getElementById('importJsonInput').click()">📂 Importovať JSON</button>
+    <button class="btn-tool" onclick="document.getElementById('importHtmlInput').click()">🌐 Importovať z HTML</button>
+    
+    <input type="file" id="importJsonInput" class="hidden" accept=".json" onchange="importJSON(this)">
+    <input type="file" id="importHtmlInput" class="hidden" accept=".html" onchange="importHTML(this)">
+</div>
+
+<div class="main-card">
+    <div class="form-group">
+        <label>Názov stránky (nadpis hry):</label>
+        <input type="text" id="gameTitle" placeholder="Napr. Pexeso: Ovocie">
+    </div>
+
+    <div class="form-group">
+        <label>Autor pexesa:</label>
+        <input type="text" id="gameAuthor" placeholder="Meno autora">
+    </div>
+
+    <div class="form-group">
+        <label>Text gratulácie:</label>
+        <input type="text" id="winText" value="Výborne!">
+    </div>
+
+    <div class="uncovered-box">
+        <input type="checkbox" id="isUncovered" onchange="toggleUI()">
+        <label for="isUncovered" style="margin:0; cursor:pointer;"><strong>ODKRYTÉ PEXESO</strong> (karty sú hneď viditeľné bez rubu)</label>
+    </div>
+
+    <div class="settings-box">
+        <label style="margin-bottom: 10px; display: block; font-weight: bold; text-transform: uppercase; font-size: 0.85em;">Predvolené zobrazenie vo vygenerovanom súbore:</label>
+        <div class="settings-row">
+            <label class="inline">
+                <input type="checkbox" id="showTime" checked> Zapnúť čas
+            </label>
+            <label class="inline">
+                <input type="checkbox" id="showMoves" checked> Zapnúť počítadlo ťahov
+            </label>
+            <label class="inline" id="showNumbersContainer">
+                <input type="checkbox" id="showNumbers"> Zapnúť čísla na rube (iba klasický mód)
+            </label>
+        </div>
+    </div>
+
+    <div class="color-row">
+        <div id="backColorGroup" class="color-item">
+            <label>Farba rubu:</label>
+            <input type="color" id="cardColor" value="#3498db">
+        </div>
+        <div class="color-item">
+            <label>Pozadie stránky:</label>
+            <input type="color" id="pageBgColor" value="#ffe97a">
+        </div>
+    </div>
+</div>
+
+<div class="tabs">
+    <div class="tab active" id="tab-v1" onclick="switchTab('v1')">1. obrázok : obrázok</div>
+    <div class="tab" id="tab-v2" onclick="switchTab('v2')">2. obrázok : text</div>
+    <div class="tab" id="tab-v3" onclick="switchTab('v3')">3. text : text</div>
+</div>
+
+<div id="v1" class="content active">
+    <h3>Verzia 1: obrázok - obrázok</h3>
+    <div class="form-group">
+        <label>Nahrať obrázky:</label>
+        <input type="file" id="v1files" multiple accept="image/*" onchange="processImages('v1')">
+        <div id="v1status" style="margin-top: 5px; color: green; font-weight: bold;"></div>
+    </div>
+    <button class="btn-gen" onclick="generate('v1')">GENEROVAŤ PEXESO</button>
+</div>
+
+<div id="v2" class="content">
+    <h3>Verzia 2: obrázok - text</h3>
+    <div class="form-group">
+        <label>Nahrať obrázky:</label>
+        <input type="file" id="v2files" multiple accept="image/*" onchange="processImages('v2')">
+        <div id="v2status" style="margin-top: 5px; color: green; font-weight: bold;"></div>
+    </div>
+    <div class="form-group">
+        <label>Definície (NázovSúboru[TAB]Text) - <i>podporuje &lt;span&gt;</i>:</label>
+        <textarea id="v2text" placeholder="01[TAB]jablko"></textarea>
+    </div>
+    <button class="btn-gen" onclick="generate('v2')">GENEROVAŤ PEXESO</button>
+</div>
+
+<div id="v3" class="content">
+    <h3>Verzia 3: Text - Text</h3>
+    <div class="form-group">
+        <label>Pojmy a definície (Pojem[TAB]Definícia) - <i>podporuje &lt;span&gt;</i>:</label>
+        <textarea id="v3text" placeholder="Apple[TAB]Jablko"></textarea>
+    </div>
+    <button class="btn-gen" onclick="generate('v3')">GENEROVAŤ PEXESO</button>
+</div>
+
+<script>
+    let imageMemory = { v1: [], v2: [] };
+
+    const fieldIds = ['gameTitle', 'gameAuthor', 'winText', 'v2text', 'v3text', 'cardColor', 'pageBgColor', 'isUncovered', 'showTime', 'showMoves', 'showNumbers'];
+    fieldIds.forEach(id => {
+        const el = document.getElementById(id);
+        if(localStorage.getItem(id) !== null) {
+            if(el.type === 'checkbox') el.checked = localStorage.getItem(id) === 'true';
+            else el.value = localStorage.getItem(id);
+        }
+        el.oninput = () => localStorage.setItem(id, el.type === 'checkbox' ? el.checked : el.value);
+    });
+
+    function enableTabSupport(textareaId) {
+        const el = document.getElementById(textareaId);
+        el.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+                this.dispatchEvent(new Event('input'));
+            }
+        });
+    }
+
+    enableTabSupport('v2text');
+    enableTabSupport('v3text');
+
+    function toggleUI() {
+        const isUncovered = document.getElementById('isUncovered').checked;
+        document.getElementById('backColorGroup').style.display = isUncovered ? 'none' : 'flex';
+        document.getElementById('showNumbersContainer').style.display = isUncovered ? 'none' : 'flex';
+    }
+    toggleUI();
+
+    function switchTab(id) {
+        document.querySelectorAll('.content, .tab').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.getElementById('tab-' + id).classList.add('active');
+    }
+
+    async function processImages(ver) {
+        const files = document.getElementById(ver + 'files').files;
+        imageMemory[ver] = [];
+        for (let f of files) {
+            const b64 = await toBase64(f);
+            imageMemory[ver].push({ name: f.name, data: b64 });
+        }
+        document.getElementById(ver + 'status').innerText = `✅ Načítaných ${imageMemory[ver].length} obrázkov.`;
+    }
+
+    const toBase64 = f => new Promise((res) => {
+        const r = new FileReader(); r.readAsDataURL(f); r.onload = () => res(r.result);
+    });
+
+    function exportJSON() {
+        const data = { 
+            title: document.getElementById('gameTitle').value, 
+            author: document.getElementById('gameAuthor').value, 
+            win: document.getElementById('winText').value, 
+            uncovered: document.getElementById('isUncovered').checked, 
+            showTime: document.getElementById('showTime').checked,
+            showMoves: document.getElementById('showMoves').checked,
+            showNum: document.getElementById('showNumbers').checked,
+            back: document.getElementById('cardColor').value, 
+            bg: document.getElementById('pageBgColor').value, 
+            v2t: document.getElementById('v2text').value, 
+            v3t: document.getElementById('v3text').value, 
+            imgs: imageMemory 
+        };
+        const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'pexeso_nastavenia.json'; a.click();
+    }
+
+    function importJSON(input) {
+        const r = new FileReader();
+        r.onload = e => {
+            const d = JSON.parse(e.target.result);
+            document.getElementById('gameTitle').value = d.title || '';
+            document.getElementById('gameAuthor').value = d.author || '';
+            document.getElementById('winText').value = d.win || '';
+            document.getElementById('isUncovered').checked = d.uncovered || false;
+            document.getElementById('showTime').checked = d.showTime !== false;
+            document.getElementById('showMoves').checked = d.showMoves !== false;
+            document.getElementById('showNumbers').checked = d.showNum || false;
+            document.getElementById('cardColor').value = d.back || '#3498db';
+            document.getElementById('pageBgColor').value = d.bg || '#ffe97a';
+            document.getElementById('v2text').value = d.v2t || '';
+            document.getElementById('v3text').value = d.v3t || '';
+            imageMemory = d.imgs || { v1:[], v2:[] };
+            toggleUI();
+        };
+        r.readAsText(input.files[0]);
+    }
+
+    function importHTML(input) {
+        const r = new FileReader();
+        r.onload = e => {
+            const html = e.target.result;
+            const match = html.match(/const pairsData = (\[.*?\]);/s);
+            if (match) {
+                const pairs = JSON.parse(match[1]);
+                document.getElementById('gameTitle').value = html.match(/<title>(.*?)<\/title>/)?.[1] || "";
+                if (pairs.every(p => p.type1 === 'img' && p.type2 === 'img')) {
+                    imageMemory.v1 = []; pairs.forEach(p => { if(!imageMemory.v1.find(x=>x.data===p.content1)) imageMemory.v1.push({name:'obr', data:p.content1}); });
+                    switchTab('v1');
+                } else if (pairs.some(p => p.type1 === 'img' && p.type2 === 'text')) {
+                    imageMemory.v2 = []; let t = "";
+                    pairs.forEach((p, i) => { let n = `obr_${i}`; imageMemory.v2.push({name:n, data:p.content1}); t += `${n}\t${p.content2}\n`; });
+                    document.getElementById('v2text').value = t; switchTab('v2');
+                } else if (pairs.every(p => p.type1 === 'text')) {
+                    document.getElementById('v3text').value = pairs.map(p => `${p.content1}\t${p.content2}`).join('\n');
+                    switchTab('v3');
+                }
+            }
+        };
+        r.readAsText(input.files[0]);
+    }
+
+    function generate(ver) {
+        const title = document.getElementById('gameTitle').value || 'PEXESO';
+        const author = document.getElementById('gameAuthor').value || '';
+        const win = document.getElementById('winText').value || 'Výborne!';
+        const back = document.getElementById('cardColor').value;
+        const pageBg = document.getElementById('pageBgColor').value;
+        const uncovered = document.getElementById('isUncovered').checked;
+        const sTime = document.getElementById('showTime').checked;
+        const sMoves = document.getElementById('showMoves').checked;
+        const sNum = document.getElementById('showNumbers').checked;
+        
+        let pairs = [];
+        if (ver === 'v1') {
+            imageMemory.v1.forEach(i => pairs.push({ type1:'img', content1:i.data, type2:'img', content2:i.data }));
+        } else if (ver === 'v2') {
+            const map = {}; document.getElementById('v2text').value.trim().split('\n').forEach(l => { const p=l.split('\t'); if(p.length>=2) map[p[0].trim()] = p[1].trim(); });
+            imageMemory.v2.forEach(i => { const k = i.name.split('.')[0]; if(map[k]) pairs.push({ type1:'img', content1:i.data, type2:'text', content2:map[k] }); });
+        } else {
+            document.getElementById('v3text').value.trim().split('\n').forEach(l => { const p=l.split('\t'); if(p.length>=2) pairs.push({ type1:'text', content1:p[0].trim(), bg1:'#ebebeb', type2:'text', content2:p[1].trim(), bg2:'#ffffff' }); });
+        }
+
+        if(!pairs.length) return alert("Chýbajú dáta!");
+
+        const output = createTemplate(title, author, win, back, pageBg, pairs, uncovered, sTime, sMoves, sNum);
+        const blob = new Blob([output], {type:'text/html'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'pexeso.html'; a.click();
+    }
+
+    function createTemplate(title, author, win, backColor, pageBg, pairsData, isUncovered, showTimeInit, showMovesInit, showNumbersInit) {
+        return `<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}</title>
+<style>
+    :root { --card-back: ${backColor}; --page-bg: ${pageBg}; --highlight: #28a745; }
+    body { font-family: sans-serif; margin: 0; padding: 10px; background-color: var(--page-bg); display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+    
+    .runtime-settings { background: rgba(255,255,255,0.8); padding: 10px 20px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 20px; font-size: 0.9em; border: 1px solid #ccc; flex-wrap: wrap; justify-content: center; z-index: 100; }
+    .runtime-settings label { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; }
+
+    h1 { text-align: center; margin: 5px 0; }
+    .author { font-style: italic; color: #666; margin-bottom: 15px; }
+    
+    .game-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; width: 100%; max-width: 900px; padding: 10px; }
+    @media (max-width: 600px) { .game-board { grid-template-columns: repeat(3, 1fr); } }
+
+    .card-slot { aspect-ratio: 4/3; }
+    .card { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; border-radius: 8px; }
+    
+    ${isUncovered ? `
+    .card.selected .face { box-shadow: 0 0 0 2px var(--highlight); border-color: var(--highlight); z-index: 10; }
+    .face.front { display: none; }
+    .face.back { transform: rotateY(0deg); border: 1px solid #ccc; }
+    ` : `
+    .card.flipped { transform: rotateY(180deg); }
+    .face.front { background-color: var(--card-back); transform: rotateY(0deg); border: 1px solid #ccc; font-size: 2.5em; color: white; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+    .face.back { background-color: white; transform: rotateY(180deg); border: 2px solid var(--card-back); }
+    .card.flipped .face.front, .card.matched .face.front { visibility: hidden; transition: visibility 0s 0.3s; }
+    `}
+
+    .card-number { display: ${showNumbersInit ? 'block' : 'none'}; pointer-events: none; }
+    .controls-panel { margin-bottom: 15px; font-weight: bold; font-size: 1.2em; gap: 25px; background: white; padding: 5px 20px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; }
+
+    .card.matched { visibility: hidden; opacity: 0; transition: 0.5s; }
+    .face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 8px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); background: white; overflow: hidden; box-sizing: border-box; transition: box-shadow 0.3s, border-color 0.3s; }
+    img { max-width: 90%; max-height: 90%; object-fit: contain; pointer-events: none; }
+    
+    .card-text { text-align: center; font-weight: bold; padding: 10px; font-size: 1.5em; line-height: 1.2; word-break: break-word; overflow-wrap: break-word; pointer-events: none; }
+    
+    /* OPRAVENÉ PODĽA VZORU */
+    #successOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+    #successText { font-size: 10vw; color: green; font-weight: bold; margin: 0; text-align: center; z-index: 2; padding: 20px; }
+    #finalStats { font-size: 1.5em; margin: 10px 0; font-weight: bold; z-index: 2; }
+    canvas#fireworks { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+    .restart-btn { margin-top: 20px; padding: 15px 30px; font-size: 1.5em; cursor: pointer; background: green; color: white; border: none; border-radius: 10px; z-index: 3; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="runtime-settings">
+    <label><input type="checkbox" id="rtShowTime" ${showTimeInit ? 'checked' : ''} onchange="updateUI()"> Čas</label>
+    <label><input type="checkbox" id="rtShowMoves" ${showMovesInit ? 'checked' : ''} onchange="updateUI()"> Ťahy</label>
+    ${!isUncovered ? `<label><input type="checkbox" id="rtShowNumbers" ${showNumbersInit ? 'checked' : ''} onchange="updateUI()"> Čísla na rube</label>` : ''}
+</div>
+
+<h1>${title}</h1>
+${author ? `<div class="author">Autor: ${author}</div>` : ''}
+
+<div class="controls-panel" id="statsBar">
+    <div id="timeBox">Čas: <span id="time">00:00</span></div>
+    <div id="movesBox">Ťahy: <span id="moves">0</span></div>
+</div>
+
+<div class="game-board" id="board"></div>
+
+<div id="successOverlay">
+    <canvas id="fireworks"></canvas>
+    <h2 id="successText">${win}</h2>
+    <p id="finalStats"></p>
+    <button class="restart-btn" onclick="location.reload()">Hrať znova</button>
+</div>
+
+<script>
+    const pairsData = ${JSON.stringify(pairsData)};
+    const isUncovered = ${isUncovered};
+    let first, second, lock = false, moves = 0, sec = 0, timer;
+
+    function updateUI() {
+        const sTime = document.getElementById('rtShowTime').checked;
+        const sMoves = document.getElementById('rtShowMoves').checked;
+        document.getElementById('timeBox').style.display = sTime ? 'block' : 'none';
+        document.getElementById('movesBox').style.display = sMoves ? 'block' : 'none';
+        document.getElementById('statsBar').style.display = (sTime || sMoves) ? 'flex' : 'none';
+        const numCheck = document.getElementById('rtShowNumbers');
+        if(numCheck) document.querySelectorAll('.card-number').forEach(el => el.style.display = numCheck.checked ? 'block' : 'none');
+    }
+
+    function init() {
+        const board = document.getElementById('board');
+        let deck = [];
+        pairsData.forEach((p, i) => {
+            deck.push({ id: i, type: p.type1, content: p.content1, bg: p.bg1 || 'white' });
+            deck.push({ id: i, type: p.type2, content: p.content2, bg: p.bg2 || 'white' });
+        });
+        deck.sort(() => Math.random() - 0.5);
+        deck.forEach((item, i) => {
+            const slot = document.createElement('div'); slot.className = 'card-slot';
+            const card = document.createElement('div'); card.className = 'card'; card.dataset.id = item.id;
+            const f = document.createElement('div'); f.className = 'face front';
+            const numSpan = document.createElement('span'); numSpan.className = 'card-number'; numSpan.innerText = i + 1;
+            f.appendChild(numSpan);
+            const b = document.createElement('div'); b.className = 'face back'; b.style.backgroundColor = item.bg;
+            if(item.type === 'img') { const img = document.createElement('img'); img.src = item.content; b.appendChild(img); }
+            else { const txt = document.createElement('div'); txt.className = 'card-text'; txt.innerHTML = item.content; b.appendChild(txt); }
+            card.append(f, b); card.onclick = () => click(card); slot.appendChild(card); board.appendChild(slot);
+        });
+        updateUI();
+    }
+
+    function click(c) {
+        if(lock || c === first || c.classList.contains('matched')) return;
+        if(!timer) timer = setInterval(() => { sec++; document.getElementById('time').innerText = Math.floor(sec/60).toString().padStart(2,'0')+':'+(sec%60).toString().padStart(2,'0'); }, 1000);
+        isUncovered ? c.classList.add('selected') : c.classList.add('flipped');
+        if(!first) { first = c; return; }
+        second = c; moves++; document.getElementById('moves').innerText = moves;
+        if(first.dataset.id === second.dataset.id) { lock = true; setTimeout(() => { first.classList.add('matched'); second.classList.add('matched'); reset(); check(); }, 500); }
+        else { lock = true; setTimeout(() => { isUncovered ? (first.classList.remove('selected'), second.classList.remove('selected')) : (first.classList.remove('flipped'), second.classList.remove('flipped')); reset(); }, 800); }
+    }
+    
+    function reset() { [first, second, lock] = [null, null, false]; }
+
+    function check() { 
+        if(!document.querySelector('.card:not(.matched)')) { 
+            clearInterval(timer); 
+            document.getElementById('finalStats').innerText = "Čas: " + document.getElementById('time').innerText + " | Ťahy: " + moves;
+            document.getElementById('successOverlay').style.display='flex'; 
+            startFireworks();
+        } 
+    }
+
+    function startFireworks() {
+        const canvas = document.getElementById('fireworks');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        let particles = [];
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                this.velocity = { x: (Math.random()-0.5)*10, y: (Math.random()-0.5)*10 };
+                this.alpha = 1; this.friction = 0.95;
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha; ctx.beginPath(); ctx.arc(this.x, this.y, 3, 0, Math.PI*2);
+                ctx.fillStyle = this.color; ctx.fill();
+            }
+            update() {
+                this.velocity.x *= this.friction; this.velocity.y *= this.friction;
+                this.x += this.velocity.x; this.y += this.velocity.y; this.alpha -= 0.012;
+            }
+        }
+        function animate() {
+            if (document.getElementById('successOverlay').style.display !== 'flex') return;
+            requestAnimationFrame(animate);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (Math.random() < 0.08) {
+                const x = Math.random() * canvas.width; const y = Math.random() * canvas.height * 0.7;
+                const color = \`hsl(\${Math.random()*360}, 70%, 50%)\`;
+                for(let i=0; i<40; i++) particles.push(new Particle(x, y, color));
+            }
+            particles.forEach((p, i) => { if(p.alpha <= 0) particles.splice(i, 1); else { p.update(); p.draw(); } });
+        }
+        animate();
+    }
+    init();
+<\/script>
+</body>
+</html>`;
+    }
+</script>
+</body>
+</html>

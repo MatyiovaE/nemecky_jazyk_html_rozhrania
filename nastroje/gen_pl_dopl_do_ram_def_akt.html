@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor PL (doplňovanie a riešenie)</title>
+    <style>
+        body {
+            font-family: Courier bold, monospace;
+            background-color: #f0f2f5;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-family: 'Courier bold', monospace;
+            font-size: 16px;
+            box-sizing: border-box;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+        .hint {
+            font-size: 0.9em;
+            color: #555;
+            background-color: #e9ecef;
+            padding: 15px;
+            border-left: 5px solid #007bff;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        /* Hlavné tlačidlo (Modré) */
+        .btn-generate {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-generate:hover {
+            background-color: #0056b3;
+        }
+        /* Pomocné tlačidlo (Sivé) */
+        .btn-insert {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 8px 20px;
+            width: auto;
+            transition: background 0.3s;
+        }
+        .btn-insert:hover {
+            background-color: #5a6268;
+        }
+
+        .key {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-family: monospace;
+			font-size: 13px;
+            font-weight: bold;
+            box-shadow: 0 1px 1px rgba(0 0 0 / 20%);
+        }
+        code {
+            background-color: #fff;
+            padding: 2px 4px;
+            border-radius: 3px;
+            color: #d63384;
+        }
+        /* Štýl pre ovládací panel vkladania */
+        .insert-panel {
+            background-color: #e9ecef; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin-top: 10px; 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            border: 1px solid #ced4da;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Doplňovanie do rámčekov - generátor PL s riešením</h1>
+
+    <label for="title">Názov pracovného listu:</label>
+    <input type="text" id="title" placeholder="Zadajte nadpis.">
+
+    <label for="taskCount">Počet úloh na generovanie:</label>
+    <input type="number" id="taskCount" placeholder="Nechajte prázdne pre všetky úlohy (napr. 10)" min="1">
+
+    <label for="dataInput">Vstupné údaje:</label>
+    <div class="hint">
+        <p style="font-size: 110%;"><strong>Formát zadania (Automatické počítanie):</strong></p>
+        <p><code style="font-size: 110%;">Zadanie (napr. 20)</code><span class="key">[TAB]</span><code style="font-size: 110%;">/slovo\</code></p>
+        <p>Generátor zamieša údaje, vyberie zadaný počet úloh a vytvorí riešenie.<br>
+        <em>(V riešení sa malé <strong>ß</strong> prevedie na veľké <strong>ẞ</strong>.)</em></p>
+        
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
+        
+        <p style="font-size: 110%;"><strong>Manuálne pomlčky:</strong></p>
+        <p><code style="font-size: 110%;">Zadanie</code><span class="key">[TAB]</span><code style="font-size: 110%;">------</code></p>
+    </div>
+    
+    <textarea id="dataInput" placeholder="Sem vložte údaje."></textarea>
+
+    <div class="insert-panel">
+        <label for="slashCount" style="margin: 0; white-space: nowrap;">Počet riadkov "/\":</label>
+        <input type="number" id="slashCount" value="5" min="1" style="width: 70px; padding: 5px;">
+        <button onclick="insertSlashRows()" class="btn-insert">Vložiť</button>
+    </div>
+    <button onclick="generateRTF()" class="btn-generate">Vygenerovať a stiahnuť .rtf (Zadanie + Riešenie)</button>
+</div>
+
+<script>
+    // Kľúče pre localStorage
+    const STORAGE_KEY_DATA = 'rtfGeneratorData_2Cols_Eszett9mm';
+    const STORAGE_KEY_TITLE = 'rtfGeneratorTitle_2Cols_Eszett9mm';
+    const STORAGE_KEY_COUNT = 'rtfGeneratorCount_2Cols_Eszett9mm';
+    
+    const dataInput = document.getElementById('dataInput');
+    const titleInput = document.getElementById('title');
+    const taskCountInput = document.getElementById('taskCount');
+
+    // --- 1. LocalStorage a správa vstupov ---
+    function loadData() {
+        const savedData = localStorage.getItem(STORAGE_KEY_DATA);
+        if (savedData) {
+            dataInput.value = savedData;
+        } else {
+            // Predvolený príklad s ß
+            dataInput.value = `30\t/dreißig\\
+weiße Farbe\t/weiß\\
+groß\t/groß\\
+20\t/zwanzig\\
+11\t/elf\\
+12\t/zwölf\\
+5\t/fünf\\
+10\t/zehn`;
+        }
+
+        const savedTitle = localStorage.getItem(STORAGE_KEY_TITLE);
+        if (savedTitle) {
+            titleInput.value = savedTitle;
+        } else {
+            titleInput.value = "Test slovíčok";
+        }
+
+        const savedCount = localStorage.getItem(STORAGE_KEY_COUNT);
+        if (savedCount) {
+            taskCountInput.value = savedCount;
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem(STORAGE_KEY_DATA, dataInput.value);
+        localStorage.setItem(STORAGE_KEY_TITLE, titleInput.value);
+        localStorage.setItem(STORAGE_KEY_COUNT, taskCountInput.value);
+    }
+    
+    loadData();
+    dataInput.addEventListener('input', saveData);
+    titleInput.addEventListener('input', saveData);
+    taskCountInput.addEventListener('input', saveData);
+
+    dataInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 1;
+            saveData();
+        }
+    });
+    
+    // --- 2. GENERÁTOR RTF ---
+    function generateRTF() {
+        const title = titleInput.value;
+        const rawData = dataInput.value;
+        const limitCount = parseInt(taskCountInput.value, 10);
+        
+        // 1. Príprava dát
+        let lines = rawData.trim().split('\n').filter(line => line.trim() !== "");
+        
+        // 2. Zamiešanie
+        for (let i = lines.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [lines[i], lines[j]] = [lines[j], lines[i]];
+        }
+
+        // 3. Limit
+        if (!isNaN(limitCount) && limitCount > 0 && limitCount < lines.length) {
+            lines = lines.slice(0, limitCount);
+        }
+
+        // --- DEFINÍCIA RTF HLAVIČKY ---
+        const footerRTF = `{\\footer\\pard\\qr\\fs24 {\\field{\\*\\fldinst PAGE}} / {\\field{\\*\\fldinst NUMPAGES}}\\par}`;
+
+        let rtf = `{\\rtf1\\ansi\\ansicpg1250\\deff0\\nouicompat\\deflang1051
+{\\fonttbl{\\f0\\fnil\\fcharset238 Comic Sans MS;}{\\f1\\fnil\\fcharset238 Calibri;}}
+{\\colortbl ;\\red0\\green0\\blue0;}
+${footerRTF}
+\\viewkind4\\uc1 
+\\pard\\plain\\sectd 
+\\pgwsxn11906\\pghsxn16838\\marglsxn1800\\margrsxn1800\\margtsxn1440\\margbsxn1440
+`;
+
+        // --- ČASŤ 1: PRACOVNÝ LIST (Prázdne rámčeky) ---
+        rtf += renderSection(lines, title, false);
+
+        // --- ZLOM STRANY ---
+        rtf += `\\page `;
+
+        // --- ČASŤ 2: RIEŠENIE (Vyplnené rámčeky) ---
+        rtf += renderSection(lines, "Riešenie", true);
+
+        rtf += `}`; // Ukončenie RTF
+        downloadFile(rtf, "pracovny_list_ẞ_9mm.rtf");
+    }
+
+    // Pomocná funkcia na vykreslenie jednej sekcie
+    function renderSection(lines, sectionTitle, isSolution) {
+        let output = "";
+
+        // Nadpis sekcie
+        output += `\\pard\\sa300\\sl276\\slmult1\\qc\\b\\f0\\fs40 ${escapeRTF(sectionTitle)} \\par\n`;
+        output += `\\pard\\sa200\\sl276\\slmult1\\ql\\b0\\fs24\n`;
+
+        let index = 0;
+
+        lines.forEach((line) => {
+            const tabSplit = line.split('\t');
+            if (tabSplit.length < 2) return;
+
+            const zadanie = tabSplit[0].trim();
+            const pravaStrana = tabSplit[1].trim();
+
+            let count = 0;
+            let solutionWord = "";
+
+            // Analýza pravej strany
+            const pattern = /^(.*?)\s*\/([^\\]+)\\$/;
+            const match = pravaStrana.match(pattern);
+
+            if (match) {
+                // Formát /slovo\
+                solutionWord = match[2].trim();
+                count = solutionWord.length;
+            } else {
+                // Formát ------
+                const lastSpaceIndex = pravaStrana.lastIndexOf(' ');
+                if (lastSpaceIndex !== -1) {
+                    count = pravaStrana.substring(lastSpaceIndex + 1).trim().length;
+                } else if(pravaStrana.includes('-')) {
+                    count = pravaStrana.length;
+                }
+            }
+
+            // Číslovanie (aa, ab...)
+            let tempIndex = index;
+            let letterLabel = "";
+            while (tempIndex >= 0) {
+                letterLabel = String.fromCharCode(97 + (tempIndex % 26)) + letterLabel;
+                tempIndex = Math.floor(tempIndex / 26) - 1;
+            }
+            const letterString = `${letterLabel}) `;
+            index++;
+
+            // Rozmery
+            const BOX_WIDTH = 510; 
+            const ROW_HEIGHT = 510;
+            
+            // Inicializácia riadku
+            let rowDef = `\\trowd\\trgaph70\\trleft-70\\trrh${ROW_HEIGHT}`; 
+            let rowContent = "";
+            let currentX = 0;
+
+            // 1. Stĺpec: ČÍSLOVANIE (Samostatný stĺpec naľavo)
+            currentX += 600; // Šírka stĺpca pre a), b)...
+            rowDef += `\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\clvertalc\\cellx${currentX}`;
+            rowContent += `\\pard\\intbl\\ql\\fs24 \\f1\\b ${letterString} \\cell `;
+
+            // 2. Stĺpec: ZADANIE (Samostatný stĺpec)
+            currentX += 2000; 
+            rowDef += `\\clbrdrt\\brdrnil\\clbrdrl\\brdrnil\\clbrdrb\\brdrnil\\clbrdrr\\brdrnil\\clvertalc\\cellx${currentX}`;
+            rowContent += `\\pard\\intbl\\ql\\fs24 \\f0\\b0 ${escapeRTF(zadanie)} \\cell `;
+
+            // 3. Stĺpec: Rámčeky (pokračovanie)
+            for (let i = 0; i < count; i++) {
+                currentX += BOX_WIDTH;
+                rowDef += `\\clbrdrt\\brdrs\\brdrw10\\clbrdrl\\brdrs\\brdrw10\\clbrdrb\\brdrs\\brdrw10\\clbrdrr\\brdrs\\brdrw10\\clvertalc\\cellx${currentX}`;
+                
+                let cellContent = "";
+                // RIEŠENIE: Veľké písmená + ošetrenie ẞ
+                if (isSolution && solutionWord.length > 0 && i < solutionWord.length) {
+                    let char = solutionWord[i];
+                    let upperChar;
+
+                    if (char === 'ß') {
+                        upperChar = 'ẞ'; // Unicode U+1E9E
+                    } else {
+                        upperChar = char.toUpperCase();
+                    }
+                    
+                    cellContent = `\\qc\\b ${escapeRTF(upperChar)}`; 
+                }
+
+                rowContent += `\\pard\\intbl${cellContent} \\cell `;
+            }
+
+            output += `${rowDef}\n${rowContent}\\row\n`;
+        });
+
+        return output;
+    }
+
+    function escapeRTF(str) {
+        let result = "";
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i);
+            if (code > 127) {
+                result += `\\u${code}?`;
+            } else if (code === 92 || code === 123 || code === 125) {
+                result += `\\${str[i]}`;
+            } else {
+                result += str[i];
+            }
+        }
+        return result;
+    }
+
+    function downloadFile(content, filename) {
+        const blob = new Blob([content], { type: "application/rtf" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // --- 3. FUNKCIA NA VKLADANIE /\ ---
+    function insertSlashRows() {
+        const countInput = document.getElementById('slashCount');
+        let count = parseInt(countInput.value, 10);
+        
+        if (isNaN(count) || count < 1) {
+            count = 1;
+        }
+
+        const startPos = dataInput.selectionStart;
+        const endPos = dataInput.selectionEnd;
+        const text = dataInput.value;
+
+        // Ak nie sme na začiatku, vložíme najprv enter
+        let prefix = "";
+        if (startPos > 0 && text[startPos - 1] !== '\n') {
+            prefix = "\n";
+        }
+
+        let insertText = prefix;
+        for (let i = 0; i < count; i++) {
+            insertText += "/\\\n"; 
+        }
+        
+        // Odstránime posledný enter na konci bloku
+        insertText = insertText.trimEnd();
+
+        // Vloženie do textarea
+        dataInput.value = text.substring(0, startPos) + insertText + text.substring(endPos);
+        
+        // Uloženie
+        saveData();
+
+        // Nastavenie kurzora medzi prvý pár / a \
+        // Pozícia: start + prefix + 1 (pre znak /)
+        const newCursorPos = startPos + prefix.length + 1;
+        
+        dataInput.focus();
+        dataInput.setSelectionRange(newCursorPos, newCursorPos);
+    }
+</script>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

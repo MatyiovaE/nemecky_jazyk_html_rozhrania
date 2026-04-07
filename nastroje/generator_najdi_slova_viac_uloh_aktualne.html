@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nájdi položky v texte - generátor (viacero úloh)</title>
+    <style>
+        body {
+            font-family: "Monaco", monospace;
+            background-color: #f0f2f5;
+            padding: 20px;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            color: #333;
+        }
+        h1 { text-align: center; color: #2c3e50; }
+        .config-panel {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"], textarea, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: "Monaco", monospace;
+            box-sizing: border-box;
+        }
+        
+        /* Teacher instructions */
+        .teacher-instruction {
+            background: #fff3cd;
+            padding: 15px;
+            border-left: 5px solid #ffeeba;
+            color: #856404;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        /* Toolbar per task */
+        .toolbar { 
+            background: #ebedef; 
+            padding: 10px; 
+            border-radius: 8px; 
+            border: 1px solid #ccc;
+            display: flex;
+            gap: 5px;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .toolbar button { 
+            padding: 6px 12px; 
+            font-size: 0.9em; 
+            background: white; 
+            border: 1px solid #ccc; 
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: "Monaco", monospace;
+            transition: background 0.2s;
+        }
+        .toolbar button:hover { background: #e0e0e0; }
+        .toolbar-spacer { flex-grow: 1; }
+        
+        /* Task Cards */
+        .task-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        .task-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 10px;
+        }
+        .task-card-header h3 { margin: 0; color: #34495e; }
+        .remove-task-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: "Monaco", monospace;
+        }
+        .remove-task-btn:hover { background: #c0392b; }
+
+        .editor {
+            min-height: 150px;
+            border: 2px dashed #3498db;
+            background: #fafafa;
+            padding: 15px;
+            border-radius: 8px;
+            outline: none;
+            line-height: 2;
+        }
+        .editor:focus { background: white; border-color: #2980b9; }
+
+        .target {
+            background-color: #d3d3d3;
+            border-radius: 3px;
+            padding: 2px 4px;
+            display: inline-block;
+        }
+        
+        .add-task-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #8e44ad;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 30px;
+            font-family: "Monaco", monospace;
+        }
+        .add-task-btn:hover { background-color: #732d91; }
+
+        .main-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+            font-family: "Monaco", monospace;
+        }
+        .main-btn:hover { background-color: #219150; }
+        
+        .secondary-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .btn-json {
+            padding: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: "Monaco", monospace;
+        }
+        .btn-json:hover { background-color: #2980b9; }
+
+        .info-box {
+            background: #e8f4fd;
+            padding: 15px;
+            border-left: 5px solid #3498db;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 0.85em;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Nájdi a označ položky v texte - generátor (viac úloh)</h1>
+
+    <div class="teacher-instruction">
+        <strong>Pokyn pre učiteľa ohľadom definovania položiek:</strong><br>
+        Označte v texte po jednom myšou všetky časti, ktoré musí žiak identifikovať ako položky, ktoré má nájsť. Po označení každej jednej položky kliknite na tlačidlo <b>Označiť ako položku (cieľ)</b>. Táto získa sivé pozadie.
+        Ak chcete niektorú položku zrušiť, kliknite na ňu dvakrát.<br>Tlačidlo <b>Vymazať formátovanie</b> vyčistí text po vložení z iných webových stránok.
+    </div>
+
+    <div class="config-panel">
+        <div class="form-group">
+            <label>Autor:</label>
+            <input type="text" id="author" placeholder="Mgr. Meno Priezvisko">
+        </div>
+        <div class="form-group">
+            <label>Rok:</label>
+            <input type="text" id="year" placeholder="2026">
+        </div>
+        <div class="form-group">
+            <label>Názov testu:</label>
+            <input type="text" id="title" placeholder="Názov testu">
+        </div>
+    </div>
+
+    <div id="tasks-container"></div>
+    <button type="button" class="add-task-btn" onclick="addTask()">+ Pridať ďalšiu úlohu</button>
+
+    <button type="button" class="main-btn" onclick="downloadExercise()">Stiahnuť test ako .html</button>
+    
+    <div class="secondary-btns">
+        <button type="button" class="btn-json" onclick="exportToJSON()">Exportovať nastavenia do súboru .json</button>
+        <button type="button" class="btn-json" onclick="document.getElementById('fileInput').click()">Importovať nastavenia zo súboru .json</button>
+    </div>
+    <input type="file" id="fileInput" style="display:none" accept=".json" onchange="importFromJSON(event)">
+
+    <div class="info-box">
+        Uložte si údaje zadané do vstupných polí generátora pomocou tlačidla <b>Exportovať nastavenia do súboru .json</b>. Po otvorení tohoto generátora v inom prehliadači alebo v inom počítači môžete tieto uložené údaje načítať znova pomocou tlačidla <b>Importovať nastavenia zo súboru .json</b>.
+    </div>
+
+    <footer>
+        Spracované pomocou UI: Mgr. Erika Matyiová (2026)
+    </footer>
+
+    <script>
+        const tasksContainer = document.getElementById('tasks-container');
+        const defaultInstruction = "Nájdi všetky podstatné mená. Klikni na ne myšou. Ak si rozmyslíš svoju voľbu, klikni na už označenú položku.";
+
+        // Initialize App
+        window.onload = () => {
+            document.getElementById('author').value = localStorage.getItem('gen_find_author') || '';
+            document.getElementById('year').value = localStorage.getItem('gen_find_year') || '';
+            document.getElementById('title').value = localStorage.getItem('gen_find_title') || '';
+            
+            const savedTasks = localStorage.getItem('gen_find_tasks');
+            if (savedTasks) {
+                try {
+                    const tasks = JSON.parse(savedTasks);
+                    if (tasks.length > 0) {
+                        tasks.forEach(t => addTask(t.inst, t.content));
+                        return;
+                    }
+                } catch(e) {}
+            }
+            // Add initial empty task if nothing is saved
+            addTask();
+        };
+
+        // Save metadata on input
+        ['author', 'year', 'title'].forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                localStorage.setItem('gen_find_' + id, e.target.value);
+            });
+        });
+
+        function saveTasksState() {
+            const tasks = [];
+            document.querySelectorAll('.task-card').forEach(card => {
+                tasks.push({
+                    inst: card.querySelector('.task-inst').value,
+                    content: card.querySelector('.editor').innerHTML
+                });
+            });
+            localStorage.setItem('gen_find_tasks', JSON.stringify(tasks));
+        }
+
+        function addTask(inst = defaultInstruction, content = "") {
+            // Bezpečnostná kontrola, ak je funkcia volaná udalosťou
+            if (typeof inst !== 'string') inst = defaultInstruction;
+            if (typeof content !== 'string') content = "";
+
+            const taskDiv = document.createElement('div');
+            taskDiv.className = 'task-card';
+            
+            taskDiv.innerHTML = `
+                <div class="task-card-header">
+                    <h3>Úloha</h3>
+                    <button type="button" class="remove-task-btn" onclick="removeTask(this)">Odstrániť úlohu</button>
+                </div>
+                <div class="form-group">
+                    <label>Pokyny pre žiaka:</label>
+                    <textarea class="task-inst" rows="2">${inst}</textarea>
+                </div>
+                <label>Text úlohy:</label>
+                <div class="toolbar">
+                    <button type="button" onclick="document.execCommand('bold', false, null)" title="Tučné"><b>B</b></button>
+                    <button type="button" onclick="document.execCommand('italic', false, null)" title="Kurzíva"><i>I</i></button>
+                    <button type="button" onclick="document.execCommand('underline', false, null)" title="Podčiarknuté"><u>U</u></button>
+                    <button type="button" onclick="clearFormatting(this)" title="Odstráni štýly po kopírovaní z webu (napr. farby pozadia)">Vymazať formátovanie</button>
+                    <div class="toolbar-spacer"></div>
+                    <button type="button" onclick="markTarget(this)" style="background: #d3d3d3; font-weight: bold;">Označiť ako položku (cieľ)</button>
+                </div>
+                <div class="editor" contenteditable="true">${content}</div>
+            `;
+            
+            const editor = taskDiv.querySelector('.editor');
+            const textarea = taskDiv.querySelector('.task-inst');
+            
+            editor.addEventListener('input', saveTasksState);
+            textarea.addEventListener('input', saveTasksState);
+            
+            // Double click to remove target
+            editor.addEventListener('dblclick', (e) => {
+                if (e.target.classList.contains('target')) {
+                    const parent = e.target.parentNode;
+                    while (e.target.firstChild) parent.insertBefore(e.target.firstChild, e.target);
+                    parent.removeChild(e.target);
+                    saveTasksState();
+                }
+            });
+
+            tasksContainer.appendChild(taskDiv);
+            updateTaskHeaders();
+            saveTasksState();
+        }
+
+        function removeTask(btn) {
+            const cards = document.querySelectorAll('.task-card');
+            if (cards.length <= 1) {
+                alert("Test musí obsahovať aspoň jednu úlohu.");
+                return;
+            }
+            btn.closest('.task-card').remove();
+            updateTaskHeaders();
+            saveTasksState();
+        }
+
+        function updateTaskHeaders() {
+            document.querySelectorAll('.task-card').forEach((card, index) => {
+                card.querySelector('h3').textContent = `Úloha ${index + 1}`;
+            });
+        }
+
+        // Vyčistenie nežiaduceho formátovania po vložení (zachová označené ciele)
+        function clearFormatting(btn) {
+    const editor = btn.closest('.task-card').querySelector('.editor');
+    
+    // 1. Uložíme si pozície a texty všetkých označených cieľov (target)
+    // Aby sme ich po prečistení mohli vrátiť späť
+    const savedTargets = [];
+    const targets = editor.querySelectorAll('.target');
+    targets.forEach(t => {
+        savedTargets.push(t.textContent);
+    });
+
+    // 2. Úplné prečistenie: Získame len čistý text bez akýchkoľvek HTML značiek
+    // Týmto sa zbavíme všetkých skrytých štýlov, farieb a div-ov z webu
+    let plainText = editor.innerText;
+
+    // 3. Vložíme čistý text späť do editora
+    editor.innerHTML = plainText;
+
+    // 4. Automaticky znovu označíme pôvodné ciele v čistom texte
+    // (Voliteľné: Ak chcete zachovať označenie aj po prečistení)
+    if (savedTargets.length > 0) {
+        let content = editor.innerHTML;
+        savedTargets.forEach(targetText => {
+            // Nahradíme čistý text verziou so spanom (len ak je to presná zhoda)
+            // Používame regulárny výraz na globálne nahradenie
+            const escapedTarget = targetText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp('(?<![a-zA-Záäčďéíĺľňóôŕśštúýž])' + escapedTarget + '(?![a-zA-Záäčďéíĺľňóôŕśštúýž])', 'g');
+            content = content.replace(regex, `<span class="target">${targetText}</span>`);
+        });
+        editor.innerHTML = content;
+    }
+    
+    saveTasksState();
+}
+
+        // Mark selection as target
+        function markTarget(btn) {
+            const selection = window.getSelection();
+            if (!selection.rangeCount || selection.isCollapsed) return;
+            
+            const taskCard = btn.closest('.task-card');
+            const editor = taskCard.querySelector('.editor');
+            
+            // Check if we are inside the correct editor
+            let inEditor = false;
+            let node = selection.anchorNode;
+            while(node) {
+                if(node === editor) {
+                    inEditor = true;
+                    break;
+                }
+                node = node.parentNode;
+            }
+            
+            if(!inEditor) {
+                alert("Kurzor a výber musia byť vo vnútri textu tejto konkrétnej úlohy.");
+                return;
+            }
+
+            const range = selection.getRangeAt(0);
+            const span = document.createElement('span');
+            span.className = 'target';
+            
+            try {
+                range.surroundContents(span);
+            } catch (e) {
+                alert("Výber je príliš komplexný. Skúste označiť text bez okolitých prázdnych znakov.");
+            }
+            saveTasksState();
+            selection.removeAllRanges();
+        }
+
+        // JSON functions
+        function exportToJSON() {
+            const tasks = [];
+            document.querySelectorAll('.task-card').forEach(card => {
+                tasks.push({
+                    inst: card.querySelector('.task-inst').value,
+                    content: card.querySelector('.editor').innerHTML
+                });
+            });
+
+            const data = {
+                author: document.getElementById('author').value,
+                year: document.getElementById('year').value,
+                title: document.getElementById('title').value,
+                tasks: tasks
+            };
+            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'nastavenia_testu.json';
+            a.click();
+        }
+
+        function importFromJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.author !== undefined) document.getElementById('author').value = data.author;
+                    if (data.year !== undefined) document.getElementById('year').value = data.year;
+                    if (data.title !== undefined) document.getElementById('title').value = data.title;
+                    
+                    if (data.tasks && Array.isArray(data.tasks)) {
+                        tasksContainer.innerHTML = '';
+                        data.tasks.forEach(t => addTask(t.inst, t.content));
+                    }
+                    saveTasksState();
+                    ['author', 'year', 'title'].forEach(id => localStorage.setItem('gen_find_' + id, document.getElementById(id).value));
+                } catch (err) { alert("Chyba pri čítaní súboru."); }
+            };
+            reader.readAsText(file);
+        }
+
+        function getSafeFilename(text) {
+            if (!text) return "test_polozky.html";
+            return text.toLowerCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-z0-9]/g, "_")
+                .replace(/_+/g, "_") + ".html";
+        }
+
+        // GENERATE STUDENT FILE
+        function downloadExercise() {
+            const title = document.getElementById('title').value || "Test: Nájdi položky";
+            const author = document.getElementById('author').value || "Neznámy";
+            const year = document.getElementById('year').value || "2026";
+            
+            const tasks = [];
+            document.querySelectorAll('.task-card').forEach(card => {
+                tasks.push({
+                    inst: card.querySelector('.task-inst').value,
+                    content: card.querySelector('.editor').innerHTML
+                });
+            });
+
+            if(tasks.length === 0) {
+                alert("Pridajte aspoň jednu úlohu.");
+                return;
+            }
+
+            const tasksJSON = JSON.stringify(tasks).replace(/</g, '\\u003c'); // Escape HTML tags safely for JSON embedding
+
+            const studentHtml = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <style>
+        body { font-family: "Monaco", monospace; background: #f4f7f6; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; margin-bottom: 5px; text-align: center; }
+        .meta { color: #7f8c8d; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 10px; text-align: center; }
+        
+        #start-area { text-align: center; padding: 40px 0; }
+        .input-group { margin: 15px auto; max-width: 300px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .input-control { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-family: "Monaco", monospace; box-sizing: border-box; }
+        
+        .btn { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-family: "Monaco", monospace; font-size: 1em; }
+        .btn-green { background: #27ae60; color: white; }
+        .btn-green:hover { background: #219150; }
+        .btn-blue { background: #3498db; color: white; margin-top: 15px; }
+        .btn-blue:hover { background: #2980b9; }
+        
+        #exercise-area { display: none; }
+        
+        .task-page { display: none; }
+        .task-page.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .instructions { background: #fff8e1; padding: 15px; border-left: 5px solid #ffc107; margin-bottom: 20px; border-radius: 0 4px 4px 0;}
+        .text-box { line-height: 2.5; font-size: 1.15em; margin-bottom: 30px; padding: 15px; border: 1px solid #eee; border-radius: 5px; background: #fafafa; }
+        
+        /* Interactive items */
+        .item { cursor: pointer; border-radius: 3px; transition: 0.2s; padding: 2px 1px; }
+        .item:hover { background: #e0e0e0; }
+        .selected { background-color: #d3d3d3 !important; }
+        
+        /* Feedback colors */
+        .correct { background-color: #c8e6c9 !important; border-bottom: 2px solid #2e7d32; }
+        .incorrect { background-color: #ffcdd2 !important; border-bottom: 2px solid #c62828; }
+        .missed { background-color: #ffe0b2 !important; border-bottom: 2px solid #ef6c00; }
+        
+        /* Navigation Controls */
+        .nav-controls { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 2px dashed #eee; }
+        .nav-squares { display: flex; justify-content: center; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
+        .nav-square {
+            width: 35px; height: 35px; border-radius: 4px; border: none; background: #e0e0e0; 
+            font-weight: bold; cursor: pointer; font-family: "Monaco", monospace; transition: 0.2s;
+        }
+        .nav-square:hover { background: #ccc; }
+        .nav-square.current { border: 2px solid #333; transform: scale(1.1); }
+        .nav-square.solved { background-color: #add8e6; color: #000; } /* Svetlomodré pozadie */
+
+        .legend { font-size: 0.85em; margin: 20px 0; display: none; padding: 10px; background: #f9f9f9; border-radius: 5px; text-align: center; }
+        #summary { display: none; padding: 20px; border-top: 2px solid #eee; margin-top: 20px; background: #fdfdfd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>${title}</h1>
+        <div class="meta">${author} | ${year}</div>
+
+        <div id="start-area">
+            <div class="input-group">
+                <label>Meno žiaka:</label>
+                <input type="text" id="studentName" class="input-control" placeholder="Zadaj svoje meno...">
+            </div>
+            <div class="input-group">
+                <label>Počet úloh v teste:</label>
+                <input type="number" id="numTasksInput" class="input-control" value="MAX_TASKS" min="1" max="MAX_TASKS">
+            </div>
+            <button type="button" class="btn btn-green" onclick="startApp()" style="margin-top: 20px;">Spustiť test</button>
+        </div>
+
+        <div id="exercise-area">
+            <div id="tasks-wrapper"></div>
+            
+            <div class="nav-controls" id="nav-controls">
+                <button type="button" id="btnNext" class="btn btn-blue" onclick="navigate(1)">Ďalej</button>
+                <button type="button" id="btnEval" class="btn btn-green" style="display:none;" onclick="evaluateExercise()">Vyhodnotiť</button>
+                <div class="nav-squares" id="navSquares"></div>
+            </div>
+
+            <div class="legend" id="legend">
+                <strong>Vysvetlivky:</strong><br>
+                <span class="correct">správna odpoveď</span> | 
+                <span class="incorrect">nesprávna odpoveď</span> | 
+                <span class="missed">neoznačená odpoveď (chýbala)</span>
+            </div>
+
+            <div id="summary"></div>
+            <div style="text-align: center;">
+                <button type="button" id="detailBtn" class="btn btn-blue" style="display:none" onclick="showDetails()">Detailné výsledky</button>
+            </div>
+        </div>
+    </div>
+
+    <script id="task-data" type="application/json">
+        ${tasksJSON}
+    <\/script>
+
+    <script>
+        let allTasksData = JSON.parse(document.getElementById('task-data').textContent);
+        document.getElementById('numTasksInput').value = allTasksData.length;
+        document.getElementById('numTasksInput').max = allTasksData.length;
+
+        let activeTasks = [];
+        let currentIndex = 0;
+        let isDone = false;
+
+        function startApp() {
+            const num = parseInt(document.getElementById('numTasksInput').value, 10);
+            if(num < 1 || num > allTasksData.length) {
+                alert("Neplatný počet úloh.");
+                return;
+            }
+
+            document.getElementById('start-area').style.display = 'none';
+            document.getElementById('exercise-area').style.display = 'block';
+            
+            // Shuffle and slice tasks
+            let shuffled = [...allTasksData].sort(() => 0.5 - Math.random());
+            activeTasks = shuffled.slice(0, num);
+
+            buildTasks();
+        }
+
+        function buildTasks() {
+            const wrapper = document.getElementById('tasks-wrapper');
+            const squares = document.getElementById('navSquares');
+            wrapper.innerHTML = '';
+            squares.innerHTML = '';
+
+            activeTasks.forEach((task, index) => {
+                // Task container
+                const div = document.createElement('div');
+                div.className = 'task-page';
+                div.id = 'task-page-' + index;
+                div.innerHTML = \`
+                    <div class="instructions"><strong>Úloha \${index + 1}:</strong> \${task.inst}</div>
+                    <div class="text-box">\${task.content}</div>
+                \`;
+                wrapper.appendChild(div);
+
+                prepareText(div.querySelector('.text-box'), index);
+
+                // Nav Square
+                const sq = document.createElement('button');
+                sq.type = 'button';
+                sq.className = 'nav-square';
+                sq.id = 'sq-' + index;
+                sq.textContent = index + 1;
+                sq.onclick = () => showTask(index);
+                squares.appendChild(sq);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if(isDone) return;
+                if(e.key === 'ArrowRight' && currentIndex < activeTasks.length - 1) navigate(1);
+                if(e.key === 'ArrowLeft' && currentIndex > 0) navigate(-1);
+            });
+
+            showTask(0);
+        }
+
+        function prepareText(box, taskIndex) {
+            // Label existing targets
+            const targets = box.querySelectorAll('.target');
+            targets.forEach(t => {
+                t.classList.add('item');
+                t.dataset.isTarget = "true";
+            });
+
+            // Wrap words
+            wrapWords(box);
+
+            // Add events
+            box.querySelectorAll('.item').forEach(el => {
+                el.onclick = function() { 
+                    if(!isDone) {
+                        this.classList.toggle('selected'); 
+                        updateSquareStatus(taskIndex);
+                    }
+                };
+                el.ondblclick = function() { 
+                    if(!isDone) {
+                        this.classList.remove('selected'); 
+                        updateSquareStatus(taskIndex);
+                    }
+                };
+            });
+        }
+
+        function wrapWords(parent) {
+            const nodes = Array.from(parent.childNodes);
+            nodes.forEach(node => {
+                if (node.nodeType === 3) { 
+                    const text = node.textContent;
+                    if (text.trim().length === 0) return;
+                    
+                    const fragment = document.createDocumentFragment();
+                    const parts = text.split(/(\\s+)/);
+                    parts.forEach(p => {
+                        if (p.trim().length > 0) {
+                            const span = document.createElement('span');
+                            span.className = 'item';
+                            span.textContent = p;
+                            fragment.appendChild(span);
+                        } else {
+                            fragment.appendChild(document.createTextNode(p));
+                        }
+                    });
+                    parent.replaceChild(fragment, node);
+                } else if (node.nodeType === 1 && !node.classList.contains('target')) {
+                    wrapWords(node);
+                }
+            });
+        }
+
+        function updateSquareStatus(taskIndex) {
+            const taskDiv = document.getElementById('task-page-' + taskIndex);
+            const sq = document.getElementById('sq-' + taskIndex);
+            const hasSelection = taskDiv.querySelectorAll('.selected').length > 0;
+            if(hasSelection) {
+                sq.classList.add('solved');
+            } else {
+                sq.classList.remove('solved');
+            }
+        }
+
+        function showTask(index) {
+            if(isDone) return;
+            // Hide current
+            document.querySelectorAll('.task-page').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-square').forEach(el => el.classList.remove('current'));
+            
+            currentIndex = index;
+            
+            // Show new
+            document.getElementById('task-page-' + currentIndex).classList.add('active');
+            document.getElementById('sq-' + currentIndex).classList.add('current');
+
+            // Manage buttons
+            const btnNext = document.getElementById('btnNext');
+            const btnEval = document.getElementById('btnEval');
+
+            if(currentIndex === activeTasks.length - 1) {
+                btnNext.style.display = 'none';
+                btnEval.style.display = 'inline-block';
+            } else {
+                btnNext.style.display = 'inline-block';
+                btnEval.style.display = 'none';
+            }
+        }
+
+        function navigate(dir) {
+            const newIndex = currentIndex + dir;
+            if(newIndex >= 0 && newIndex < activeTasks.length) {
+                showTask(newIndex);
+            }
+        }
+
+        function evaluateExercise() {
+            isDone = true;
+            let totalCorrect = 0;
+            let totalTargetsCount = 0;
+
+            const tasksStats = [];
+
+            // Hide normal nav controls, keep squares but disable them
+            document.getElementById('btnNext').style.display = 'none';
+            document.getElementById('btnEval').style.display = 'none';
+            document.querySelectorAll('.nav-square').forEach(sq => { sq.style.cursor = 'default'; sq.onclick = null; });
+            
+            // Show all tasks for review
+            document.querySelectorAll('.task-page').forEach(el => {
+                el.classList.add('active');
+                el.style.borderBottom = "3px dashed #ccc";
+                el.style.paddingBottom = "20px";
+                el.style.marginBottom = "30px";
+            });
+            document.getElementById('navSquares').style.display = 'none';
+
+            activeTasks.forEach((task, idx) => {
+                const taskDiv = document.getElementById('task-page-' + idx);
+                const items = taskDiv.querySelectorAll('.item');
+                
+                let taskCorrect = 0;
+                let taskTargets = taskDiv.querySelectorAll('.item[data-is-target="true"]').length;
+                let taskWrong = 0;
+                
+                let detailTargets = [];
+                let detailStudent = [];
+                let detailMissed = [];
+
+                items.forEach(el => {
+                    const isTarget = el.dataset.isTarget === "true";
+                    const isSelected = el.classList.contains('selected');
+
+                    if(isTarget) detailTargets.push(el.textContent.trim());
+
+                    if (isSelected && isTarget) {
+                        el.classList.add('correct');
+                        taskCorrect++;
+                        detailStudent.push({txt: el.textContent.trim(), status: true});
+                    } else if (isSelected && !isTarget) {
+                        el.classList.add('incorrect');
+                        taskWrong++;
+                        detailStudent.push({txt: el.textContent.trim(), status: false});
+                    } else if (!isSelected && isTarget) {
+                        el.classList.add('missed');
+                        detailMissed.push(el.textContent.trim());
+                    }
+                    el.classList.remove('selected');
+                });
+
+                totalCorrect += taskCorrect;
+                totalTargetsCount += taskTargets;
+
+                tasksStats.push({
+                    title: "Úloha " + (idx + 1),
+                    allTargets: detailTargets,
+                    studentChoices: detailStudent,
+                    missed: detailMissed,
+                    score: \`\${taskCorrect} z \${taskTargets}\`
+                });
+            });
+
+            const percent = totalTargetsCount > 0 ? Math.round((totalCorrect / totalTargetsCount) * 100) : 0;
+            const studentName = document.getElementById('studentName').value || "XY";
+            const date = new Date();
+            const timestamp = date.toLocaleDateString('sk-SK') + ", " + date.toLocaleTimeString('sk-SK', {hour:'2-digit', minute:'2-digit'});
+
+            const summary = document.getElementById('summary');
+            summary.style.display = 'block';
+            summary.innerHTML = \`
+                <strong>Meno žiaka:</strong> \${studentName}<br>
+                <strong>Celkové hodnotenie:</strong> \${totalCorrect} z \${totalTargetsCount} (\${percent}%)<br>
+                <strong>Dátum a čas:</strong> \${timestamp}
+            \`;
+
+            document.getElementById('legend').style.display = 'block';
+            document.getElementById('detailBtn').style.display = 'inline-block';
+
+            // Data for detailed view
+            window.resData = {
+                title: "${title}",
+                name: studentName,
+                stats: \`\${totalCorrect} z \${totalTargetsCount} (\${percent}%)\`,
+                time: timestamp,
+                tasks: tasksStats
+            };
+        }
+
+        function showDetails() {
+            const d = window.resData;
+            const win = window.open('', '_blank');
+            
+            let tasksHtml = d.tasks.map(t => \`
+                <h3>\${t.title} (Úspešnosť: \${t.score})</h3>
+                <p><strong>Správne odpovede:</strong><br>\${t.allTargets.join(', ') || 'Žiadne'}</p>
+                <p><strong>Odpovede žiaka:</strong><br>
+                \${t.studentChoices.map(c => \`<div><span class="\${c.status ? 'tick':'cross'}">\${c.status ? '✓' : '✗'}</span> \${c.txt}</div>\`).join('') || 'Žiadne'}
+                </p>
+                <p><strong>Neoznačené (chýbajúce) položky:</strong><br>
+                \${t.missed.map(m => \`<div><span class="warn">!</span> \${m}</div>\`).join('') || 'Žiadne'}
+                </p>
+                <hr>
+            \`).join('');
+
+            win.document.write(\`
+                <html>
+                <head>
+                    <title>Detailné výsledky</title>
+                    <style>
+                        body { font-family: "Monaco", monospace; padding: 30px; line-height: 1.6; }
+                        h2 { border-bottom: 2px solid #333; padding-bottom: 5px; }
+                        h3 { color: #2c3e50; margin-top: 30px; }
+                        .tick { color: green; font-weight: bold; }
+                        .cross { color: red; font-weight: bold; }
+                        .warn { color: orange; font-weight: bold; }
+                        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+                        @media print { .no-print { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    <h2>Test: \${d.title}</h2>
+                    <p><strong>Meno žiaka:</strong> \${d.name}</p>
+                    <p><strong>Celkové hodnotenie:</strong> \${d.stats}</p>
+                    <p><strong>Dátum a čas:</strong> \${d.time}</p>
+                    
+                    <hr>
+                    <h2>Detailný prehľad podľa úloh</h2>
+                    \${tasksHtml}
+
+                    <p>Vysvetlivky symbolov:<br> ✓ správne | ✗ nesprávne | ! chýbajúce</p>
+                    <button class="no-print" onclick="window.print()" style="padding:10px; background:#3498db; color:white; border:none; cursor:pointer; font-family:'Monaco', monospace;">Vytlačiť (Ctrl + P)</button>
+                </body>
+                </html>
+            \`);
+            win.document.close();
+        }
+    <\/script>
+</body>
+</html>`.replace(/MAX_TASKS/g, tasks.length);
+
+            const blob = new Blob([studentHtml], {type: 'text/html'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = getSafeFilename(title);
+            a.click();
+        }
+    </script>
+</body>
+</html>

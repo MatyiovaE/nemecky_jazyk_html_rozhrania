@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor časovej osi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+        h1.main-title {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 40px;
+            width: 100%;
+        }
+
+        /* Sekcia ovládania */
+        .controls-container {
+            flex: 1;
+            max-width: 500px; /* Mierne zväčšené pre nové pole */
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 14px;
+        }
+
+        .setting-item input, .setting-item select {
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .period-entry {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .period-entry input[type="number"] {
+            width: 65px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .period-entry input[type="color"] {
+            padding: 0;
+            width: 35px;
+            height: 30px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+
+        .hex-input {
+            width: 75px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+            text-transform: uppercase;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-remove { background-color: #ff4d4d; color: white; }
+        .btn-add { background-color: #4CAF50; color: white; width: 100%; margin-bottom: 15px; }
+        .btn-generate { background-color: #008CBA; color: white; width: 100%; font-size: 16px; padding: 12px; margin-bottom: 15px; }
+        .btn-download { background-color: #9c27b0; color: white; width: 100%; font-size: 16px; padding: 12px; }
+        .btn-export { background-color: #607D8B; color: white; width: 100%; padding: 10px; }
+        .btn-import { background-color: #795548; color: white; width: 100%; padding: 10px; }
+
+        .action-buttons-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* Sekcia samotnej osi */
+        .timeline-container {
+            flex: 2;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-y: auto;
+        }
+
+        #export-area {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        #timeline {
+            display: flex;
+            flex-direction: column;
+            min-width: 350px;
+        }
+
+        .timeline-row {
+            display: flex;
+            width: 100%;
+            align-items: center;
+        }
+
+        .gap-row { width: 100%; }
+
+        .label-left {
+            flex: 1;
+            text-align: right;
+            padding-right: 15px;
+            box-sizing: border-box;
+        }
+
+        .color-block {
+            flex: none;
+        }
+
+        .label-right {
+            flex: 1;
+            text-align: left;
+            padding-left: 15px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="main-title">Generátor časovej osi s vymedzenými obdobiami</h1>
+
+    <div class="main-container">
+        <div class="controls-container">
+            <h2>Nastavenia časovej osi</h2>
+            
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label for="scale">Výška 1 roka (px):</label>
+                    <input type="number" id="scale" value="15" min="5" max="50">
+                </div>
+                <div class="setting-item">
+                    <label for="axis-width">Šírka osi (px):</label>
+                    <input type="number" id="axis-width" value="80" min="20" max="300">
+                </div>
+                <div class="setting-item">
+                    <label for="font-size">Veľkosť písma (px):</label>
+                    <input type="number" id="font-size" value="14" min="8" max="36">
+                </div>
+                <div class="setting-item">
+                    <label for="font-weight">Hrúbka písma:</label>
+                    <select id="font-weight">
+                        <option value="normal">Normálne</option>
+                        <option value="bold" selected>Tučné (Bold)</option>
+                        <option value="900">Veľmi tučné</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="periods-list"></div>
+
+            <button class="btn btn-add" onclick="addPeriodRow()">+ Pridať ďalšie obdobie</button>
+            <button class="btn btn-generate" onclick="generateTimeline()">🔄 Aktualizovať os</button>
+            
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+            
+            <div class="action-buttons-grid">
+                <button class="btn btn-export" onclick="exportJSON()">💾 Export (.json)</button>
+                <button class="btn btn-import" onclick="document.getElementById('import-file').click()">📂 Import (.json)</button>
+                <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importJSON(event)">
+            </div>
+
+            <button class="btn btn-download" onclick="downloadImage()">⬇️ Stiahnuť ako obrázok (.png)</button>
+        </div>
+
+        <div class="timeline-container">
+            <div id="export-area">
+                <div id="timeline"></div>
+            </div>
+        </div>
+	
+    </div>
+
+    <script>
+        const defaultData = [
+            { start: 1918, end: 1935, color: '#76b7b2' },
+            { start: 1935, end: 1938, color: '#ffff9d' },
+            { start: 1945, end: 1948, color: '#9f9ec2' },
+            { start: 1948, end: 1953, color: '#f5645a' },
+            { start: 1953, end: 1957, color: '#6696c8' },
+            { start: 1957, end: 1960, color: '#ff9f43' },
+            { start: 1960, end: 1968, color: '#a0d454' },
+            { start: 1968, end: 1975, color: '#fbc2e4' },
+            { start: 1975, end: 1989, color: '#c9caca' },
+            { start: 1989, end: 1990, color: '#9e6da0' },
+            { start: 1990, end: 1992, color: '#bfe5b3' }
+        ];
+
+        const periodsList = document.getElementById('periods-list');
+
+        function addPeriodRow(start = '', end = '', color = '#cccccc') {
+            const row = document.createElement('div');
+            row.className = 'period-entry';
+            row.innerHTML = `
+                <input type="number" class="start-year" placeholder="Od" value="${start}" required>
+                <span>-</span>
+                <input type="number" class="end-year" placeholder="Do" value="${end}" required>
+                <input type="color" class="period-color" value="${color}" oninput="this.nextElementSibling.value = this.value">
+                <input type="text" class="hex-input" value="${color}" maxlength="7" oninput="updateColorFromHex(this)">
+                <button class="btn btn-remove" onclick="this.parentElement.remove()">X</button>
+            `;
+            periodsList.appendChild(row);
+        }
+
+        function updateColorFromHex(hexInput) {
+            let val = hexInput.value;
+            // Ak chýba mriežka, doplníme
+            if (val.length > 0 && val[0] !== '#') {
+                val = '#' + val;
+                hexInput.value = val;
+            }
+            // Ak je kód validný (7 znakov vrátane #), aktualizujeme color picker
+            if (/^#[0-9A-F]{6}$/i.test(val)) {
+                hexInput.previousElementSibling.value = val;
+            }
+        }
+
+        function initForm() {
+            defaultData.forEach(data => addPeriodRow(data.start, data.end, data.color));
+            generateTimeline();
+        }
+
+        function generateTimeline() {
+            const timelineDiv = document.getElementById('timeline');
+            timelineDiv.innerHTML = ''; 
+
+            const scale = parseInt(document.getElementById('scale').value) || 15;
+            const axisWidth = parseInt(document.getElementById('axis-width').value) || 80;
+            const fontSize = parseInt(document.getElementById('font-size').value) || 14;
+            const fontWeight = document.getElementById('font-weight').value;
+
+            const rows = document.querySelectorAll('.period-entry');
+            let periods = [];
+
+            rows.forEach(row => {
+                const start = parseInt(row.querySelector('.start-year').value);
+                const end = parseInt(row.querySelector('.end-year').value);
+                const color = row.querySelector('.period-color').value;
+
+                if (!isNaN(start) && !isNaN(end) && end >= start) {
+                    periods.push({ start, end, color });
+                }
+            });
+
+            periods.sort((a, b) => a.start - b.start);
+
+            let lastEndYear = null;
+            let labelSide = 'left';
+
+            const textStyle = `font-size: ${fontSize}px; font-weight: ${fontWeight};`;
+
+            periods.forEach(period => {
+                if (lastEndYear !== null && period.start > lastEndYear) {
+                    const gapYears = period.start - lastEndYear;
+                    const gapDiv = document.createElement('div');
+                    gapDiv.className = 'gap-row';
+                    gapDiv.style.height = (gapYears * scale) + 'px';
+                    timelineDiv.appendChild(gapDiv);
+                }
+
+                const duration = period.end - period.start;
+                const height = Math.max(duration * scale, scale); 
+
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'timeline-row';
+                
+                const colorBlock = `<div class="color-block" style="background-color: ${period.color}; height: ${height}px; width: ${axisWidth}px;"></div>`;
+                const labelText = `${period.start}–${period.end}`;
+
+                if (labelSide === 'left') {
+                    rowDiv.innerHTML = `
+                        <div class="label-left" style="${textStyle}">${labelText}</div>
+                        ${colorBlock}
+                        <div class="label-right"></div>
+                    `;
+                    labelSide = 'right';
+                } else {
+                    rowDiv.innerHTML = `
+                        <div class="label-left"></div>
+                        ${colorBlock}
+                        <div class="label-right" style="${textStyle}">${labelText}</div>
+                    `;
+                    labelSide = 'left';
+                }
+
+                timelineDiv.appendChild(rowDiv);
+                lastEndYear = period.end;
+            });
+        }
+
+        function downloadImage() {
+            generateTimeline(); 
+            const exportArea = document.getElementById('export-area');
+            
+            html2canvas(exportArea, {
+                backgroundColor: "#ffffff",
+                scale: 2 
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'casova-os.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        function exportJSON() {
+            const settings = {
+                scale: document.getElementById('scale').value,
+                axisWidth: document.getElementById('axis-width').value,
+                fontSize: document.getElementById('font-size').value,
+                fontWeight: document.getElementById('font-weight').value,
+                periods: []
+            };
+
+            const rows = document.querySelectorAll('.period-entry');
+            rows.forEach(row => {
+                settings.periods.push({
+                    start: row.querySelector('.start-year').value,
+                    end: row.querySelector('.end-year').value,
+                    color: row.querySelector('.period-color').value
+                });
+            });
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "nastavenia-osi.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const settings = JSON.parse(e.target.result);
+                    
+                    if(settings.scale) document.getElementById('scale').value = settings.scale;
+                    if(settings.axisWidth) document.getElementById('axis-width').value = settings.axisWidth;
+                    if(settings.fontSize) document.getElementById('font-size').value = settings.fontSize;
+                    if(settings.fontWeight) document.getElementById('font-weight').value = settings.fontWeight;
+
+                    if(settings.periods && Array.isArray(settings.periods)) {
+                        document.getElementById('periods-list').innerHTML = ''; 
+                        settings.periods.forEach(p => addPeriodRow(p.start, p.end, p.color));
+                    }
+                    
+                    generateTimeline();
+                } catch (error) {
+                    alert("Chyba pri čítaní súboru: Neplatný formát JSON.");
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        initForm();
+    </script>
+    <br><br>
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+    <br><br>
+</body>
+</html>

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor testu s MC - PL (+ Riešenia)</title>
+  <style>
+    /* Základný štýl stránky */
+    body { font-family: Courier bold, monospace; font-size: 100%; padding: 20px; max-width: 1100px; margin: 0 auto; line-height: 1.4; background-color: #fcfcfc; }
+    h1, h2, h3 { color: #2c3e50; }
+    
+    .section-block { margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+    
+    textarea { width: 100%; box-sizing: border-box; font-family: Courier bold, monospace; font-size: 120%; border: 1px solid #aaa; border-radius: 4px; padding: 8px; }
+    input[type="text"], input[type="number"] { padding: 5px; border: 1px solid #aaa; border-radius: 4px; }
+    select { padding: 5px; border: 1px solid #aaa; border-radius: 4px; }
+    
+    button { cursor: pointer; padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 1rem; margin-right: 5px; margin-bottom: 5px; font-family: inherit; }
+    button:hover { background-color: #0056b3; }
+
+    /* RTF Sekcia */
+    .rtf-settings { background-color: #e9ecef; padding: 15px; border-radius: 8px; border: 2px solid #dee2e6; margin-top: 10px; }
+    .grade-table { border-collapse: collapse; width: 100%; max-width: 400px; margin-bottom: 10px; background: white; }
+    .grade-table td, .grade-table th { border: 1px solid #999; padding: 5px; text-align: center; font-size: 0.9em; }
+    .grade-table input { width: 50px; text-align: center; }
+    
+    .input-group { margin-bottom: 10px; }
+    .input-group label { font-weight: bold; display: block; margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+<h1>Generátor testu MC (na tlač + riešenia)</h1>
+
+<div style="margin-bottom: 20px;">
+    <button onclick="exportJSON()" style="background-color: #28a745; font-weight: bold; color: white;">💾 Exportovať nastavenia (.json)</button>
+    <button onclick="document.getElementById('importFile').click()" style="background-color: #17a2b8; font-weight: bold; color: white;">📂 Importovať nastavenia (.json)</button>
+    <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(event)">
+</div>
+
+<div class="section-block">
+    <h2>1. Vstupné údaje</h2>
+    <p style="font-size: 1.1em; color: #555;">
+      Formát: <span style="color: blue;">zadanie</span>[TAB]<span style="color: green;">správna odpoveď</span>[TAB]<span style="color: darkred;">distraktor 1</span>[TAB]<span style="color: darkred;">distraktor 2</span>[TAB]<span style="color: darkred;">distraktor 3 (nepovinný)</span>
+    </p>
+    <textarea id="inputData" rows="12" placeholder="pojem[TAB]definícia[TAB]distraktor 1[TAB]distraktor 2" spellcheck="false"></textarea>
+    
+    <div style="margin-top: 15px;">
+      <b>Názov súboru:</b><br>
+      <input type="text" id="fileName" placeholder="Test_SK_slovicka" style="width: 60%;">
+      <input type="text" id="testTitle" placeholder="Nadpis (napr. Test z Biológie)" style="width: 60%; margin-top: 5px;">
+    </div>
+    
+    <div style="margin-top: 10px;">
+      <b>Počet otázok:</b> <input type="number" id="questionCount" min="1" value="16" style="width: 60px;">
+    </div>
+</div>
+
+<div class="section-block">
+    <h2>2. RTF Nastavenia (Pre tlač)</h2>
+    <div class="rtf-settings">
+        <div class="input-group">
+            <label>Počet variantov (skupín):</label>
+            <input type="number" id="rtfVariants" min="1" max="10" value="2" style="width: 50px;">
+        </div>
+        
+        <div class="input-group">
+            <label>Rozloženie otázok (stĺpce):</label>
+            <select id="rtfColumns">
+                <option value="1">1 stĺpec (pod sebou)</option>
+                <option value="2" selected>2 stĺpce</option>
+                <option value="3">3 stĺpce</option>
+            </select>
+        </div>
+        
+        <div class="input-group">
+            <label>Pokyny pre žiaka:</label>
+            <textarea id="rtfInstructions" rows="3">Zakrúžkuj správne riešenie. Pri opravovaní zafarbi nesprávne riešenie a zakrúžkuj iné riešenie, ktoré považuješ za správne.</textarea>
+        </div>
+    </div>
+</div>
+
+<div class="rtf-settings" style="margin-top: 10px;">
+    <div class="input-group">
+        <label>Tabuľka hodnotenia:</label>
+        <table class="grade-table">
+                <tr><th>Známka</th><th colspan="2">Počet percent</th></tr>
+                <tr><td>1</td><td><input type="number" id="g1max" value="100"></td><td><input type="number" id="g1min" value="90"></td></tr>
+                <tr><td>2</td><td><input type="number" id="g2max" value="89"></td><td><input type="number" id="g2min" value="75"></td></tr>
+                <tr><td>3</td><td><input type="number" id="g3max" value="74"></td><td><input type="number" id="g3min" value="50"></td></tr>
+                <tr><td>4</td><td><input type="number" id="g4max" value="49"></td><td><input type="number" id="g4min" value="30"></td></tr>
+                <tr><td>5</td><td><input type="number" id="g5max" value="29"></td><td><input type="number" id="g5min" value="0"></td></tr>
+        </table>
+        <label><input type="checkbox" id="includeGradeTable" checked> Zobraziť tabuľku</label>
+    </div>
+    <button onclick="generateRTF()" style="background-color: #6f42c1; font-weight: bold; color: white;">📄 Stiahnuť Pracovný list (.rtf)</button>
+</div>
+
+<script>
+    /* --- JSON EXPORT / IMPORT FUNKCIE --- */
+    function exportJSON() {
+        const settings = {
+            inputData: document.getElementById("inputData").value,
+            fileName: document.getElementById("fileName").value,
+            testTitle: document.getElementById("testTitle").value,
+            questionCount: document.getElementById("questionCount").value,
+            rtfVariants: document.getElementById("rtfVariants").value,
+            rtfColumns: document.getElementById("rtfColumns").value,
+            rtfInstructions: document.getElementById("rtfInstructions").value,
+            g1max: document.getElementById("g1max").value,
+            g1min: document.getElementById("g1min").value,
+            g2max: document.getElementById("g2max").value,
+            g2min: document.getElementById("g2min").value,
+            g3max: document.getElementById("g3max").value,
+            g3min: document.getElementById("g3min").value,
+            g4max: document.getElementById("g4max").value,
+            g4min: document.getElementById("g4min").value,
+            g5max: document.getElementById("g5max").value,
+            g5min: document.getElementById("g5min").value,
+            includeGradeTable: document.getElementById("includeGradeTable").checked
+        };
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings, null, 2));
+        const a = document.createElement('a');
+        let fname = normalizeFilename(document.getElementById("testTitle").value) || "nastavenia";
+        a.setAttribute("href", dataStr);
+        a.setAttribute("download", fname + "_zaloha.json");
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    function importJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const settings = JSON.parse(e.target.result);
+                
+                const setText = (id, val) => { if(val !== undefined && document.getElementById(id)) document.getElementById(id).value = val; };
+                const setCheck = (id, val) => { if(val !== undefined && document.getElementById(id)) document.getElementById(id).checked = val; };
+
+                setText("inputData", settings.inputData);
+                setText("fileName", settings.fileName);
+                setText("testTitle", settings.testTitle);
+                setText("questionCount", settings.questionCount);
+                setText("rtfVariants", settings.rtfVariants);
+                setText("rtfColumns", settings.rtfColumns);
+                setText("rtfInstructions", settings.rtfInstructions);
+                
+                setText("g1max", settings.g1max); setText("g1min", settings.g1min);
+                setText("g2max", settings.g2max); setText("g2min", settings.g2min);
+                setText("g3max", settings.g3max); setText("g3min", settings.g3min);
+                setText("g4max", settings.g4max); setText("g4min", settings.g4min);
+                setText("g5max", settings.g5max); setText("g5min", settings.g5min);
+                
+                setCheck("includeGradeTable", settings.includeGradeTable);
+
+                localStorage.setItem("inputData", document.getElementById("inputData").value);
+
+            } catch (error) {
+                console.error("Chyba pri načítaní súboru: ", error);
+            }
+            event.target.value = "";
+        };
+        reader.readAsText(file);
+    }
+
+    /* --- SPOLOČNÉ FUNKCIE --- */
+    function shuffle(array) {
+      const arr = array.slice();
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function parseInput() {
+      const input = document.getElementById("inputData").value.trim();
+      if(!input) return [];
+      const lines = input.split("\n");
+      const allQuestions = [];
+
+      for (let line of lines) {
+        const parts = line.split("\t");
+        if (parts.length < 2) continue;
+
+        const term = parts[0].trim();
+        const correct = parts[1].trim();
+        const distractors = parts.slice(2).map(d => d.trim()).filter(d => d !== "");
+        
+        allQuestions.push({ term, correct, distractors });
+      }
+      return allQuestions;
+    }
+    
+    function normalizeFilename(text) {
+        return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9-_ ]/g, "").replace(/\s+/g, "_");
+    }
+
+    /* --- RTF EXPORT --- */
+    
+    const CEE_CHAR_MAP = {
+        'Á': "\\'c1", 'á': "\\'e1", 'Č': "\\'c8", 'č': "\\'e8", 'Ď': "\\'cf", 'ď': "\\'ef", 
+        'É': "\\'c9", 'é': "\\'e9", 'Ě': "\\'cc", 'ě': "\\'ec", 'Í': "\\'cd", 'í': "\\'ed", 
+        'Ľ': "\\'bd", 'ľ': "\\'be", 'Ň': "\\'d2", 'ň': "\\'f2", 'Ó': "\\'d3", 'ó': "\\'f3", 
+        'Ř': "\\'d8", 'ř': "\\'f8", 'Š': "\\'8a", 'š': "\\'9a", 'Ť': "\\'8d", 'ť': "\\'9d", 
+        'Ú': "\\'da", 'ú': "\\'fa", 'Ů': "\\'d9", 'ů': "\\'f9", 'Ý': "\\'dd", 'ý': "\\'fd", 
+        'Ž': "\\'8e", 'ž': "\\'9e", 'Ä': "\\'c4", 'ä': "\\'e4", 'Ö': "\\'d6", 'ö': "\\'f6", 
+        'Ü': "\\'dc", 'ü': "\\'fc", 'ß': "\\'df", 'Ć': "\\'c6", 'ć': "\\'e6", 
+        'Ś': "\\'d3", 'ś': "\\'f3", 'à': "\\'e0", 'À': "\\'c0", 'è': "\\'e8", 'È': "\\'c8", 
+        'ê': "\\'ea", 'Ê': "\\'ca", 'ç': "\\'e7", 'Ç': "\\'c7"
+    };
+
+    function toRTF(str) {
+        if (!str) return "";
+        let rtf = "";
+        for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            if (CEE_CHAR_MAP[char]) {
+                rtf += CEE_CHAR_MAP[char];
+            } else if (['{', '}', '\\'].includes(char)) {
+                rtf += '\\' + char;
+            } else if (char === '\n') {
+                rtf += '\\par ';
+            } else if (char === '\t') {
+                rtf += '\\tab ';
+            } else {
+                rtf += char;
+            }
+        }
+        return rtf;
+    }
+
+    function generateRTF() {
+        const allData = parseInput();
+        if (allData.length === 0) { alert("Žiadne dáta pre generovanie!"); return; }
+
+        const title = document.getElementById("testTitle").value || "Test";
+        const instructions = document.getElementById("rtfInstructions").value;
+        const variantsCount = parseInt(document.getElementById("rtfVariants").value) || 1;
+        const questionCount = parseInt(document.getElementById("questionCount").value) || allData.length;
+        const columnsCount = parseInt(document.getElementById("rtfColumns").value) || 2;
+        const includeTable = document.getElementById("includeGradeTable").checked;
+
+        let rtfContent = "{\\rtf1\\ansi\\ansicpg1250\\deff0\\nouicompat\\deflang1051";
+        rtfContent += "{\\fonttbl{\\f0\\fnil\\fcharset238 Comic Sans MS;}{\\f1\\fnil\\fcharset238 Arial;}}";
+        rtfContent += "\\viewkind4\\uc1\\pard\\sa100\\sl240\\slmult1\\f0\\fs22\\lang1051\\margl850\\margr850\\margt850\\margb850 ";
+
+        const letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+        const groupNames = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let variantHistory = [];
+
+        // --- 1. ČASŤ: GENERAVANIE TESTOV ---
+        for (let v = 0; v < variantsCount; v++) {
+            const groupQuestions = shuffle(allData).slice(0, questionCount);
+            const currentGroupName = groupNames[v % groupNames.length] || (v+1);
+            
+            let currentVariantData = {
+                name: currentGroupName,
+                questions: []
+            };
+
+            rtfContent += `\\pard\\qj Meno: .......................................................................................  Trieda: ........................  ${toRTF("Dátum")}: .............................\\par\\par`;
+            rtfContent += `\\pard\\qc\\b\\fs32 ${toRTF(title)} \\b0\\fs22\\par\\par`;
+            rtfContent += `\\pard\\qc\\b\\fs28 ${toRTF("Skupina")} ${currentGroupName} \\b0\\fs22\\par\\par`;
+            
+            rtfContent += `\\pard\\qj\\sa400 ${toRTF(instructions)}\\par`;
+            
+            let colGap = 720;
+            if(columnsCount >= 3) colGap = 400;
+
+            rtfContent += `\\sect\\sectd\\sbknone\\cols${columnsCount}\\colsxq${colGap}\\margl850\\margr850\\margt850\\margb850 `;
+            
+            groupQuestions.forEach((q, idx) => {
+                const answers = shuffle([q.correct, ...q.distractors]);
+                currentVariantData.questions.push({ term: q.term, answers: answers, correct: q.correct });
+
+                // Riešenie: použitie neviditeľnej tabuľky (\trowd \trkeep), aby sa blok nikdy nerozdelil
+                rtfContent += "\\trowd \\trkeep \\trleft0 \\clvertalt \\cellx10000 ";
+                rtfContent += `\\pard \\intbl \\fi-360 \\li360 \\sb0 \\sa50 \\b ${idx + 1}. ${toRTF(q.term)}\\b0\\par `;
+                
+                answers.forEach((ans, aIdx) => {
+                    const spaceAfter = (aIdx === answers.length - 1) ? "\\sa120" : "\\sa0";
+                    rtfContent += `\\pard \\intbl \\fi-360 \\li720 \\sb0 ${spaceAfter} ${letters[aIdx]}) ${toRTF(ans)}\\par `;
+                });
+                rtfContent += "\\cell \\row ";
+            });
+            rtfContent += "\\pard \\sb0 \\sa0 \\par "; // Uzatvorenie kontextu tabuľky
+            
+            variantHistory.push(currentVariantData);
+            
+            rtfContent += "\\pard \\sect\\sectd\\sbknone\\cols1\\margl850\\margr850\\margt850\\margb850 ";
+            
+            if (includeTable) {
+                rtfContent += `\\par\\par\\par\\b ${toRTF("Hodnotenie")}:\\b0\\par `;
+                rtfContent += "\\trowd\\trgaph108\\trleft-108";
+                rtfContent += "\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx1000 ";
+                rtfContent += "\\clbrdrt\\brdrs\\brdrw10 \\clbrdrl\\brdrs\\brdrw10 \\clbrdrb\\brdrs\\brdrw10 \\clbrdrr\\brdrs\\brdrw10 \\cellx3000 ";
+                rtfContent += "\\pard\\intbl ";
+                const grades = [
+                    {n: toRTF("1"), min: "g1min", max: "g1max"},
+                    {n: toRTF("2"), min: "g2min", max: "g2max"},
+                    {n: toRTF("3"), min: "g3min", max: "g3max"},
+                    {n: toRTF("4"), min: "g4min", max: "g4max"},
+                    {n: toRTF("5"), min: "g5min", max: "g5max"}
+                ];
+                rtfContent += `\\b ${toRTF("Známka")} \\cell ${toRTF("Počet percent")}\\cell\\row\\b0 `;
+                grades.forEach(g => {
+                    const min = document.getElementById(g.min).value;
+                    const max = document.getElementById(g.max).value;
+                    rtfContent += `${g.n} \\cell ${max} % - ${min} % \\cell\\row `;
+                });
+                rtfContent += "\\pard\\par ";
+            }
+
+            rtfContent += "\\par\\pard\\sl360\\slmult1 ";
+            rtfContent += `${toRTF("Počet bodov")}: _______________\\par\\par `;
+            rtfContent += `${toRTF("Počet percent")}: _______________\\par\\par `;
+            rtfContent += `${toRTF("Výsledná známka a podpis učiteľa")}: _____________\\par `;
+            rtfContent += "\\sect\\sectd\\sbkpage\\cols1\\margl850\\margr850\\margt850\\margb850 ";
+        }
+
+        // --- 2. ČASŤ: RIEŠENIA ---
+// RIEŠENIA - opravená verzia s fixom pre písmeno Š
+        variantHistory.forEach((variant, vIdx) => {
+            // Názov "RIEŠENIE" zapísaný bezpečne pomocou RTF kódu \'8a pre písmeno Š
+            rtfContent += `\\pard\\qc\\b\\fs32 RIE\\'8aENIE - ${toRTF(title)} \\b0\\fs22\\par\\par`;
+            
+            // Názov skupiny
+            rtfContent += `\\pard\\qc\\b\\fs28 Skupina ${variant.name} \\b0\\fs22\\par\\par`;
+            
+            // Štart sekcie s dvoma stĺpcami
+            rtfContent += `\\sect\\sectd\\sbknone\\cols${columnsCount}\\colsxq720 `;
+            
+            variant.questions.forEach((q, idx) => {
+                rtfContent += "\\trowd \\trkeep \\cellx10000 ";
+                rtfContent += `\\pard \\intbl \\fi-360 \\li360 \\b ${idx + 1}. ${toRTF(q.term)}\\b0\\par `;
+                q.answers.forEach((ans, aIdx) => {
+                    let ansText = toRTF(ans);
+                    if (ans === q.correct) ansText = `\\ul ${ansText}\\ulnone`;
+                    
+                    // Vaša nastavená hodnota 120 pre medzery
+                    const spaceAfter = (aIdx === q.answers.length - 1) ? "\\sa120" : "\\sa0";
+                    rtfContent += `\\pard \\intbl \\fi-360 \\li720 ${spaceAfter} ${letters[aIdx]}) ${ansText}\\par `;
+                });
+                rtfContent += "\\cell \\row ";
+            });
+
+            // Ošetrenie konca strany/sekcie pre správne zobrazenie stĺpcov
+            if (vIdx < variantHistory.length - 1) {
+                rtfContent += "\\pard \\sect\\sectd\\sbkpage\\cols1 ";
+            } else {
+                rtfContent += "\\pard ";
+            }
+        });
+
+        rtfContent += "}";
+
+        const blob = new Blob([rtfContent], { type: "application/rtf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        let fname = normalizeFilename(document.getElementById("fileName").value);
+        if(!fname) fname = normalizeFilename(title);
+        if(!fname) fname = "pracovny_list";
+        a.href = url;
+        a.download = fname + ".rtf";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    
+    document.getElementById("inputData").addEventListener("keydown", function(e) {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 1;
+      }
+    });
+
+    window.addEventListener("load", () => {
+      const saved = localStorage.getItem("inputData");
+      if (saved) document.getElementById("inputData").value = saved;
+    });
+    document.getElementById("inputData").addEventListener("input", function() {
+      localStorage.setItem("inputData", this.value);
+    });
+</script>
+<br><br>
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

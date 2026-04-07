@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Generátor komplexného kvízu</title>
+<style>
+  :root{--accent:#2563eb;--true:#16a34a;--false:#db2777;--bg:#f8fafc;--panel:#fff;--border:#e6e9ef;--text:#0f172a;}
+  body{font-family:Inter,system-ui,Segoe UI,Arial;margin:0;background:var(--bg);color:var(--text);}
+  header{padding:16px 16px 0;} h1{margin:0 0 8px;}
+  .wrap{padding:16px;}
+  .panel{background:var(--panel);border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(2,6,23,0.06);margin-bottom:16px;}
+  .row{display:flex;gap:14px;flex-wrap:wrap;} .col{flex:1 1 300px;min-width:200px;}
+  label{display:block;font-weight:700;margin:10px 0 6px;}
+  input[type="text"],input[type="number"],textarea,select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);box-sizing:border-box;font-size:14px;background:#fff;}
+  textarea{min-height:64px;resize:vertical;}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:700;}
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid #cbd5e1;}
+  .btn.warn{background:#f97316;} .btn.flat{background:#e2e8f0;color:#0f172a;} .small{padding:6px 8px;border-radius:8px;font-weight:600;}
+  .list{display:flex;flex-direction:column;gap:12px;} .card{border:1px solid #eef2f8;border-radius:10px;padding:12px;background:#fbfdff;}
+  .inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .pill{display:inline-block;background:#eef2ff;color:#243b8a;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;margin-bottom:6px;}
+  .inline input[type="radio"]{margin:0;}
+  .inline input[type="text"]{flex:1;}
+  footer{padding:10px 16px;color:#334155;font-size:12px;}
+  .muted{color:#64748b}
+  .sep{width:100%;height:1px;background:#e2e8f0;margin:12px 0;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Generátor komplexného kvízu</h1>
+  <div class="muted">Zadajte kategórie, otázky, bodovanie a tímy. Nastavenia uložíte tlačidlom <b>💾 Zálohovať dáta (JSON)</b>.</div>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <div class="row">
+      <div class="col" style="flex:2;"><label>Názov kvízu</label><input id="quizTitle" type="text"/></div>
+      <div class="col"><label>Autor</label><input id="quizAuthor" type="text" placeholder="Vaše meno"/></div>
+      <div class="col"><label>Rok</label><input id="quizYear" type="number" placeholder="2025"/></div>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <div class="col"><label>Počet stĺpcov (Kategórie)</label><input id="catCount" type="number" min="1" max="6"/></div>
+      <div class="col"><label>Počet riadkov (Otázky)</label><input id="rowsCount" type="number" min="1" max="8"/></div>
+      <div class="col">
+        <label>Farba tlačidiel otázok</label>
+        <div class="inline">
+          <input type="color" id="btnColorPicker" style="width:40px; height:36px; padding:0; cursor:pointer; border:1px solid var(--border); border-radius:8px;">
+          <input type="text" id="btnColorText" placeholder="#111827">
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col"><label>Bodovanie riadkov</label><div id="pointsGrid" class="list"></div></div>
+      <div class="col"><label>Počet tímov</label><input id="teamsCount" type="number" min="1" max="12"/><div id="teamsList" class="list"></div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <label>Správa dát</label>
+    <div class="inline" style="margin-top:8px;">
+      <button class="btn ghost small" id="backupJsonBtn" title="Stiahne čisté dáta (JSON) pre zálohu">💾 Zálohovať dáta (JSON)</button>
+      
+      <input type="file" id="restoreJsonFile" style="display:none" accept=".json"/>
+      <button class="btn ghost small" id="restoreJsonBtn" title="Načíta dáta zo zálohy (JSON)">📂 Obnoviť dáta (JSON)</button>
+
+      <span style="border-left:1px solid #ccc;height:20px;margin:0 4px;"></span>
+
+      <input type="file" id="importFile" style="display:none" accept=".html,.txt"/>
+      <button class="btn ghost small" id="importBtn" title="Skúsi vyčítať otázky z už vygenerovanej hry">📄 Importovať z HTML hry</button>
+      
+      <button class="btn ghost small" id="resetBtn" style="margin-left:auto;color:#db2777;border-color:#fbcfe8;">Resetovať všetko</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="inline">
+      <span class="pill">Kategórie a otázky</span>
+      <button class="btn ghost small" id="addCategory">Pridať kategóriu</button>
+    </div>
+    <div id="catsContainer" class="list" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="panel">
+    <button class="btn warn" id="generateDownload">Vygenerovať hru a stiahnuť (.html)</button>
+  </div>
+</div>
+
+<footer>Editor rozhrania: Mgr. Erika Matyiová (2025)</footer>
+
+<script>
+(function(){
+  // --- INIT STATE ---
+  let saved=localStorage.getItem('quizEditorState');
+  // Default structure
+  let defaultState = {
+    title: "Môj kvíz",
+    author: "",
+    year: new Date().getFullYear(),
+    catCount: 3,
+    rowsCount: 3,
+    btnColor: "#111827", 
+    points: [100,200,300],
+    teams: [{name:"Skupina 1"},{name:"Skupina 2"}],
+    categories: []
+  };
+
+  let state = saved ? JSON.parse(saved) : defaultState;
+  
+  // Migration logic for safety
+  if(state.author === undefined) state.author = "";
+  if(state.year === undefined) state.year = new Date().getFullYear();
+  if(state.btnColor === undefined) state.btnColor = "#111827";
+
+  // Elements
+  const quizTitle=document.getElementById('quizTitle'),
+        quizAuthor=document.getElementById('quizAuthor'),
+        quizYear=document.getElementById('quizYear'),
+        catCountEl=document.getElementById('catCount'),
+        rowsCountEl=document.getElementById('rowsCount'),
+        btnColorPicker=document.getElementById('btnColorPicker'),
+        btnColorText=document.getElementById('btnColorText'),
+        pointsGrid=document.getElementById('pointsGrid'),
+        teamsCount=document.getElementById('teamsCount'),
+        teamsList=document.getElementById('teamsList'),
+        catsContainer=document.getElementById('catsContainer');
+
+  function save(){
+    localStorage.setItem('quizEditorState',JSON.stringify(state));
+  }
+
+  function ensureCategories(){
+    // Ensure limits
+    if(state.catCount < 1) state.catCount = 1;
+    if(state.catCount > 6) state.catCount = 6;
+    if(state.rowsCount < 1) state.rowsCount = 1;
+    if(state.rowsCount > 8) state.rowsCount = 8;
+
+    while(state.categories.length < state.catCount){
+      state.categories.push({title: "Kategória " + (state.categories.length+1), questions: []});
+    }
+    while(state.categories.length > state.catCount){
+      state.categories.pop();
+    }
+    state.categories.forEach(cat=>{
+      if(!cat.questions) cat.questions = [];
+      while(cat.questions.length < state.rowsCount){
+        cat.questions.push({text:"", image:null, type:"mc", choices:["","",""], correct:0});
+      }
+      while(cat.questions.length > state.rowsCount){
+        cat.questions.pop();
+      }
+    });
+    while(state.points.length < state.rowsCount){
+      state.points.push((state.points.length+1)*100);
+    }
+    while(state.points.length > state.rowsCount){
+      state.points.pop();
+    }
+  }
+
+  function renderPointsGrid(){
+    pointsGrid.innerHTML='';
+    for(let i=0;i<state.rowsCount;i++){
+      const inp=document.createElement('input');
+      inp.type='number';
+      inp.value=state.points[i]||((i+1)*100);
+      inp.addEventListener('input',()=>{state.points[i]=parseInt(inp.value,10)||0;save();});
+      pointsGrid.appendChild(inp);
+    }
+    state.points=Array.from({length:state.rowsCount},(_,i)=>parseInt(pointsGrid.children[i].value,10)||0);
+  }
+
+  function renderTeamsList(){
+    teamsList.innerHTML='';
+    state.teams.forEach((t,i)=>{
+      const inp=document.createElement('input');
+      inp.type='text';
+      inp.value=t.name;
+      inp.addEventListener('input',()=>{t.name=inp.value;save();});
+      teamsList.appendChild(inp);
+    });
+  }
+
+  function renderCategories(){
+    catsContainer.innerHTML='';
+    state.categories.forEach((cat,catIdx)=>{
+      const card=document.createElement('div');card.className='card';
+      const title=document.createElement('input');title.type='text';title.value=cat.title;
+      title.addEventListener('input',()=>{cat.title=title.value;save();});
+      card.appendChild(title);
+
+      cat.questions.forEach((q,qIdx)=>{
+        if(!q || typeof q!=='object'){ q={text:"",image:null,type:"mc",choices:["","",""],correct:0}; cat.questions[qIdx]=q; }
+        // Force structure
+        if(typeof q.image === 'undefined') q.image = null;
+        if(!q.type) q.type='mc';
+
+        const qcard=document.createElement('div');qcard.className='card';
+        const label=document.createElement('div');label.className='pill';label.textContent='Otázka '+(qIdx+1)+' ('+(state.points[qIdx]||0)+' b)';qcard.appendChild(label);
+
+        const qtext=document.createElement('textarea');qtext.value=q.text||'';qtext.placeholder='Text otázky';
+        qtext.addEventListener('input',()=>{ q.text=qtext.value; save(); });
+        qcard.appendChild(qtext);
+
+        // Obrázok upload logic
+        const imgWrap = document.createElement('div');
+        imgWrap.className = 'inline';
+        imgWrap.style.margin = '8px 0';
+        
+        const imgLabel = document.createElement('span');
+        imgLabel.textContent = 'Obrázok:';
+        imgLabel.className = 'muted';
+        imgLabel.style.fontSize = '12px';
+
+        const imgInp = document.createElement('input');
+        imgInp.type = 'file';
+        imgInp.accept = 'image/*';
+        imgInp.style.flex = '1';
+        
+        const imgPrev = document.createElement('img');
+        imgPrev.style.height = '40px';
+        imgPrev.style.borderRadius = '4px';
+        imgPrev.style.display = q.image ? 'block' : 'none';
+        if(q.image) imgPrev.src = q.image;
+
+        const imgDel = document.createElement('button');
+        imgDel.textContent = '❌ Odstrániť';
+        imgDel.className = 'btn ghost small';
+        imgDel.style.display = q.image ? 'block' : 'none';
+
+        imgInp.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if(!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            q.image = ev.target.result;
+            imgPrev.src = q.image;
+            imgPrev.style.display = 'block';
+            imgDel.style.display = 'block';
+            save();
+          };
+          reader.readAsDataURL(file);
+        });
+
+        imgDel.addEventListener('click', () => {
+          q.image = null;
+          imgInp.value = '';
+          imgPrev.src = '';
+          imgPrev.style.display = 'none';
+          imgDel.style.display = 'none';
+          save();
+        });
+
+        imgWrap.appendChild(imgLabel);
+        imgWrap.appendChild(imgInp);
+        imgWrap.appendChild(imgPrev);
+        imgWrap.appendChild(imgDel);
+        qcard.appendChild(imgWrap);
+
+        const typeSel=document.createElement('select');
+        typeSel.innerHTML='<option value="mc">Výber z 3 odpovedí</option><option value="tf">Pravda/Nepravda</option>';
+        typeSel.value=q.type;
+        typeSel.addEventListener('change',()=>{
+          q.type=typeSel.value;
+          if(q.type==='mc'){ q.choices=["","",""]; q.correct=0; }
+          else { q.correct=true; }
+          save(); renderCategories();
+        });
+        qcard.appendChild(typeSel);
+
+        if(q.type==='mc'){
+          const radioName='cat'+catIdx+'_q'+qIdx;
+          if(!q.choices) q.choices = ["","",""];
+          q.choices.forEach((ch,i)=>{
+            const row=document.createElement('div'); row.className='inline';
+            const radio=document.createElement('input'); radio.type='radio'; radio.name=radioName; radio.checked=(Number(q.correct)===i);
+            radio.addEventListener('change',()=>{q.correct=i; save();});
+            const inp=document.createElement('input'); inp.type='text'; inp.value=ch; inp.placeholder='Možnosť '+(i+1);
+            inp.addEventListener('input',()=>{q.choices[i]=inp.value; save();});
+            row.appendChild(radio); row.appendChild(inp);
+            qcard.appendChild(row);
+          });
+        } else {
+          const row=document.createElement('div'); row.className='inline';
+          const btnT=document.createElement('button'); btnT.textContent='Pravda'; btnT.className='btn flat small';
+          const btnF=document.createElement('button'); btnF.textContent='Nepravda'; btnF.className='btn flat small';
+          
+          const isTrue = (q.correct === true || q.correct === 'true');
+          
+          function refreshBtn(){ 
+             const isNowTrue = (q.correct === true || q.correct === 'true');
+             btnT.style.background = isNowTrue ? '#93c5fd' : '#e2e8f0'; 
+             btnF.style.background = !isNowTrue ? '#93c5fd' : '#e2e8f0'; 
+          }
+          
+          btnT.addEventListener('click',(e)=>{e.preventDefault(); q.correct=true; refreshBtn(); save();});
+          btnF.addEventListener('click',(e)=>{e.preventDefault(); q.correct=false; refreshBtn(); save();});
+          refreshBtn();
+          row.appendChild(btnT); row.appendChild(btnF);
+          qcard.appendChild(row);
+        }
+
+        card.appendChild(qcard);
+      });
+
+      const addQ=document.createElement('button');
+      addQ.className='btn ghost small'; addQ.textContent='Pridať otázku';
+      addQ.addEventListener('click',()=>{
+        cat.questions.push({text:"",image:null,type:"mc",choices:["","",""],correct:0});
+        state.rowsCount=Math.max(state.rowsCount,cat.questions.length);
+        rowsCountEl.value=state.rowsCount;
+        ensureCategories(); renderPointsGrid(); renderCategories(); save();
+      });
+      card.appendChild(addQ);
+
+      catsContainer.appendChild(card);
+    });
+  }
+
+  function refreshUI(){
+    quizTitle.value=state.title;
+    quizAuthor.value=state.author || "";
+    quizYear.value=state.year || new Date().getFullYear();
+    catCountEl.value=state.catCount;
+    rowsCountEl.value=state.rowsCount;
+    teamsCount.value=state.teams.length;
+    btnColorPicker.value=state.btnColor || "#111827";
+    btnColorText.value=state.btnColor || "#111827";
+    ensureCategories();
+    renderPointsGrid();
+    renderTeamsList();
+    renderCategories();
+  }
+
+  // Backup
+  document.getElementById('backupJsonBtn').addEventListener('click', ()=>{
+    const json = JSON.stringify(state, null, 2);
+    const fname = (state.title || 'kviz_data').replace(/\s+/g,'_') + '_DATA.json';
+    const blob=new Blob([json],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=fname;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},0);
+  });
+
+  // RESTORE JSON - UPRAVENÁ VERZIA PRE STUR_NASTAVENIA_KVIZU.JSON
+  document.getElementById('restoreJsonBtn').addEventListener('click', ()=>{
+    document.getElementById('restoreJsonFile').click();
+  });
+  document.getElementById('restoreJsonFile').addEventListener('change', (e)=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      try {
+        const loaded = JSON.parse(ev.target.result);
+        if(!loaded || typeof loaded !== 'object') throw new Error("Neplatný JSON formát.");
+        
+        if(confirm("Naozaj chcete prepísať aktuálne dáta dátami zo súboru?")){
+          
+          // 1. Zistenie rozmerov (špeciálne pre staré formáty)
+          let loadedCats = Array.isArray(loaded.categories) ? loaded.categories : [];
+          
+          // Ak rowsCount chýba alebo je 0, zistíme maximum z otázok
+          let loadedRows = parseInt(loaded.rowsCount) || 0;
+          if(!loadedRows) {
+              loadedCats.forEach(c => {
+                  if(c.questions && c.questions.length > loadedRows) loadedRows = c.questions.length;
+              });
+          }
+          if(loadedRows < 1) loadedRows = 3; 
+
+          // 2. Vytvorenie nového state objektu
+          const newState = {
+             title: loaded.title || "Môj kvíz",
+             author: loaded.author || "",
+             year: loaded.year || new Date().getFullYear(),
+             btnColor: loaded.btnColor || "#111827", // Doplnenie default farby ak chýba
+             catCount: loadedCats.length || 1,
+             rowsCount: loadedRows,
+             points: [],
+             teams: Array.isArray(loaded.teams) ? loaded.teams : [{name:"Skupina 1"},{name:"Skupina 2"}],
+             categories: []
+          };
+
+          // Limit checks
+          if(newState.catCount > 6) newState.catCount = 6;
+          if(newState.rowsCount > 8) newState.rowsCount = 8;
+
+          // 3. Spracovanie bodov (body z JSON majú prednosť)
+          if(Array.isArray(loaded.points) && loaded.points.length >= newState.rowsCount) {
+             newState.points = loaded.points.slice(0, newState.rowsCount);
+          } else {
+             newState.points = Array.from({length: newState.rowsCount}, (_, i) => (i+1)*100);
+          }
+
+          // 4. Mapovanie kategórií a čistenie starých dát
+          loadedCats.forEach((lc, idx) => {
+             if(idx >= newState.catCount) return; 
+             const newCat = {
+                 title: lc.title || ("Kategória " + (idx+1)),
+                 questions: []
+             };
+             
+             const lQs = Array.isArray(lc.questions) ? lc.questions : [];
+             // Iterujeme presne podľa počtu riadkov
+             for(let r=0; r<newState.rowsCount; r++){
+                 const lq = lQs[r];
+                 if(lq){
+                    // Detekcia typu a čistenie choices pre TF
+                    const qType = (lq.type === 'tf' || lq.type === 'mc') ? lq.type : 'mc';
+                    let qChoices = ["","",""];
+                    if(qType === 'mc' && Array.isArray(lq.choices)) qChoices = lq.choices;
+                    // Ak je to TF, choices zahodíme (alebo necháme prázdne), aby editor nemiatol užívateľa
+
+                    newCat.questions.push({
+                        text: lq.text || "",
+                        image: (typeof lq.image === 'string') ? lq.image : null, // Doplnenie null ak image chýba
+                        type: qType,
+                        choices: qChoices,
+                        correct: (lq.correct !== undefined) ? lq.correct : 0
+                    });
+                 } else {
+                    // Placeholder pre chýbajúcu otázku v štruktúre
+                    newCat.questions.push({text:"", image:null, type:"mc", choices:["","",""], correct:0});
+                 }
+             }
+             newState.categories.push(newCat);
+          });
+
+          state = newState;
+          ensureCategories(); 
+          save();
+          refreshUI();
+          alert("Dáta úspešne načítané (Formát verzia Štúr).");
+        }
+      } catch(err) {
+        console.error(err);
+        alert("Chyba pri čítaní JSON súboru: " + err.message);
+      }
+      e.target.value = ''; 
+    };
+    reader.readAsText(file);
+  });
+
+
+  // HTML IMPORT
+  document.getElementById('importBtn').addEventListener('click',()=>{ document.getElementById('importFile').click(); });
+  document.getElementById('importFile').addEventListener('change',(e)=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      const text=ev.target.result;
+      try{
+        function extractLiteral(source,key){
+          const regex=new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*=\\s*','i');
+          const m=source.match(regex); if(!m) return null;
+          let idx=m.index+m[0].length;
+          while(idx<source.length && /\s/.test(source[idx])) idx++;
+          const open=source[idx]; const close=open==='{'?'}':open==='['?']':null;
+          if(!close) return null;
+          let depth=0,inString=null,esc=false;
+          for(let j=idx;j<source.length;j++){
+            const ch=source[j];
+            if(inString){
+              if(esc){esc=false;}
+              else if(ch==='\\'){esc=true;}
+              else if(ch===inString){inString=null;}
+            } else {
+              if(ch==='"'||ch==="'"||ch==='`'){inString=ch;}
+              else if(ch===open){depth++;}
+              else if(ch===close){depth--; if(depth===0) return source.slice(idx,j+1);}
+            }
+          }
+          return null;
+        }
+        
+        const quizDataLiteral=extractLiteral(text,'const quizData')||extractLiteral(text,'quizData');
+        const pointsLiteral=extractLiteral(text,'const POINTS')||extractLiteral(text,'POINTS');
+        const authorMatch = text.match(/Vytvoril: (.*?) \(/);
+        const yearMatch = text.match(/Vytvoril: .*? \((\d{4})\)/);
+
+        if(!quizDataLiteral){ alert('Nepodarilo sa nájsť quizData v súbore.'); return; }
+        const quizData=JSON.parse(quizDataLiteral);
+        const importedPoints=pointsLiteral?JSON.parse(pointsLiteral):null;
+
+        if(confirm("Naozaj chcete načítať kvíz z HTML súboru? Súčasná práca sa prepíše.")){
+            const tempState = {
+                categories: [],
+                teams: [],
+                points: [],
+                catCount: 0,
+                rowsCount: 0,
+                title: "",
+                author: "",
+                year: new Date().getFullYear(),
+                btnColor: "#111827"
+            };
+
+            const lCats = Array.isArray(quizData.categories)?quizData.categories:[];
+            tempState.catCount=lCats.length;
+            
+            lCats.forEach(cat=>{
+                const newCat = {
+                    title: cat.title || "Kategória",
+                    questions: []
+                };
+                const qs = Array.isArray(cat.questions) ? cat.questions : [];
+                qs.forEach(q => {
+                    newCat.questions.push({
+                        text: q.text || "",
+                        image: (typeof q.image === 'string') ? q.image : null,
+                        type: q.type || "mc",
+                        choices: Array.isArray(q.choices) ? q.choices : ["","",""],
+                        correct: (q.correct !== undefined) ? q.correct : 0
+                    });
+                });
+                tempState.categories.push(newCat);
+            });
+
+            tempState.teams=Array.isArray(quizData.teams)
+            ? quizData.teams.filter(t=>t && t.name).map(t=>({name:t.name}))
+            : [];
+            
+            let maxRows = 0;
+            tempState.categories.forEach(c => { if(c.questions.length > maxRows) maxRows = c.questions.length; });
+            tempState.rowsCount = maxRows || 3;
+
+            tempState.points=Array.isArray(importedPoints)?importedPoints:Array.from({length:tempState.rowsCount},(_,i)=>(i+1)*100);
+            
+            const titleTag=text.match(/<title>([^<]+)<\/title>/i);
+            tempState.title = titleTag?titleTag[1]: file.name.replace(/\.[^.]+$/,'');
+            if(authorMatch && authorMatch[1]) tempState.author = authorMatch[1];
+            if(yearMatch && yearMatch[1]) tempState.year = parseInt(yearMatch[1], 10);
+            
+            const colorMatch = text.match(/\.cell\{background:([^;]+);/);
+            tempState.btnColor = colorMatch ? colorMatch[1] : "#111827";
+
+            state = tempState;
+            save();
+            refreshUI();
+            alert('Kvíz bol úspešne načítaný z HTML.');
+        }
+      }catch(err){ console.error(err); alert('Chyba pri načítaní: '+(err.message||err)); }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById('resetBtn').addEventListener('click',()=>{
+    if(confirm("Naozaj vymazať uložené dáta a začať odznova?")){
+      localStorage.removeItem('quizEditorState');
+      location.reload();
+    }
+  });
+
+  function buildPlayableHTML(){
+    const data={categories:state.categories,teams:state.teams.map((t,i)=>({name:t.name,score:0,id:i}))};
+    const points=state.points;
+    const authorStr = state.author ? state.author : "Neznámy autor";
+    const yearStr = state.year ? state.year : new Date().getFullYear();
+    const btnCol = state.btnColor || "#111827";
+
+    return `<!doctype html><html lang="sk"><head><meta charset="utf-8"/>
+<title>${state.title}</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+:root{--accent:#2563eb;--true:#16a34a;--false:#db2777;}
+body{font-family:Inter,system-ui,Arial;margin:0;padding:16px;background:#f8fafc;color:#0f172a;}
+.board{display:grid;grid-template-columns:repeat(${state.catCount},1fr);gap:8px;}
+.col-header{background:#0f172a;color:#fff;padding:12px;text-align:center;font-weight:700;border-radius:8px;}
+.cell{background:${btnCol};color:#fff;display:flex;align-items:center;justify-content:center;height:84px;font-size:20px;font-weight:700;border-radius:8px;cursor:pointer;}
+.cell.used{opacity:0.28;pointer-events:none;}
+.controls{display:flex;gap:8px;align-items:center;margin-bottom:12px;}
+.teams{display:flex;gap:8px;flex-wrap:wrap;}
+.team-btn{padding:8px 10px;border-radius:8px;border:1px solid #e6eefc;background:#fff;cursor:pointer;}
+.team-btn.active{outline:3px solid rgba(37,99,235,0.18);transform:translateY(-2px);}
+.scoreboard{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;}
+.score-card{background:#fff;padding:10px;border-radius:8px;border:1px solid #eef2ff;min-width:150px;}
+.overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;background:rgba(0,0,0,0.86);}
+.overlay.show{display:flex;}
+.question-card{width:min(1200px,94%);max-height:94%;overflow:auto;background:#fff;border-radius:12px;padding:28px;box-shadow:0 20px 60px rgba(2,6,23,0.6);text-align:center;}
+.q-text{font-size:40px;font-weight:800;margin-bottom:24px;}
+.answers{display:flex;flex-direction:column;gap:12px;align-items:center;}
+.ans-btn{width:min(780px,92%);padding:16px 20px;border-radius:10px;font-size:20px;font-weight:700;border:2px solid transparent;cursor:pointer;}
+.ans-true{background:var(--true);color:#fff;}
+.ans-false{background:var(--false);color:#fff;}
+.ans-neutral{background:#f3f4f6;color:#111;border-color:#e5e7eb;text-align:left;padding-left:18px;}
+.close-x{position:absolute;right:18px;top:14px;color:#fff;font-weight:700;cursor:pointer;background:#000;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;}
+.final-overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:10000;background:rgba(2,6,23,0.8);color:#fff;}
+.final-overlay.show{display:flex;}
+.final-card{background:#0b1220;color:#fff;padding:28px;border-radius:12px;min-width:320px;max-width:760px;}
+.ranking{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+.rank-row{display:flex;justify-content:space-between;padding:12px;border-radius:8px;background:linear-gradient(90deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));}
+footer{margin-top:40px;text-align:center;font-size:14px;color:#64748b;}
+</style></head><body>
+<h1>${state.title}</h1>
+<div class="panel" id="gameArea">
+  <div class="controls">
+    <div class="teams" id="teamsBar"></div>
+    <div style="margin-left:auto"><button id="endGameBtn" style="padding:8px 12px;border-radius:8px;background:#f97316;color:#fff;border:none;font-weight:700;cursor:pointer;">Ukončiť a vyhodnotiť</button></div>
+  </div>
+  <div id="boardWrapper"><div class="board" id="board"></div></div>
+  <div class="scoreboard" id="scoreboard"></div>
+</div>
+<footer>
+    Vytvoril: ${authorStr} (${yearStr})<br>
+    <small>Spracované pomocou Generátora komplexného kvízu</small>
+</footer>
+
+<div class="overlay" id="overlay">
+  <div class="question-card" id="questionCard">
+    <div style="position:relative;"><div class="close-x" id="closeOverlay">x</div></div>
+    <img id="qImage" src="" style="max-width:100%; max-height:40vh; border-radius:8px; display:none; margin: 0 auto 16px; object-fit:contain;">
+    <div class="q-text" id="qText"></div>
+    <div class="answers" id="answers"></div>
+  </div>
+</div>
+<div class="final-overlay" id="finalOverlay"><div class="final-card"><h3>Vyhodnotenie</h3><div id="finalScores" class="ranking"></div><div style="text-align:right;margin-top:14px;"><button id="finalClose" style="padding:8px 12px;border-radius:8px;background:#fff;color:#0f172a;border:none;font-weight:700;cursor:pointer;">Zavrieť</button></div></div></div>
+
+<script>
+(function(){
+  const POINTS=${JSON.stringify(points)};
+  const quizData=${JSON.stringify(data)};
+  let teams=quizData.teams.map(t=>({name:t.name,score:0}));
+  let activeTeam=0;
+
+  function shuffleArray(a){const arr=a.slice();for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+  const board=document.getElementById('board'),teamsBar=document.getElementById('teamsBar'),scoreboard=document.getElementById('scoreboard');
+
+  function renderTeamsBar(){
+    teamsBar.innerHTML='';
+    teams.forEach((t,i)=>{
+      const b=document.createElement('button');
+      b.className='team-btn'+(i===activeTeam?' active':'');
+      b.textContent=t.name+' ('+t.score+')';
+      b.onclick=()=>{activeTeam=i;renderTeamsBar();};
+      teamsBar.appendChild(b);
+    });
+  }
+
+  function renderScoreboard(){
+    scoreboard.innerHTML='';
+    teams.forEach(t=>{
+      const card=document.createElement('div');
+      card.className='score-card';
+      card.innerHTML='<div style="font-weight:700">'+t.name+'</div><div style="font-size:20px;margin-top:6px)">'+t.score+' b</div>';
+      scoreboard.appendChild(card);
+    });
+  }
+
+  function renderBoard(){
+    board.innerHTML='';
+    quizData.categories.forEach(cat=>{
+      const hd=document.createElement('div');hd.className='col-header';hd.textContent=cat.title;board.appendChild(hd);
+    });
+    for(let r=0;r<POINTS.length;r++){
+      for(let c=0;c<quizData.categories.length;c++){
+        const cell=document.createElement('div');
+        cell.className='cell';
+        cell.dataset.cat=c;cell.dataset.qidx=r;cell.dataset.points=POINTS[r];
+        cell.textContent=POINTS[r];
+        cell.addEventListener('click',onCellClick);
+        board.appendChild(cell);
+      }
+    }
+  }
+
+  const overlay=document.getElementById('overlay'),qText=document.getElementById('qText'),qImg=document.getElementById('qImage'),answers=document.getElementById('answers'),close=document.getElementById('closeOverlay');
+  let current=null;
+
+  function onCellClick(e){
+    const el=e.currentTarget,cat=parseInt(el.dataset.cat,10),qidx=parseInt(el.dataset.qidx,10);
+    const q=quizData.categories[cat].questions[qidx];
+    current={cat,qidx,points:POINTS[qidx],cellEl:el,shuffledMap:null};
+    
+    qText.textContent=q.text||'(bez textu)';
+    
+    if(q.image){
+      qImg.src = q.image;
+      qImg.style.display = 'block';
+    } else {
+      qImg.src = '';
+      qImg.style.display = 'none';
+    }
+
+    answers.innerHTML='';
+    if(q.type==='mc'){
+      const map=(q.choices||["","",""]).map((ch,idx)=>({text:ch||('Možnosť '+(idx+1)),idx}));
+      const sh=shuffleArray(map);current.shuffledMap=sh;
+      sh.forEach((it,pos)=>{
+        const btn=document.createElement('button');
+        btn.className='ans-btn ans-neutral';
+        btn.textContent=it.text;
+        btn.addEventListener('click',()=>answer(pos));
+        answers.appendChild(btn);
+      });
+    } else {
+      const t=document.createElement('button');t.className='ans-btn ans-true';t.textContent='Pravda';t.addEventListener('click',()=>answer(true));
+      const f=document.createElement('button');f.className='ans-btn ans-false';f.textContent='Nepravda';f.addEventListener('click',()=>answer(false));
+      answers.appendChild(t);answers.appendChild(f);
+    }
+    overlay.classList.add('show');
+  }
+
+  function answer(sel){
+    const {cat,qidx,points,cellEl,shuffledMap}=current;
+    const q=quizData.categories[cat].questions[qidx];
+    let correct=false;
+    if(q.type==='mc'){
+      const chosenOriginalIdx=shuffledMap&&shuffledMap[sel]?shuffledMap[sel].idx:null;
+      correct=(chosenOriginalIdx===Number(q.correct));
+    } else {
+      correct=(sel===(q.correct===true||q.correct==='true'));
+    }
+    const delta=correct?points:-points;
+    teams[activeTeam].score+=delta;
+    cellEl.classList.add('used');
+    overlay.classList.remove('show');
+    renderTeamsBar();renderScoreboard();
+    current=null;
+  }
+
+  close.addEventListener('click',()=>{overlay.classList.remove('show');current=null;});
+  document.getElementById('endGameBtn').addEventListener('click',()=>{
+    const ranked=[...teams].sort((a,b)=>b.score-a.score);
+    const final=document.getElementById('finalScores');
+    final.innerHTML='';
+    ranked.forEach((t,i)=>{
+      const row=document.createElement('div');
+      row.className='rank-row';
+      row.innerHTML='<div style="font-weight:700">'+(i+1)+'. '+t.name+'</div><div style="font-weight:700">'+t.score+' b</div>';
+      final.appendChild(row);
+    });
+    document.getElementById('finalOverlay').classList.add('show');
+  });
+  document.getElementById('finalClose').addEventListener('click',()=>{document.getElementById('finalOverlay').classList.remove('show');});
+
+  renderTeamsBar();renderBoard();renderScoreboard();
+})();
+<\/script>
+</body></html>`;
+  }
+
+  function download(filename,text){
+    const blob=new Blob([text],{type:'text/html'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},0);
+  }
+
+  document.getElementById('generateDownload').addEventListener('click',()=>{
+    ensureCategories();
+    const html=buildPlayableHTML();
+    const fname=(state.title||'kviz').replace(/\s+/g,'_')+'.html';
+    download(fname,html);
+  });
+
+  quizTitle.addEventListener('input', ()=>{ state.title=quizTitle.value; save(); });
+  quizAuthor.addEventListener('input', ()=>{ state.author=quizAuthor.value; save(); });
+  quizYear.addEventListener('input', ()=>{ state.year=quizYear.value; save(); });
+  
+  btnColorPicker.addEventListener('input', (e)=>{
+    state.btnColor = e.target.value;
+    btnColorText.value = e.target.value;
+    save();
+  });
+  btnColorText.addEventListener('input', (e)=>{
+    state.btnColor = e.target.value;
+    btnColorPicker.value = e.target.value;
+    save();
+  });
+
+  catCountEl.addEventListener('input',()=>{
+    state.catCount=parseInt(catCountEl.value,10)||1;
+    ensureCategories();renderCategories();save();
+  });
+  rowsCountEl.addEventListener('input',()=>{
+    state.rowsCount=parseInt(rowsCountEl.value,10)||1;
+    ensureCategories();renderPointsGrid();renderCategories();save();
+  });
+  teamsCount.addEventListener('input',()=>{
+    const n=parseInt(teamsCount.value,10)||1;
+    while(state.teams.length<n){state.teams.push({name:"Skupina "+(state.teams.length+1)});}
+    while(state.teams.length>n){state.teams.pop();}
+    renderTeamsList();save();
+  });
+  document.getElementById('addCategory').addEventListener('click',()=>{
+    state.categories.push({title:"Kategória "+(state.categories.length+1),
+      questions:Array.from({length:state.rowsCount},()=>({text:"",image:null,type:"mc",choices:["","",""],correct:0}))});
+    state.catCount=state.categories.length;
+    catCountEl.value=state.catCount;
+    ensureCategories();renderCategories();save();
+  });
+
+  refreshUI();
+})();
+</script>
+</body>
+</html>

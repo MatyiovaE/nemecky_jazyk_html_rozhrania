@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor časovania slovies (priama spätná väzba)</title>
+  <style>
+    body {
+      font-family: Courier bold, monospace;
+      background-color: #f0f4f8;
+      padding: 20px;
+    }
+    textarea, input, button {
+      margin: 10px 0;
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+      width: 100%;
+      background-color: #e0f7fa;
+      border: 3px solid white;
+    }
+    th, td {
+      border: 2px solid white;
+      padding: 15px;
+      text-align: center;
+      font-size: 18px;
+      height: 50px;
+    }
+    .highlight {
+      background-color: #ffcccb;
+    }
+    .message {
+      color: red;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .score {
+      font-size: 20px;
+      margin-top: 20px;
+    }
+	.compact-table {
+  width: 50%;
+  margin: 0 auto;
+  border-collapse: collapse;
+}
+
+.compact-table th,
+.compact-table td {
+  padding: 4px 8px;
+  text-align: center;
+  border: 1px solid #ccc;
+  font-size: 20px;
+}
+
+/* Tučné písmo pre ľavý stĺpec */
+.compact-table td:first-child {
+  font-weight: bold;
+  width: 30%; /* ← upraviteľná hodnota, môžeš zmeniť podľa potreby */
+}
+
+  </style>
+</head>
+<body>
+
+<h1>Generátor časovania slovies (priama spätná väzba)</h1>
+
+<label for="verbInput">Zadajte slovesá (oddelené prázdnym riadkom):</label>
+<textarea id="verbInput" rows="12" placeholder="sloveso[TAB]spievať&#10;ja[TAB]spievam&#10;ty[TAB]spievaš&#10;on, ona, ono[TAB]spieva&#10;my[TAB]spievame&#10;vy[TAB]spievate&#10;oni, ony[TAB]spievajú&#10;&#10;sloveso[TAB]robiť&#10;ja[TAB]robím&#10;ty[TAB]robíš&#10;on, ona, ono[TAB]robí&#10;my[TAB]robíme&#10;vy[TAB]robíte&#10;oni, ony[TAB]robia&#10;"></textarea>
+
+<label for="verbCount">Počet slovies na precvičovanie:</label>
+<input type="number" id="verbCount" min="1" value="1">
+
+<button onclick="generateExercise()">Generovať cvičenie</button>
+<button onclick="saveAsHtml()">Uložiť cvičenie ako HTML</button>
+
+<div id="exerciseArea"></div>
+<div class="message" id="feedback"></div>
+<div class="score" id="scoreDisplay"></div>
+<script>
+// ====== Ukladanie a načítanie nastavení do/z localStorage ======
+document.addEventListener("DOMContentLoaded", () => {
+    const savedVerbs = localStorage.getItem('generatorVerbInput');
+    const savedCount = localStorage.getItem('generatorVerbCount');
+
+    if (savedVerbs !== null) {
+        document.getElementById('verbInput').value = savedVerbs;
+    }
+    if (savedCount !== null) {
+        document.getElementById('verbCount').value = savedCount;
+    }
+});
+
+// Uloženie pri zmene textu
+document.getElementById('verbInput').addEventListener('input', (e) => {
+    localStorage.setItem('generatorVerbInput', e.target.value);
+});
+
+// Uloženie pri zmene počtu
+document.getElementById('verbCount').addEventListener('input', (e) => {
+    localStorage.setItem('generatorVerbCount', e.target.value);
+});
+
+</script>
+<script>
+let verbs = [];
+let currentVerbIndex = 0;
+let currentForms = [];
+let score = 0;
+let total = 0;
+
+
+function parseInput() {
+  const raw = document.getElementById("verbInput").value.trim();
+  const blocks = raw.split(/\n\s*\n/);
+  return blocks.map(block => {
+    const lines = block.split("\n");
+    const infinitive = lines[0].split("\t")[1];
+    const forms = lines.slice(1).map(line => {
+      const [pronoun, form] = line.split("\t");
+      return { pronoun, form };
+    });
+    return { infinitive, forms };
+  });
+}
+
+function generateExercise() {
+  verbs = parseInput();
+  const count = Math.min(parseInt(document.getElementById("verbCount").value), verbs.length);
+  verbs = shuffleArray(verbs).slice(0, count);
+  score = 0;
+  total = 0;
+  currentVerbIndex = 0;
+  document.getElementById("scoreDisplay").textContent = "";
+  nextVerb();
+}
+
+
+// NOVÉ: indikátor chyby pri aktuálnom tvare
+let hadMistakeForCurrent = false;
+
+function nextVerb() {
+  if (currentVerbIndex >= verbs.length) {
+    const percent = Math.round((score / total) * 100);
+    document.getElementById("exerciseArea").innerHTML = "";
+    document.getElementById("feedback").textContent = "";
+    document.getElementById("scoreDisplay").textContent = `Výsledok: ${score}/${total} bodov (${percent}%)`;
+    return;
+  }
+
+  const verb = verbs[currentVerbIndex];
+  currentForms = shuffleArray([...verb.forms]);
+  total += currentForms.length;
+
+  // reset indikátora na prvý tvar
+  hadMistakeForCurrent = false;
+
+  let html = `<h3 style="text-align: center;">Sloveso: <em>${verb.infinitive}</em></h3>`;
+  html += `<p style="text-align: center;">Kam patrí tento časovaný tvar? Klikni do správnej prázdnej bunky.</p>`;
+  html += `<p id="formToPlace" style="text-align: center; font-size: 25px;">
+           <strong>${currentForms[0].form}</strong>
+         </p>`;
+  html += `<div id="feedback" style="text-align: center; color: red; font-weight: bold; margin-bottom: 12px;"></div>`;
+  html += `<table class="compact-table"><tr><th>Osobné zámeno</th><th>Časovaný tvar</th></tr>`;
+  const pronouns = ["ja", "ty", "on, ona, ono", "my", "vy", "oni, ony"];
+  pronouns.forEach((p, i) => {
+    html += `<tr><td>${p}</td><td onclick="placeForm(this, '${p}')"></td></tr>`;
+  });
+  html += `</table><br>`;
+  document.getElementById("exerciseArea").innerHTML = html;
+  document.getElementById("feedback").textContent = "";
+}
+
+function placeForm(cell, pronoun) {
+  const current = currentForms[0];
+  if (cell.textContent !== "") return;
+
+  const validPronouns = verbs[currentVerbIndex].forms
+    .filter(f => f.form === current.form)
+    .map(f => f.pronoun);
+
+  if (validPronouns.includes(pronoun)) {
+    cell.textContent = current.form;
+
+    const allCells = document.querySelectorAll("td");
+    allCells.forEach(td => {
+      if (td.classList.contains("highlight") && td.textContent === "") {
+        td.classList.remove("highlight");
+      }
+    });
+
+    currentForms.shift();
+
+    // bod len ak nebola žiadna chyba pri tomto tvare
+    if (!hadMistakeForCurrent) {
+      score++;
+    }
+    // reset indikátora pre ďalší tvar, ak existuje
+    hadMistakeForCurrent = false;
+
+    document.getElementById("feedback").textContent = "";
+
+    if (currentForms.length > 0) {
+      document.getElementById("formToPlace").innerHTML =
+        `<strong style="color: black;">${currentForms[0].form}</strong>`;
+    } else {
+      currentVerbIndex++;
+      setTimeout(nextVerb, 1000);
+    }
+  } else {
+    // prvá nesprávna voľba nastaví indikátor; ďalšie už nič nemenia
+    if (!hadMistakeForCurrent) {
+      hadMistakeForCurrent = true;
+    }
+
+    cell.classList.add("highlight");
+    document.getElementById("formToPlace").innerHTML =
+      `<strong style="color: red;">${current.form}</strong>`;
+    document.getElementById("feedback").innerHTML =
+      "Nesprávne. Skús to znova.<br>Teraz klikni do správnej prázdnej bunky.";
+  }
+}
+function shuffleArray(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+// Enable TAB key in textarea
+document.addEventListener("DOMContentLoaded", function() {
+  const textarea = document.getElementById("verbInput");
+  textarea.addEventListener("keydown", function(e) {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+      this.selectionStart = this.selectionEnd = start + 1;
+    }
+  });
+});
+</script>
+<script>
+function saveAsHtml() {
+  // 1) Získaj dáta cvičenia (preferuj aktuálne vygenerované, inak parsuj z textarey)
+  let selectedVerbs = [];
+  try {
+    if (Array.isArray(verbs) && verbs.length > 0) {
+      // Použi práve vybrané slovesá z generovaného cvičenia
+      selectedVerbs = verbs.map(v => ({
+        infinitive: v.infinitive,
+        forms: v.forms.map(f => ({ pronoun: f.pronoun, form: f.form }))
+      }));
+    } else {
+      // Vygeneruj z textarey podľa počtu verbCount (ako keby si stlačil "Generovať cvičenie")
+      const parsed = (typeof parseInput === "function") ? parseInput() : [];
+      if (!parsed.length) {
+        alert("Najprv zadaj slovesá a/alebo vygeneruj cvičenie.");
+        return;
+      }
+      const countEl = document.getElementById("verbCount");
+      const count = Math.min(parseInt(countEl ? countEl.value : parsed.length) || parsed.length, parsed.length);
+      const shuffled = parsed.slice().sort(() => Math.random() - 0.5).slice(0, count);
+      selectedVerbs = shuffled.map(v => ({
+        infinitive: v.infinitive,
+        forms: v.forms.map(f => ({ pronoun: f.pronoun, form: f.form }))
+      }));
+    }
+  } catch (e) {
+    alert("Ups, nepodarilo sa pripraviť dáta cvičenia. Skús najprv vygenerovať cvičenie.");
+    return;
+  }
+
+  if (!selectedVerbs.length) {
+    alert("Nie sú dostupné žiadne slovesá na uloženie.");
+    return;
+  }
+
+  // 2) Vytvor snapshot (v exportovanom súbore si formy ešte pomiešame, aby bolo cvičenie interaktívne)
+  const snapshot = selectedVerbs.map(v => ({
+    infinitive: v.infinitive,
+    forms: v.forms.slice()
+  }));
+
+  // 3) HTML obsahu exportovaného súboru (bez vnútorných template literálov)
+ const html =
+'<!DOCTYPE html>\n' +
+'<html lang="sk">\n' +
+'<head>\n' +
+'  <meta charset="UTF-8">\n' +
+'  <title>Cvičenie – časovanie slovies</title>\n' +
+'  <style>\n' +
+'    body { font-family: Courier bold, monospace; background-color: #f0f4f8; padding: 20px; }\n' +
+'    table { border-collapse: collapse; margin-top: 20px; width: 100%; background-color: #e0f7fa; border: 3px solid white; }\n' +
+'    th, td { border: 2px solid white; padding: 15px; text-align: center; font-size: 18px; height: 50px; }\n' +
+'    .highlight { background-color: #ffcccb; }\n' +
+'    .message { color: red; font-weight: bold; margin-top: 10px; }\n' +
+'    .score { font-size: 20px; margin-top: 20px; }\n' +
+'    .compact-table { width: 50%; margin: 0 auto; border-collapse: collapse; }\n' +
+'    .compact-table th, .compact-table td { padding: 4px 8px; text-align: center; border: 1px solid #ccc; font-size: 20px; }\n' +
+'    .compact-table td:first-child { font-weight: bold; width: 30%; }\n' +
+'  </style>\n' +
+'</head>\n' +
+'<body>\n' +
+'\n' +
+'<h2>Cvičenie – časovanie slovies</h2>\n' +
+'<div id="exerciseArea"></div>\n' +
+'<div class="message" id="feedback"></div>\n' +
+'<div class="score" id="scoreDisplay"></div>\n' +
+'\n' +
+'<script>\n' +
+'  // Dáta cvičenia (prenesené zo zdrojovej stránky)\n' +
+'  const verbs = ' + JSON.stringify(snapshot) + ';\n' +
+'\n' +
+'  let currentVerbIndex = 0;\n' +
+'  let currentForms = [];\n' +
+'  let score = 0;\n' +
+'  let total = 0;\n' +
+'\n' +
+'  // NOVÉ: indikátor, či bol pri aktuálnom tvare aspoň jeden omyl\n' +
+'  let hadMistakeForCurrent = false;\n' +
+'\n' +
+'  function nextVerb() {\n' +
+'    if (currentVerbIndex >= verbs.length) {\n' +
+'      const percent = total ? Math.round((score / total) * 100) : 0;\n' +
+'      document.getElementById("exerciseArea").innerHTML = "";\n' +
+'      const fb = document.getElementById("feedback"); if (fb) fb.textContent = "";\n' +
+'      document.getElementById("scoreDisplay").textContent = "Výsledok: " + score + "/" + total + " bodov (" + percent + "%)";\n' +
+'      return;\n' +
+'    }\n' +
+'\n' +
+'    const verb = verbs[currentVerbIndex];\n' +
+'    currentForms = verb.forms.slice().sort(function(){ return Math.random() - 0.5; });\n' +
+'    total += currentForms.length;\n' +
+'\n' +
+'    // reset indikátora pre prvý zobrazovaný tvar\n' +
+'    hadMistakeForCurrent = false;\n' +
+'\n' +
+'    let html = \'<h3 style="text-align: center;">Sloveso: <em>\' + escapeHtml(verb.infinitive) + \'</em></h3>\';\n' +
+'    html += \'<p style="text-align: center;">Kam patrí tento časovaný tvar? Klikni do správnej prázdnej bunky.</p>\';\n' +
+'    html += \'<p id="formToPlace" style="text-align: center; font-size: 25px;"><strong>\' + escapeHtml(currentForms[0].form) + \'</strong></p>\';\n' +
+'    html += \'<div id="localFeedback" class="message" style="text-align: center; margin: 8px 0 12px;"></div>\';\n' +
+'    html += \'<table class="compact-table"><tr><th>Osobné zámeno</th><th>Časovaný tvar</th></tr>\';\n' +
+'    const pronouns = ["ja","ty","on, ona, ono","my","vy","oni, ony"];\n' +
+'    pronouns.forEach(function(p) {\n' +
+'      html += \'<tr><td>\' + escapeHtml(p) + \'</td><td onclick="placeForm(this, \\\'\' + p.replace(/\\\'/g, "\\\\\'") + \'\\\')"></td></tr>\';\n' +
+'    });\n' +
+'    html += \'</table><br>\';\n' +
+'    document.getElementById("exerciseArea").innerHTML = html;\n' +
+'\n' +
+'    const lfb = document.getElementById("localFeedback"); if (lfb) lfb.textContent = "";\n' +
+'    const fb = document.getElementById("feedback"); if (fb) fb.textContent = "";\n' +
+'  }\n' +
+'\n' +
+'  function placeForm(cell, pronoun) {\n' +
+'    const current = currentForms[0];\n' +
+'    if (!current || cell.textContent !== "") return;\n' +
+'\n' +
+'    const validPronouns = verbs[currentVerbIndex].forms\n' +
+'      .filter(function(f) { return f.form === current.form; })\n' +
+'      .map(function(f) { return f.pronoun; });\n' +
+'\n' +
+'    if (validPronouns.includes(pronoun)) {\n' +
+'      cell.textContent = current.form;\n' +
+'\n' +
+'      const allCells = document.querySelectorAll("td");\n' +
+'      allCells.forEach(function(td) {\n' +
+'        if (td.classList.contains("highlight") && td.textContent === "") td.classList.remove("highlight");\n' +
+'      });\n' +
+'\n' +
+'      currentForms.shift();\n' +
+'\n' +
+'      // bod len ak nebola žiadna chyba pri tomto tvare\n' +
+'      if (!hadMistakeForCurrent) {\n' +
+'        score++;\n' +
+'      }\n' +
+'      // reset indikátora pre ďalší tvar (nastaví sa nanovo pri zobrazení)\n' +
+'      hadMistakeForCurrent = false;\n' +
+'\n' +
+'      const lfb = document.getElementById("localFeedback"); if (lfb) lfb.textContent = "";\n' +
+'      if (currentForms.length > 0) {\n' +
+'        document.getElementById("formToPlace").innerHTML = \'<strong style="color: black;">\' + escapeHtml(currentForms[0].form) + \'</strong>\';\n' +
+'        // nový tvar začína bez chyby\n' +
+'        hadMistakeForCurrent = false;\n' +
+'      } else {\n' +
+'        currentVerbIndex++;\n' +
+'        setTimeout(nextVerb, 800);\n' +
+'      }\n' +
+'    } else {\n' +
+'      // prvá nesprávna voľba nastaví indikátor; ďalšie už nič nemenia\n' +
+'      if (!hadMistakeForCurrent) {\n' +
+'        hadMistakeForCurrent = true;\n' +
+'      }\n' +
+'\n' +
+'      cell.classList.add("highlight");\n' +
+'      document.getElementById("formToPlace").innerHTML = \'<strong style="color: red;">\' + escapeHtml(current.form) + \'</strong>\';\n' +
+'      const lfb = document.getElementById("localFeedback");\n' +
+'      if (lfb) lfb.innerHTML = "Nesprávne. Skús to znova.<br>Teraz klikni do správnej prázdnej bunky.";\n' +
+'    }\n' +
+'  }\n' +
+'\n' +
+'  function escapeHtml(str) {\n' +
+'    return String(str)\n' +
+'      .replace(/&/g, "&amp;")\n' +
+'      .replace(/</g, "&lt;")\n' +
+'      .replace(/>/g, "&gt;")\n' +
+'      .replace(/"/g, "&quot;")\n' +
+'      .replace(/\\\'/g, "&#039;");\n' +
+'  }\n' +
+'\n' +
+'  document.addEventListener("DOMContentLoaded", nextVerb);\n' +
+'<\/script>\n' +
+'</body>\n' +
+'</html>\n';
+
+
+  // 4) Spusti stiahnutie
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const a = document.createElement("a");
+  const ts = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  const filename = `cvicenie_casovanie_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}.html`;
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(a.href);
+    a.remove();
+  }, 0);
+}
+</script>
+<script>
+  // Podpora pre tabulátor vo vstupnom poli
+  document.getElementById("verbInput").addEventListener("keydown", function(e) {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      // vložíme znak tabulátora na aktuálnu pozíciu
+      this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+      // posunieme kurzor za vložený tabulátor
+      this.selectionStart = this.selectionEnd = start + 1;
+      // uložíme do localStorage (aby sa nezmazalo)
+      localStorage.setItem("generatorVerbInput", this.value);
+    }
+  });
+</script>
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

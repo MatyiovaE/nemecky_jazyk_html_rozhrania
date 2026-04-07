@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Generátor náhodných úloh</title>
+  <style>
+    body { font-family: Courier bold, monospace; margin: 20px; max-width: 1000px; }
+    label { display:block; margin-top:12px; font-weight:600; }
+    textarea { width:100%; height:240px; font-size:140%; padding:8px; box-sizing:border-box; }
+    input[type=number] { width:120px; padding:6px; font-size:1rem; }
+    .controls { margin-top:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    button { padding:10px 14px; font-size:1rem; cursor:pointer; }
+    .note { margin-top:10px; color:#444; font-size:0.95rem; }
+  </style>
+</head>
+<body>
+  <h1>Generátor náhodných úloh</h1>
+
+  <label><span style="font-size: 110%;">Napíšte jednotlivé úlohy. Každú úlohu uveďte v osobitnom riadku.</span></label>
+  <div style="height: 10px;"></div>
+  <textarea id="items" placeholder="Napíšte jednotlivé úlohy. Každú úlohu uveďte v osobitnom riadku."></textarea>
+
+  <label>Počet zobrazených položiek</label>
+  <input id="count" type="number" min="1" value="10" />
+
+  <div class="controls">
+    <button id="generate">Vygenerovať súbor HTML</button>
+   
+  </div>
+
+  <script>
+    // --- LocalStorage podpora ---
+    const itemsField = document.getElementById('items');
+    const countField = document.getElementById('count');
+
+    // načítanie uložených hodnôt pri štarte
+    const savedItems = localStorage.getItem('items');
+    if (savedItems !== null) {
+      itemsField.value = savedItems;
+    }
+    const savedCount = localStorage.getItem('count');
+    if (savedCount !== null) {
+      countField.value = savedCount;
+    }
+
+    // ukladanie pri zmene
+    itemsField.addEventListener('input', () => {
+      localStorage.setItem('items', itemsField.value);
+    });
+    countField.addEventListener('input', () => {
+      localStorage.setItem('count', countField.value);
+    });
+    // --- Koniec localStorage podpory ---
+
+    function escapeForJs(s){
+      return s.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$').replace(/\r/g,'');
+    }
+
+    document.getElementById('generate').addEventListener('click', function(){
+      const raw = itemsField.value;
+      // rozdelíme riadky, otrimujeme, vyradíme prázdne
+      const lines = raw.split(/\n/).map(l => l.trim()).filter(l => l.length>0);
+      if(lines.length === 0){
+        alert('Zadajte aspoň jednu položku.');
+        return;
+      }
+      let count = parseInt(countField.value,10) || 1;
+      if(count < 1) count = 1;
+      if(count > lines.length) count = lines.length;
+
+      const normalized = lines.map(s => {
+        const parts = s.split(/\t/);
+        return parts[0].trim();
+      }).filter(s => s.length>0);
+
+      const itemsJs = normalized.map(s => '`' + escapeForJs(s) + '`').join(',');
+      const fileContent = `<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Náhodné úlohy</title>
+<style>
+  body{font-family: Courier bold, monospace; display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:30px;}
+  .card{width:100%;max-width:1300px;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;padding:20px;box-sizing:border-box;border:1px solid #ddd;background:#fff;}
+  .item{font-size:440%;text-align:center;margin-bottom:18px;word-break:break-word;}
+  .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .arrow{font-size:28px;padding:6px 12px;border-radius:6px;border:1px solid #ccc;background:#f8f8f8;cursor:default;user-select:none;}
+  .hidden{visibility:hidden;}
+  .message{margin-top:16px;font-weight:700;}
+  button {padding:8px 12px;font-size:1rem;cursor:pointer;}
+</style>
+</head>
+<body>
+<h1>Odpovedz na otázky.</h1>
+<span style="font-size: 150%;">Po zodpovedaní otázky klikni na pravú šípku.</span>
+  <div class="card">
+    <div id="display" class="item"></div>
+    <div id="arrowRow" class="controls">
+      <div id="left" class="arrow hidden">&larr;</div>
+      <div id="right" class="arrow">&rarr;</div>
+    </div>
+    <div id="numberButtons" class="controls" style="margin-top:12px; flex-wrap:wrap;"></div>
+    <div id="endMessage" class="message" style="display:none;">Koniec zoznamu úloh</div>
+    <div id="againRow" style="margin-top:12px;display:none;"><button id="againBtn">Znova</button></div>
+  </div>
+
+  <script>
+    const DB = [${itemsJs}];
+    const TARGET_COUNT = ${count};
+    function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+    function pickRandomItems(db, n){
+      const copy = db.slice();
+      shuffle(copy);
+      return copy.slice(0,n);
+    }
+
+    let sequence = pickRandomItems(DB, Math.min(TARGET_COUNT, DB.length));
+    let index = 0;
+
+    const display = document.getElementById('display');
+    const left = document.getElementById('left');
+    const right = document.getElementById('right');
+    const endMessage = document.getElementById('endMessage');
+    const againRow = document.getElementById('againRow');
+    const numberButtons = document.getElementById('numberButtons');
+
+    function updateUI(){
+      if(index < sequence.length){
+        display.textContent = (index+1) + ". " + sequence[index];
+        right.classList.toggle('hidden', false);
+        left.classList.toggle('hidden', index < 1);
+        endMessage.style.display = 'none';
+        againRow.style.display = 'none';
+      } else {
+        display.textContent = '';
+        left.classList.add('hidden');
+        right.classList.add('hidden');
+        endMessage.style.display = 'block';
+        againRow.style.display = 'block';
+      }
+    }
+
+    function renderNumberButtons(){
+      numberButtons.innerHTML = '';
+      sequence.forEach((_, i) => {
+        const btn = document.createElement('button');
+        btn.textContent = (i+1);
+        btn.addEventListener('click', () => {
+          index = i;
+          updateUI();
+        });
+        numberButtons.appendChild(btn);
+      });
+    }
+
+    right.addEventListener('click', function(){
+      index++;
+      updateUI();
+    });
+
+    left.addEventListener('click', function(){
+      if(index > 0) index--;
+      updateUI();
+    });
+
+    document.getElementById('againBtn').addEventListener('click', function(){
+      sequence = pickRandomItems(DB, Math.min(TARGET_COUNT, DB.length));
+      index = 0;
+      renderNumberButtons();
+      updateUI();
+    });
+
+    renderNumberButtons();
+    updateUI();
+  <\/script>
+  <br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>`;
+      const blob = new Blob([fileContent], {type: 'text/html;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'nahodne_ulohy.html';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      const dlBtn = document.getElementById('download-last');
+      dlBtn.disabled = false;
+      dlBtn._blob = blob;
+    });
+
+    document.getElementById('download-last').addEventListener('click', function(){
+      const dlBtn = this;
+      if(dlBtn._blob){
+        const url = URL.createObjectURL(dlBtn._blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'nahodne_ulohy.html';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+    });
+  </script>
+  <br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>

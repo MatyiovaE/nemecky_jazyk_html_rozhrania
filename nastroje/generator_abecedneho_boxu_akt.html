@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor abecedného boxu</title>
+    <style>
+        /* Globálne nastavenie písma Monaco pre celé rozhranie */
+        body, input, textarea, button, select {
+            font-family: 'Monaco', monospace;
+        }
+        
+        body {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* Hlavička - formulár */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .form-grid label {
+            font-weight: bold;
+        }
+
+        .form-grid input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 60px;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        /* Pokyny a Vlastná abeceda */
+        .full-width-block {
+            margin-top: 15px;
+        }
+        
+        .full-width-block label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .alphabet-settings {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .alphabet-settings input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+
+        /* Abecedné inputy */
+        .alphabet-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .letter-label {
+            font-size: 1.5em;
+            font-weight: bold;
+            width: 50px;
+            text-align: center;
+        }
+
+        .concept-input {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        /* Tlačidlá */
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        /* Tlačidlá pre import/export */
+        .btn-group-secondary {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 15px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #004494;
+        }
+        
+        .btn-secondary {
+            background-color: #28a745;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #218838;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.9em;
+            background-color: #6c757d;
+        }
+        
+        .btn-small:hover { 
+            background-color: #5a6268; 
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Generátor abecedného boxu</h1>
+
+    <div class="section">
+        <div class="form-grid">
+            <label for="autor">Autor:</label>
+            <input type="text" id="autor" placeholder="Zadaj meno autora">
+
+            <label for="rok">Rok:</label>
+            <input type="text" id="rok" placeholder="Napr. 2026">
+
+            <label for="predmet">Názov predmetu:</label>
+            <input type="text" id="predmet" placeholder="Napr. Dejepis">
+
+            <label for="tema">Téma:</label>
+            <input type="text" id="tema" placeholder="Napr. Druhá svetová vojna">
+
+            <label for="trieda">Trieda:</label>
+            <input type="text" id="trieda" placeholder="Napr. 9.A">
+        </div>
+
+        <div class="full-width-block">
+            <label for="pokyny">Pokyny pre žiaka (podporuje HTML tagy, napr. &lt;br&gt; pre nový riadok):</label>
+            <textarea id="pokyny">Zapíš do čo najviac polí aspoň jeden pojem k téme.<br>Jednotlivé pojmy oddeľ prosím čiarkou.</textarea>
+        </div>
+        
+        <div class="full-width-block">
+            <label for="custom-alphabet">Sada abecedy (čiarkou oddelené znaky):</label>
+            <div class="alphabet-settings">
+                <input type="text" id="custom-alphabet" value="A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z">
+                <button class="btn-small" onclick="renderAlphabet()">Aktualizovať abecedu</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" id="alphabet-container">
+    </div>
+
+    <div class="btn-group">
+        <button onclick="generateBox(false)">Vygenerovať abecedný box</button>
+        <button class="btn-secondary" onclick="generateBox(true)">Vygenerovať prázdny pracovný list</button>	
+    </div>
+    
+    <div class="btn-group-secondary">
+        <button class="btn-small" onclick="exportJSON()">Exportovať nastavenia (.json)</button>
+        <button class="btn-small" onclick="document.getElementById('import-file').click()">Importovať nastavenia (.json)</button>
+        <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importJSON(event)">
+    </div>
+
+	<br><br>
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+    <br><br>
+
+    <script>
+        // Úvodné vykreslenie abecedy podľa defaultnej sady
+        function renderAlphabet() {
+            const container = document.getElementById('alphabet-container');
+            container.innerHTML = ''; // Vymazať predchádzajúci obsah
+            
+            const rawAlphabet = document.getElementById('custom-alphabet').value;
+            // Rozdelí podľa čiarok, odstráni prázdne znaky a vytvorí pole
+            const letters = rawAlphabet.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            
+            letters.forEach(letter => {
+                const row = document.createElement('div');
+                row.className = 'alphabet-row';
+                row.innerHTML = `
+                    <div class="letter-label">${letter}</div>
+                    <input type="text" class="concept-input" data-letter="${letter}" placeholder="Zadaj pojmy oddelené čiarkou...">
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // Funkcia pre vygenerovanie nového okna
+        function generateBox(isEmptyList) {
+            const autor = document.getElementById('autor').value;
+            const rok = document.getElementById('rok').value;
+            const predmet = document.getElementById('predmet').value;
+            const tema = document.getElementById('tema').value;
+            const trieda = document.getElementById('trieda').value;
+            const pokyny = document.getElementById('pokyny').value;
+
+            const inputs = document.querySelectorAll('.concept-input');
+            let rowsHtml = '';
+
+            inputs.forEach(input => {
+                const letter = input.getAttribute('data-letter');
+                let cellContent = '';
+
+                if (!isEmptyList) {
+                    const rawVal = input.value.trim();
+                    if (rawVal) {
+                        // Rozdelí podľa čiarky, ošetrí okraje, ZORADÍ ABECEDNE a spojí presne s medzerou za čiarkou
+                        cellContent = rawVal.split(',')
+                                            .map(s => s.trim())
+                                            .filter(s => s !== '')
+                                            .sort((a, b) => a.localeCompare(b, 'sk')) // lokálne slovenské radenie
+                                            .join(', ');
+                    } else {
+                        cellContent = '-';
+                    }
+                }
+
+                rowsHtml += `
+                    <tr>
+                        <td class="col-letter">${letter}</td>
+                        <td class="col-content">${cellContent}</td>
+                    </tr>
+                `;
+            });
+
+            // Aktuálny dátum a čas vo formáte: 5. 4. 2026, 10:54
+            const now = new Date();
+            const day = now.getDate();
+            const month = now.getMonth() + 1;
+            const year = now.getFullYear();
+            const hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const dateStr = `${day}. ${month}. ${year}, ${hours}:${minutes}`;
+
+            // HTML štruktúra pre nové okno (tlačovú zostavu)
+            const html = `
+            <!DOCTYPE html>
+            <html lang="sk">
+            <head>
+                <meta charset="UTF-8">
+                <title>Abecedný box - ${tema}</title>
+                <style>
+                    /* Povinné písmo Monaco pre vygenerovanú stránku */
+                    body {
+                        font-family: 'Monaco', monospace;
+                        margin: 40px auto;
+                        max-width: 800px;
+                        color: #000;
+                    }
+                    /* Hlavička */
+                    .header-tema {
+                        font-size: 2.2em;
+                        font-weight: bold;
+                        text-align: center;
+                    }
+                    .header-predmet-trieda {
+                        font-size: 1.3em;
+                        text-align: center;
+                        margin-top: 5px;
+                    }
+                    .header-autor-rok {
+                        font-size: 1.1em;
+                        text-align: center;
+                        margin-top: 5px;
+                    }
+                    
+                    /* Pokyny zobrazené len ak ide o prázdny list */
+                    .instructions {
+                        margin-top: 30px;
+                        margin-bottom: 20px;
+                        font-size: 1.1em;
+                        font-style: italic;
+						text-align: center; 
+                    }
+
+                    /* Tabuľka / Mriežka */
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 30px;
+                        font-size: 1em;
+                    }
+                    th, td {
+                        border: 1px solid #000;
+                        /* Dynamické odsadenie: 8px pre prázdny, 6px pre vyplnený (zníženie výšky) */
+                        padding: ${isEmptyList ? '8px' : '4px 8px'}; 
+                    }
+                    .col-letter {
+                        width: 50px;
+                        text-align: center;
+                        font-size: 1.5em;
+                        font-weight: bold;
+                    }
+                    .col-content {
+                        /* Dynamické zarovnanie: top pre prázdny, middle pre vyplnený */
+                        vertical-align: ${isEmptyList ? 'top' : 'middle'};
+                        ${isEmptyList ? 'height: 28px;' : ''}
+                    }
+
+                    /* Pätička */
+                    .footer {
+                        margin-top: 20px;
+                        font-size: 0.9em;
+                        text-align: right;
+                    }
+
+                    /* Zabezpečí, že pri tlači cez CTRL+P nevytlačí URL a zbytočné okraje */
+                    @media print {
+                        body { margin: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header-tema">${tema || 'Nezadaná téma'}</div>
+                <div class="header-predmet-trieda">${predmet || 'Nezadaný predmet'} | Trieda: ${trieda || '-'}</div>
+                <div class="header-autor-rok">Autor: ${autor || '-'} | Rok: ${rok || '-'}</div>
+
+                ${isEmptyList ? `<div class="instructions">${pokyny}</div>` : ''}
+
+                <table>
+                    ${rowsHtml}
+                </table>
+
+                <div class="footer">Vygenerované: ${dateStr}</div>
+            </body>
+            </html>
+            `;
+
+            // Otvorenie v novom okne bez zablokovania a vpísanie HTML štruktúry
+            const newWindow = window.open('', '_blank');
+            newWindow.document.open();
+            newWindow.document.write(html);
+            newWindow.document.close();
+        }
+
+        // --- Funkcie pre Export a Import JSON ---
+
+        function exportJSON() {
+            // Zozbieranie všetkých nastavení z formulára
+            const data = {
+                autor: document.getElementById('autor').value,
+                rok: document.getElementById('rok').value,
+                predmet: document.getElementById('predmet').value,
+                tema: document.getElementById('tema').value,
+                trieda: document.getElementById('trieda').value,
+                pokyny: document.getElementById('pokyny').value,
+                customAlphabet: document.getElementById('custom-alphabet').value,
+                pojmy: {}
+            };
+
+            // Zozbieranie vyplnených pojmov pre jednotlivé písmená
+            const inputs = document.querySelectorAll('.concept-input');
+            inputs.forEach(input => {
+                const letter = input.getAttribute('data-letter');
+                data.pojmy[letter] = input.value;
+            });
+
+            // Vytvorenie JSON súboru a jeho stiahnutie
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            // Názov súboru pre stiahnutie
+            const fileName = data.tema ? `nastavenia_${data.tema.replace(/\s+/g, '_')}.json` : "nastavenia_boxu.json";
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    // Obnovenie základných informácií
+                    if(data.autor !== undefined) document.getElementById('autor').value = data.autor;
+                    if(data.rok !== undefined) document.getElementById('rok').value = data.rok;
+                    if(data.predmet !== undefined) document.getElementById('predmet').value = data.predmet;
+                    if(data.tema !== undefined) document.getElementById('tema').value = data.tema;
+                    if(data.trieda !== undefined) document.getElementById('trieda').value = data.trieda;
+                    if(data.pokyny !== undefined) document.getElementById('pokyny').value = data.pokyny;
+                    
+                    // Obnovenie sady abecedy a prekreslenie štruktúry
+                    if(data.customAlphabet !== undefined) {
+                        document.getElementById('custom-alphabet').value = data.customAlphabet;
+                        renderAlphabet();
+                    }
+
+                    // Doplnenie zachovaných pojmov k príslušným písmenám
+                    if(data.pojmy) {
+                        const inputs = document.querySelectorAll('.concept-input');
+                        inputs.forEach(input => {
+                            const letter = input.getAttribute('data-letter');
+                            if (data.pojmy[letter] !== undefined) {
+                                input.value = data.pojmy[letter];
+                            }
+                        });
+                    }
+                } catch (error) {
+                    alert("Nastala chyba pri načítaní súboru. Skontrolujte prosím, či ide o platný .json súbor.");
+                    console.error(error);
+                }
+            };
+            
+            reader.readAsText(file);
+            // Reset inputu aby sa dal nahrať ten istý súbor znovu v prípade potreby
+            event.target.value = "";
+        }
+
+        // Vykresliť abecedu automaticky pri načítaní stránky
+        window.onload = renderAlphabet;
+    </script>
+</body>
+</html>

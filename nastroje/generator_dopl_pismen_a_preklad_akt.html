@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="sk"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor cvičení - doplňovanie slov s prekladom</title>
+    <style>
+        /* CSS štýly generátora */
+        body {
+            font-family: Courier bold, monospace;
+            line-height: 1.6;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        h1, h2 {
+            color: #0056b3;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 5px;
+        }
+        textarea, input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: Consolas, "Courier bold", monospace;
+            font-size: 16px;
+        }
+        textarea {
+            height: 300px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .btn-export {
+            background-color: #28a745;
+        }
+        .btn-export:hover {
+            background-color: #218838;
+        }
+        .btn-import {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .btn-import:hover {
+            background-color: #e0a800;
+        }
+        .info {
+            background-color: #e6f7ff;
+            border-left: 5px solid #007bff;
+            padding: 10px 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+        .info-json {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 10px 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Generátor cvičení - doplňovanie písmen s prekladom</h1>
+        
+        <div class="info">
+            <p><strong>Návod:</strong></p>
+            <ol>
+                <li>Každú úlohu zadajte na samostatný riadok.</li>
+                <li>Zadajte slovo s vyznačením chýbajúcich písmen pomocou <code>/\</code>, stlačte kláves <code>TAB</code> a napíšte preklad (alebo pomocný text).</li>
+                <li>Príklad: <code>das Was/s\er[TAB]voda</code></li>
+            </ol>
+            
+        </div>
+
+        <label for="exerciseData">Vstupné dáta (podpora klávesy [TAB]):</label>
+        <textarea id="exerciseData" placeholder="das Was/s\er	voda
+der B/au\m	strom
+m/a\chen	robiť
+"></textarea>
+
+        <h2>Nastavenia cvičenia</h2>
+        <div class="settings-grid">
+            <div>
+                <label for="exerciseTitle">Názov cvičenia:</label>
+                <input type="text" id="exerciseTitle" placeholder="Napr. Doplňovanie chýbajúcich písmen">
+            </div>
+            <div>
+                <label for="maxTasks">Maximálny počet náhodných úloh (0 = všetky):</label>
+                <input type="number" id="maxTasks" value="0" min="0">
+            </div>
+            <div>
+                <label for="teacherName">Meno učiteľa:</label>
+                <input type="text" id="teacherName" placeholder="Napr. Mgr. Jozef Mak">
+            </div>
+            <div>
+                <label for="exerciseYear">Rok:</label>
+                <input type="number" id="exerciseYear" value="2026" min="2000" max="2100">
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button id="generateBtn">Vygenerovať HTML stránku</button>
+            <button id="exportBtn" class="btn-export">Exportovať nastavenia do súboru .json</button>
+            <button id="importBtn" class="btn-import">Importovať údaje zo súboru .json</button>
+            <input type="file" id="importFile" accept=".json" style="display: none;">
+        </div>
+
+        <div class="info-json">
+            <p>Uložte si údaje zadané do vstupných polí generátora pomocou tlačidla <strong>Exportovať nastavenia do súboru .json</strong>. Po otvorení tohoto generátora v inom prehliadači alebo v inom počítači môžete tieto uložené údaje načítať znova pomocou tlačidla <strong>Importovať údaje zo súboru .json</strong>.</p>
+        </div>
+
+		<br><br>
+        <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+        <br><br>
+    </div>
+	
+
+    <script>
+        // --- Logika generátora ---
+
+        const exerciseDataInput = document.getElementById('exerciseData');
+        const exerciseTitleInput = document.getElementById('exerciseTitle');
+        const maxTasksInput = document.getElementById('maxTasks');
+        const teacherNameInput = document.getElementById('teacherName');
+        const exerciseYearInput = document.getElementById('exerciseYear');
+        
+        const generateBtn = document.getElementById('generateBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const importBtn = document.getElementById('importBtn');
+        const importFileInput = document.getElementById('importFile');
+
+        // Predvolený rok podľa aktuálneho dátumu
+        const currentYear = new Date().getFullYear();
+
+        // 1. Obnovenie dát z localStorage
+        const verbDataFromLS = localStorage.getItem('verbGeneratorData2') || '';
+        const titleFromLS = localStorage.getItem('verbGeneratorTitle2') || '';
+        const maxTasksFromLS = localStorage.getItem('verbGeneratorMaxTasks2') || '0';
+        const teacherFromLS = localStorage.getItem('verbGeneratorTeacher') || '';
+        const yearFromLS = localStorage.getItem('verbGeneratorYear') || currentYear;
+        
+        if(verbDataFromLS) exerciseDataInput.value = verbDataFromLS.replace(/\\t/g, '\t'); 
+        if(titleFromLS) exerciseTitleInput.value = titleFromLS;
+        if(maxTasksFromLS) maxTasksInput.value = maxTasksFromLS;
+        if(teacherFromLS) teacherNameInput.value = teacherFromLS;
+        if(yearFromLS) exerciseYearInput.value = yearFromLS;
+
+        // 2. Ukladanie dát do localStorage pri zmene
+        exerciseDataInput.addEventListener('input', e => {
+            localStorage.setItem('verbGeneratorData2', e.target.value.replace(/\t/g, '\\t')); 
+        });
+        exerciseTitleInput.addEventListener('input', e => {
+            localStorage.setItem('verbGeneratorTitle2', e.target.value);
+        });
+        maxTasksInput.addEventListener('input', e => {
+            localStorage.setItem('verbGeneratorMaxTasks2', e.target.value);
+        });
+        teacherNameInput.addEventListener('input', e => {
+            localStorage.setItem('verbGeneratorTeacher', e.target.value);
+        });
+        exerciseYearInput.addEventListener('input', e => {
+            localStorage.setItem('verbGeneratorYear', e.target.value);
+        });
+
+        // 3. Podpora pre klávesu TAB v textarea
+        exerciseDataInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '\t' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+                this.dispatchEvent(new Event('input'));
+            }
+        });
+
+        // 4. Kliknutie na tlačidlo "Generovať"
+        generateBtn.addEventListener('click', () => {
+            const rawData = exerciseDataInput.value; 
+            const title = exerciseTitleInput.value || 'Cvičenie - doplňovanie slov';
+            const maxTasks = parseInt(maxTasksInput.value, 10);
+            const teacherName = teacherNameInput.value || 'Nezadané meno učiteľa';
+            const exerciseYear = exerciseYearInput.value || currentYear;
+            
+            try {
+                const parsedData = parseInputData(rawData);
+                
+                let totalTasks = parsedData.length;
+
+                if (totalTasks === 0) {
+                    alert("Chyba: Vstupné dáta sú prázdne alebo v nesprávnom formáte. Skontrolujte, či ste zadali aspoň jednu úlohu.");
+                    return;
+                }
+                const exerciseHTML = generateExerciseHTML(parsedData, title, maxTasks, teacherName, exerciseYear);
+                downloadHTML(exerciseHTML, title);
+            } catch (error) {
+                alert("Nastala chyba pri spracovaní dát: " + error.message);
+                console.error(error);
+            }
+        });
+
+        // --- EXPORT A IMPORT DO/Z JSON ---
+        exportBtn.addEventListener('click', () => {
+            const dataToExport = {
+                data: exerciseDataInput.value,
+                title: exerciseTitleInput.value,
+                maxTasks: maxTasksInput.value,
+                teacher: teacherNameInput.value,
+                year: exerciseYearInput.value
+            };
+            
+            const jsonString = JSON.stringify(dataToExport, null, 2);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement("a");
+            link.href = url;
+            let safeTitle = sanitizeFilename(exerciseTitleInput.value || "nastavenia").replace(".html", "");
+            link.download = safeTitle + "_nastavenia.json";
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+
+        importBtn.addEventListener('click', () => {
+            importFileInput.click();
+        });
+
+        importFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (importedData.data !== undefined) {
+                        exerciseDataInput.value = importedData.data;
+                        exerciseDataInput.dispatchEvent(new Event('input'));
+                    }
+                    if (importedData.title !== undefined) {
+                        exerciseTitleInput.value = importedData.title;
+                        exerciseTitleInput.dispatchEvent(new Event('input'));
+                    }
+                    if (importedData.maxTasks !== undefined) {
+                        maxTasksInput.value = importedData.maxTasks;
+                        maxTasksInput.dispatchEvent(new Event('input'));
+                    }
+                    if (importedData.teacher !== undefined) {
+                        teacherNameInput.value = importedData.teacher;
+                        teacherNameInput.dispatchEvent(new Event('input'));
+                    }
+                    if (importedData.year !== undefined) {
+                        exerciseYearInput.value = importedData.year;
+                        exerciseYearInput.dispatchEvent(new Event('input'));
+                    }
+                    
+                    // Reset inputu, aby bolo možné znova načítať ten istý súbor
+                    importFileInput.value = '';
+                    
+                } catch (error) {
+                    alert("Súbor sa nepodarilo načítať. Skontrolujte, či ide o platný .json súbor z tohto generátora.");
+                }
+            };
+            reader.readAsText(file);
+        });
+
+
+        // 5. Parser vstupných dát
+        function parseInputData(data) {
+            const tasks = [];
+            const effectiveData = data.replace(/\\t/g, '\t'); 
+            const lines = effectiveData.split('\n').filter(line => line.trim() !== '');
+
+            for (const line of lines) {
+                const parts = line.split('\t');
+                if (parts.length < 1) continue;
+
+                const mainPart = parts[0].trim();
+                const subPart = parts.length > 1 ? parts[1].trim() : "";
+                
+                const components = [];
+                let fullAnswer = "";
+                const rawParts = mainPart.split(/(\/[^/]+\\)/g);
+
+                for (const part of rawParts) {
+                    if (part.startsWith('/') && part.endsWith('\\')) {
+                        const answer = part.substring(1, part.length - 1);
+                        components.push({ type: "answer", value: answer });
+                        fullAnswer += answer;
+                    } else if (part) {
+                        components.push({ type: "stub", value: part });
+                        fullAnswer += part;
+                    }
+                }
+                
+                if (components.some(c => c.type === 'answer')) {
+                    tasks.push({ subText: subPart, components, fullAnswer });
+                }
+            }
+            return tasks;
+        }
+
+        // 6. Sanitizácia názvu súboru
+        function sanitizeFilename(name) {
+            let safeName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+            safeName = safeName
+                .toLowerCase()
+                .replace(/\s+/g, '_') 
+                .replace(/[^\w.-]/g, '') 
+                .replace(/__/g, '_');
+            
+            if (!safeName) safeName = 'cvicenie';
+            return safeName + '.html';
+        }
+
+        // 7. Funkcia na stiahnutie súboru
+        function downloadHTML(htmlContent, title) {
+            const filename = sanitizeFilename(title);
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const link = document.createElement('a');
+            
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            URL.revokeObjectURL(link.href);
+        }
+
+        // 8. Šablóna pre generovanú HTML stránku (UPRAVENÁ)
+        function generateExerciseHTML(parsedData, title, maxTasks, teacherName, year) {
+            
+            const jsonString = JSON.stringify(parsedData).replace(/</g, '\\u003c');
+            
+            const keyboardHtml = `
+                <div id="miniKeyboard">
+                    <div class="kb-row">
+                        <button onmousedown="handleKey(this); return false;">ä</button>
+                        <button onmousedown="handleKey(this); return false;">ö</button>
+                        <button onmousedown="handleKey(this); return false;">ü</button>
+                        <button onmousedown="handleKey(this); return false;">ß</button>
+                    </div>
+                    <div class="kb-row">
+                        <button onmousedown="handleKey(this); return false;">Ä</button>
+						<button onmousedown="handleKey(this); return false;">Ö</button>
+						<button onmousedown="handleKey(this); return false;">Ü</button>
+                              </div>
+                </div>
+            `;
+
+            return `
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        /* CSS štýly (bez zmien) */
+        body {
+            font-family: Courier bold, monospace;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+            color: #212121;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        h1 {
+            text-align: center;
+            color: #0056b3;
+        }
+        
+        #startScreen {
+            text-align: center;
+            padding: 40px 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        #startScreen .start-settings {
+            margin-bottom: 25px;
+            font-size: 1.2em;
+        }
+        #startScreen label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        #startScreen input[type="number"] {
+            width: 80px;
+            font-size: 1.1em;
+            padding: 5px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #startBtn {
+            font-size: 1.5em;
+            padding: 12px 30px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #startBtn:hover {
+            background-color: #218838;
+        }
+        
+        #studentInfo, #exerciseContainer {
+            display: none;
+        }
+        
+        #studentInfo {
+            text-align: left;
+            margin: 20px 0;
+        }
+        #studentInfo label {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        #studentInfo input[type="text"] {
+            font-size: 1em;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-left: 10px;
+            width: 300px;
+        }
+        #instructions {
+            background-color: #e6f7ff;
+            border-left: 5px solid #007bff;
+            padding: 10px 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        #exerciseContainer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        #taskDisplay {
+            font-size: 2.8em; 
+            margin: 40px 0;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #taskDisplay .main-text {
+            font-weight: bold; /* HRUBÉ PÍSMO pre doplňovanú časť */
+            display: block; /* Zmenené z flex na block pre lepšie spravovanie medzier */
+            text-align: center;
+            line-height: 1.6;
+            word-spacing: 0.5em; /* Zväčšený odstup medzi slovami */
+        }
+        #taskDisplay .subtext {
+            font-size: 0.4em; /* Relatívne k veľkosti celého displeja */
+            font-weight: normal;
+            color: #555;
+            display: block;
+            margin-top: 15px;
+            font-family: Arial, sans-serif;
+            word-spacing: normal;
+        }
+        #taskDisplay .stub {
+            margin: 0; /* Odstránené pevné okraje pre spojenie častí slov */
+            line-height: 1.6;
+            white-space: pre-wrap; /* Zachovanie medzier od užívateľa */
+        }
+        #taskDisplay input[type="text"] {
+            font-family: inherit;
+			font-size: 1em; 
+            font-weight: bold;
+			color: blue;
+            border: none;
+            border-bottom: 3px solid #007bff;
+            background-color: #f0f8ff;
+            text-align: center;
+            padding: 0px 2px; 
+            margin: 0 1px;
+            border-radius: 0;
+            box-shadow: none;
+            line-height: 1.6; /* Zväčšené line-height */
+            height: 1.6em; /* Zväčšená výška na odstránenie orezávania veľkých písmen */
+            vertical-align: baseline; /* Zarovnanie textu s bežným textom */
+        }
+        #taskDisplay input[type="text"]:focus {
+            outline: none;
+            border-bottom: 3px solid #0056b3;
+            background-color: #e6f7ff;
+        }
+        #miniKeyboard {
+            margin: 20px 0;
+        }
+        #miniKeyboard .kb-row {
+            margin-bottom: 8px;
+        }
+        #miniKeyboard button {
+            font-size: 1.1em;
+            font-weight: bold;
+            padding: 10px 15px;
+            margin: 3px;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            cursor: pointer;
+            min-width: 40px;
+        }
+        #miniKeyboard button:hover {
+            background-color: #e0e0e0;
+        }
+        #navigation button {
+            font-size: 1.2em;
+            padding: 10px 25px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #nextBtn, #evalBtn {
+            background-color: #28a745;
+            color: white;
+        }
+        #navButtons {
+            margin-top: 25px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        #navButtons button {
+            width: 40px;
+            height: 40px;
+            font-size: 1em;
+            margin: 4px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #navButtons button.current {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            border: 1px solid #0056b3;
+        }
+		
+		
+		/* Zafarbenie tlačidiel pre vyriešené úlohy */
+        #navButtons button.completed {
+            background-color: #add8e6; /* Svetlomodrá farba */
+            border: 1px solid #8abccf;
+        }
+
+        /* Aby aktuálna úloha zostala výrazná, aj keď je už "vyriešená" */
+        #navButtons button.current.completed {
+            background-color: #007bff; 
+            color: white;
+        }
+		
+		
+        #resultsContainer {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+       
+        #resultsSummary {
+            font-size: 1.2em;
+            line-height: 1.8;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        #detailBtn {
+            font-size: 1.1em;
+            padding: 10px 20px;
+            margin: 20px 0;
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #detailBtn:hover {
+            background-color: #138496;
+        }
+
+        #resultsList {
+            margin-top: 20px;
+        }
+        .result-item {
+            font-size: 1.1em;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .symbol {
+            font-size: 1.5em;
+            margin-right: 15px;
+        }
+        .correct .symbol {
+            color: #28a745;
+        }
+        .incorrect .symbol {
+            color: #dc3545;
+        }
+        .correct-answer {
+            font-style: italic;
+            color: #555;
+            margin-left: auto;
+        }
+
+        /* Štýly pre okno s detailnými výsledkami (aj pre tlač) */
+        .detail-results-body {
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+            padding: 20px;
+        }
+        .detail-results-body h1 {
+            color: #000;
+            border-bottom: 2px solid #000;
+        }
+        .detail-results-body h2 {
+             margin-top: 30px; 
+             border-bottom: 1px solid #ccc; 
+             padding-bottom: 3px;
+        }
+        .detail-results-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .detail-results-body th, .detail-results-body td {
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .detail-results-body th {
+            background-color: #f0f0f0;
+        }
+        .detail-results-body .symbol {
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: center;
+        }
+        .detail-results-body .correct { color: #28a745; }
+        .detail-results-body .incorrect { color: #dc3545; }
+        .detail-results-body .legend { margin-top: 20px; }
+
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+            .container {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                margin: 0;
+            }
+            /* Skryjeme ovládacie prvky pri tlači */
+            #startScreen, #studentInfo, #instructions, #exerciseContainer, #resultsSummary button, #detailBtn, #resultsList {
+                display: none;
+            }
+            #resultsContainer {
+                display: block !important;
+                border: none;
+                padding: 0;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>${title}</h1>
+
+        <div id="startScreen">
+            <div class="start-settings">
+                <label for="taskCountInput">Zadajte počet úloh (max: <span id="maxTasksLabel">0</span>):</label>
+                <input type="number" id="taskCountInput" value="10" min="1">
+            </div>
+            <button id="startBtn">Štart</button>
+        </div>
+
+        <div id="studentInfo">
+            <label for="studentName">Meno žiaka:</label>
+            <input type="text" id="studentName">
+        </div>
+
+        <p id="instructions">
+            <strong>Pokyny:</strong> Klikni na prázdne miesto a doplň cez klávesnicu chýbajúce písmeno/písmená. Ak si to rozmyslíš, vymaž obsah a doplň chýbajúce znaky znova.
+        </p>
+
+        <div id="exerciseContainer">
+            <div id="taskDisplay"></div>
+
+            ${keyboardHtml} <div id="navigation">
+                <button id="nextBtn">Ďalej</button>
+                <button id="evalBtn" style="display:none;">Vyhodnotiť</button>
+            </div>
+
+            <div id="navButtons"></div>
+        </div>
+
+        <div id="resultsContainer">
+            <h2>Výsledky</h2>
+            <div id="resultsSummary"></div>
+            <button id="detailBtn">Detailné výsledky</button>
+            <div id="resultsList"></div>
+        </div>
+        
+        <br><br>
+        <b>Spracoval(a) pomocou UI:</b> ${teacherName} (${year})
+        <br><br>
+    </div>
+
+    <script>
+        // --- UPRAVENÁ LOGIKA CVIČENIA ---
+
+        const rawExerciseData = ${jsonString};
+        const exerciseTitle = "${title}";
+        const generatorMaxTasks = ${maxTasks}; 
+
+        let fullTaskPool = []; 
+        let allTasks = [];     
+        let globalTaskIndex = 0;
+        
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        (function createFullPool() {
+            rawExerciseData.forEach(task => {
+                fullTaskPool.push({
+                    ...task,
+                    globalIndex: globalTaskIndex++
+                });
+            });
+
+            fullTaskPool = shuffle(fullTaskPool); 
+
+            if (generatorMaxTasks > 0 && generatorMaxTasks < fullTaskPool.length) {
+                fullTaskPool = fullTaskPool.slice(0, generatorMaxTasks);
+            }
+        })();
+        
+        const startScreen = document.getElementById('startScreen');
+        const startBtn = document.getElementById('startBtn');
+        const taskCountInput = document.getElementById('taskCountInput');
+        const maxTasksLabel = document.getElementById('maxTasksLabel');
+        const studentInfoDiv = document.getElementById('studentInfo'); 
+
+        const maxAvailable = fullTaskPool.length;
+        maxTasksLabel.textContent = maxAvailable;
+        taskCountInput.max = maxAvailable;
+        if (parseInt(taskCountInput.value) > maxAvailable) {
+            taskCountInput.value = maxAvailable;
+        }
+        if (maxAvailable === 0) {
+            startScreen.innerHTML = '<p style="font-size: 1em; color: red;">Chyba: Neboli nájdené žiadne úlohy. Skontrolujte vstupné dáta v generátore.</p>';
+        }
+        
+        let userAnswers = []; 
+        let currentTaskIndex = 0;
+        let isEvaluated = false;
+        let detailedResultsData = null; 
+
+        const studentNameInput = document.getElementById('studentName');
+        const taskDisplay = document.getElementById('taskDisplay');
+        const nextBtn = document.getElementById('nextBtn');
+        const evalBtn = document.getElementById('evalBtn');
+        const navButtonsContainer = document.getElementById('navButtons');
+        const exerciseContainer = document.getElementById('exerciseContainer');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsSummary = document.getElementById('resultsSummary');
+        const resultsList = document.getElementById('resultsList');
+        const detailBtn = document.getElementById('detailBtn');
+        
+        studentNameInput.value = localStorage.getItem('studentName') || '';
+        studentNameInput.addEventListener('input', (e) => localStorage.setItem('studentName', e.target.value));
+
+        function handleKey(buttonElement) {
+            const char = buttonElement.textContent;
+            const focusedInput = document.activeElement; 
+            
+            if (focusedInput && focusedInput.classList.contains('answer-input')) {
+                const start = focusedInput.selectionStart;
+                const end = focusedInput.selectionEnd;
+                const text = focusedInput.value;
+                
+                focusedInput.value = text.substring(0, start) + char + text.substring(end);
+                focusedInput.selectionStart = focusedInput.selectionEnd = start + char.length;
+                
+                focusedInput.dispatchEvent(new Event('input')); 
+            }
+        }
+        window.handleKey = handleKey; 
+
+        function renderTask(index) {
+            if (isEvaluated) return;
+            currentTaskIndex = index;
+            const task = allTasks[index]; 
+
+            let html = \`<div class="main-text">\`;
+            
+            let inputCounter = 0;
+            task.components.forEach(comp => {
+                if (comp.type === 'stub') {
+                    html += \`<span class="stub">\${comp.value}</span>\`;
+                } else { 
+                    const placeholder = '_'.repeat(comp.value.length);
+                    let savedAnswer = (userAnswers[index] && userAnswers[index].length > inputCounter) ? userAnswers[index][inputCounter] : "";
+                    
+                    const inputWidth = Math.max(30, comp.value.length * 30); 
+                    
+                    html += \`<input type="text" class="answer-input" data-task-index="\${index}" data-input-index="\${inputCounter}" value="\${savedAnswer}" placeholder="\${placeholder}" style="width: \${inputWidth}px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">\`;
+                    inputCounter++;
+                }
+            });
+            html += \`</div>\`;
+
+            if (task.subText) {
+                html += \`<div class="subtext">\${task.subText}</div>\`;
+            }
+
+            taskDisplay.innerHTML = html;
+
+            taskDisplay.querySelectorAll('.answer-input').forEach(input => {
+                input.addEventListener('input', () => {
+                    const minWidth = Math.max(30, (input.placeholder.length || 1) * 18);
+                    const newWidth = Math.max(minWidth, (input.value.length + 1) * 18);
+                    input.style.width = \`\${newWidth}px\`;
+                });
+				 // --- PRIDANÝ KÓD PRE ENTER ---
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault(); // zabráni pípnutiu alebo inému neželanému správaniu
+                        
+                        // Ak sme na poslednej úlohe, simulujeme klik na "Vyhodnotiť"
+                        if (currentTaskIndex === allTasks.length - 1) {
+                            evalBtn.click();
+                        } else {
+                            // Inak simulujeme klik na "Ďalej"
+                            nextBtn.click();
+                        }
+                    }
+                });
+                input.dispatchEvent(new Event('input'));
+            });
+
+            const firstInput = taskDisplay.querySelector('input[type="text"]');
+            if (firstInput) firstInput.focus();
+
+            updateNavButtons();
+            updateNavState();
+        }
+
+        function saveAnswer() {
+            const inputs = taskDisplay.querySelectorAll('.answer-input');
+            if (inputs.length === 0) return;
+
+            const answers = [];
+            inputs.forEach(input => answers.push(input.value.trim()));
+            userAnswers[currentTaskIndex] = answers;
+        }
+
+        function updateNavButtons() {
+            navButtonsContainer.innerHTML = '';
+            for (let i = 0; i < allTasks.length; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i + 1;
+                
+                if (i === currentTaskIndex) {
+                    btn.classList.add('current');
+                } 
+                
+                if (userAnswers[i] !== null) {
+                    btn.classList.add('completed');
+                }
+                
+                if (!isEvaluated) { 
+                    btn.onclick = () => { saveAnswer(); renderTask(i); };
+                }
+                
+                navButtonsContainer.appendChild(btn);
+            }
+        }
+
+        function updateNavState() {
+            if (currentTaskIndex === allTasks.length - 1) {
+                nextBtn.style.display = 'none';
+                evalBtn.style.display = 'inline-block';
+            } else {
+                nextBtn.style.display = 'inline-block';
+                evalBtn.style.display = 'none';
+            }
+        }
+
+        nextBtn.onclick = () => {
+            saveAnswer();
+            if (currentTaskIndex < allTasks.length - 1) {
+                renderTask(currentTaskIndex + 1);
+            }
+        };
+
+        evalBtn.onclick = () => {
+            saveAnswer();
+            evaluate();
+        };
+
+        detailBtn.onclick = showDetailedResults;
+        
+        startBtn.onclick = () => {
+            let numTasks = parseInt(taskCountInput.value, 10);
+            
+            if (isNaN(numTasks) || numTasks < 1) {
+                numTasks = 1;
+            }
+            if (numTasks > fullTaskPool.length) {
+                numTasks = fullTaskPool.length;
+            }
+            
+            allTasks = fullTaskPool.slice(0, numTasks);
+            userAnswers = new Array(allTasks.length).fill(null);
+
+            startScreen.style.display = 'none';
+            studentInfoDiv.style.display = 'block';
+            exerciseContainer.style.display = 'block';
+            
+            if (allTasks.length > 0) {
+                renderTask(0);
+            } else {
+                exerciseContainer.innerHTML = '<p style="font-size: 1em; color: red;">Chyba: Neboli nájdené žiadne úlohy na spustenie.</p>';
+            }
+        };
+
+
+        function evaluate() {
+            isEvaluated = true;
+            let score = 0;
+            const results = [];
+
+            allTasks.forEach((task, index) => {
+                const correctAnswers = task.components.filter(c => c.type === 'answer').map(c => c.value);
+                const studentAnswers = userAnswers[index] || [];
+                
+                let isCorrect = true;
+                
+                if (correctAnswers.length !== studentAnswers.length) {
+                    isCorrect = false;
+                } else {
+                    for (let i = 0; i < correctAnswers.length; i++) {
+                        if (studentAnswers[i].trim() !== correctAnswers[i]) {
+                            isCorrect = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (isCorrect) score++;
+
+                let studentTextAnswer = "";
+                let i_ans = 0;
+                task.components.forEach(c => {
+                    if (c.type === 'stub') {
+                        studentTextAnswer += c.value;
+                    } else {
+                        studentTextAnswer += (studentAnswers[i_ans] || "[_]");
+                        i_ans++;
+                    }
+                });
+
+                results.push({
+                    ...task,
+                    studentAnswers,
+                    correctAnswers,
+                    studentTextAnswer, 
+                    isCorrect
+                });
+            });
+
+            const percentage = (score / allTasks.length) * 100;
+            const now = new Date();
+            const timestamp = now.toLocaleString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const studentName = studentNameInput.value.trim() || 'Anonym';
+
+            exerciseContainer.style.display = 'none';
+            resultsContainer.style.display = 'block';
+            studentNameInput.disabled = true;
+
+            resultsSummary.innerHTML = \`
+                <p><strong>Názov cvičenia:</strong> \${exerciseTitle}</p>
+                <p><strong>Meno žiaka:</strong> \${studentName}</p>
+                <p><strong>Bodové hodnotenie:</strong> \${score} z \${allTasks.length}</p>
+                <p><strong>Percentuálna úspešnosť:</strong> \${percentage.toFixed(1)} %</p>
+                <p><strong>Dátum a čas:</strong> \${timestamp}</p>
+            \`;
+
+            let resultsHTML = "<h3>Detailné odpovede:</h3>";
+            results.forEach(res => {
+                const symbol = res.isCorrect ? '✓' : '✗';
+                const symbolClass = res.isCorrect ? 'correct' : 'incorrect';
+                
+                resultsHTML += \`<div class="result-item \${symbolClass}">\`;
+                resultsHTML += \`<span class="symbol \${symbolClass}">\${symbol}</span>\`;
+                resultsHTML += \`<div>
+                                    <span><strong>\${res.studentTextAnswer}</strong></span>
+                                    \${res.subText ? \`<br><span style="font-size:0.8em; color:#666;">\${res.subText}</span>\` : ''}
+                                </div>\`;
+                if (!res.isCorrect) {
+                    resultsHTML += \`<span class="correct-answer">(Správne: \${res.fullAnswer})</span>\`;
+                }
+                resultsHTML += \`</div>\`;
+            });
+            resultsList.innerHTML = resultsHTML;
+
+            detailedResultsData = {
+                title: exerciseTitle,
+                name: studentName,
+                score,
+                total: allTasks.length,
+                percentage,
+                timestamp,
+                results
+            };
+        }
+        
+        function showDetailedResults() {
+            if (!detailedResultsData) {
+                alert("Najprv je potrebné cvičenie vyhodnotiť.");
+                return;
+            }
+            const data = detailedResultsData;
+
+            const newWin = window.open('', 'DetailnéVýsledky', 'width=900,height=700,scrollbars=yes,resizable=yes'); 
+            if (!newWin) {
+                alert("Prosím, povoľte vyskakovacie okná pre zobrazenie detailných výsledkov.");
+                return;
+            }
+
+            let html = \`
+                <!DOCTYPE html>
+                <html lang="sk">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Detailné výsledky - \${data.title}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.5; padding: 20px; }
+                        h1 { color: #000; border-bottom: 2px solid #000; padding-bottom: 5px; }
+                        h2 { margin-top: 30px; border-bottom: 1px solid #ccc; padding-bottom: 3px;}
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 1em;}
+                        th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; vertical-align: top; }
+                        th { background-color: #f0f0f0; }
+                        .symbol { font-size: 1.2em; font-weight: bold; text-align: center; }
+                        .correct { color: #28a745; }
+                        .incorrect { color: #dc3545; }
+                        .legend { margin-top: 20px; font-size: 0.9em; }
+                        @media print {
+                            body { padding: 10px; }
+                        }
+                    </style>
+                </head>
+                <body class="detail-results-body">
+                    <h1>\${data.title}</h1>
+                    <p><strong>Meno žiaka:</strong> \${data.name}</p>
+                    <p><strong>Bodové a percentuálne hodnotenie:</strong> \${data.score} z \${data.total} (\${data.percentage.toFixed(1)}%)</p>
+                    <p><strong>Dátum a čas:</strong> \${data.timestamp}</p>
+
+                    <h2>Detailný prehľad</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Zadanie / Preklad</th>
+                                <th>Tvoja odpoveď</th>
+                                <th>Správna odpoveď</th>
+                                <th class="symbol">Výsledok</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            \`;
+
+            data.results.forEach(res => {
+                const symbol = res.isCorrect ? '✓' : '✗';
+                const symbolClass = res.isCorrect ? 'correct' : 'incorrect';
+                
+                html += \`
+                    <tr>
+                        <td>\${res.subText || '–'}</td>
+                        <td><strong>\${res.studentTextAnswer || '–'}</strong></td>
+                        <td><strong>\${res.fullAnswer}</strong></td>
+                        <td class="symbol \${symbolClass}">\${symbol}</td>
+                    </tr>
+                \`;
+            });
+
+            html += \`
+                        </tbody>
+                    </table>
+                    <div class="legend">
+                        <p><strong>Vysvetlivky:</strong></p>
+                        <ul>
+                            <li><span class="symbol correct">✓</span> = Správne</li>
+                            <li><span class="symbol incorrect">✗</span> = Nesprávne</li>
+                        </ul>
+                    </div>
+                    <div class="no-print" style="margin-top: 40px;"><p>Túto stránku je možné vytlačiť pomocou Ctrl + P (alebo Command + P).</p></div>
+                </body>
+                </html>
+            \`;
+
+            newWin.document.open();
+            newWin.document.write(html);
+            newWin.document.close();
+            newWin.focus(); 
+        }
+      
+    <\/script>
+</body>
+</html>
+`;
+        }
+
+    </script>
+</body>
+</html>

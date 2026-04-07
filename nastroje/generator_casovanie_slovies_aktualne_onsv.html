@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor časovania slovies (oneskorená spätná väzba)</title>
+  <style>
+    body { font-family: Courier bold, monospace; background-color: #f0f4f8; padding: 20px; }
+    textarea, input, button { margin: 10px 0; width: 100%; padding: 10px; font-size: 16px; }
+    .compact-table { width: 50%; margin: 0 auto; border-collapse: collapse; }
+    .compact-table th, .compact-table td {
+      padding: 4px 8px; text-align: center; border: 1px solid #ccc; font-size: 20px; cursor: pointer;
+    }
+    .compact-table td:first-child { font-weight: bold; width: 30%; }
+    .card {
+      display: inline-block; padding: 6px 12px; margin: 5px;
+      background-color: #eef; border: 1px solid #99c; cursor: pointer;
+    }
+    .selected { background-color: #cfc; }
+    .correct { background-color: #cfc; }
+    .incorrect { background-color: #fbb; }
+    .controls { margin-top: 20px; text-align: center; }
+    .feedback { margin-top: 20px; font-size: 18px; }
+  </style>
+</head>
+<body>
+
+<h1>Generátor časovania slovies (oneskorená spätná väzba)</h1>
+
+<label for="verbInput">Zadajte slovesá (oddelené prázdnym riadkom):</label>
+<textarea id="verbInput" rows="12" placeholder="sloveso[TAB]spievať&#10;ja[TAB]spievam&#10;ty[TAB]spievaš&#10;on, ona, ono[TAB]spieva&#10;my[TAB]spievame&#10;vy[TAB]spievate&#10;oni, ony[TAB]spievajú&#10;&#10;sloveso[TAB]robiť&#10;ja[TAB]robím&#10;ty[TAB]robíš&#10;on, ona, ono[TAB]robí&#10;my[TAB]robíme&#10;vy[TAB]robíte&#10;oni, ony[TAB]robia&#10;"></textarea>
+
+<label for="verbCount">Počet slovies na precvičovanie:</label>
+<input type="number" id="verbCount" min="1" value="1">
+
+<button onclick="generateExercise()">Generovať cvičenie</button>
+<button onclick="saveAsHtml()">Uložiť cvičenie ako HTML</button>
+
+<div id="exerciseArea"></div>
+<div id="cards"></div>
+<div class="controls" id="controls"></div>
+<div class="feedback" id="finalFeedback"></div>
+
+<script>
+  // localStorage load/save
+  document.addEventListener("DOMContentLoaded", () => {
+    const sv = localStorage.getItem("generatorVerbInput");
+    const sc = localStorage.getItem("generatorVerbCount");
+    if (sv) document.getElementById("verbInput").value = sv;
+    if (sc) document.getElementById("verbCount").value = sc;
+  });
+  document.getElementById("verbInput")
+    .addEventListener("input", e => localStorage.setItem("generatorVerbInput", e.target.value));
+  document.getElementById("verbCount")
+    .addEventListener("input", e => localStorage.setItem("generatorVerbCount", e.target.value));
+
+  let verbs = [], currentIndex = 0, answers = [];
+
+  function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+  }
+
+  function parseInput() {
+    const raw = document.getElementById("verbInput").value.trim();
+    const blocks = raw.split(/\n\s*\n/);
+    return blocks.map(block => {
+      const lines = block.split("\n");
+      const infinitive = lines[0].split("\t")[1];
+      const forms = lines.slice(1).map(l => {
+        const [pronoun, form] = l.split("\t");
+        return { pronoun, form };
+      });
+      return { infinitive, forms };
+    });
+  }
+
+  function generateExercise() {
+    const parsed = parseInput();
+    const count = Math.min(+document.getElementById("verbCount").value, parsed.length);
+    verbs = shuffle(parsed).slice(0, count);
+    currentIndex = 0;
+    answers = [];
+    document.getElementById("finalFeedback").textContent = "";
+    renderVerb();
+  }
+
+  function renderVerb() {
+    const v = verbs[currentIndex];
+    document.getElementById("exerciseArea").innerHTML = `
+      <h3>${currentIndex+1}. časovanie: <em>${v.infinitive}</em></h3>
+      <table class="compact-table">
+        <tr><th>Osobné zámeno</th><th>Časovaný tvar</th></tr>
+        ${v.forms.map((f,i) =>
+          `<tr><td>${f.pronoun}</td><td class="drop" data-index="${i}"></td></tr>`
+        ).join("")}
+      </table>`;
+    document.getElementById("cards").innerHTML =
+      shuffle(v.forms.map(f => f.form))
+        .map(t => `<div class="card">${t}</div>`).join("");
+    document.getElementById("controls").innerHTML = "";
+    bindInteractions();
+  }
+
+  function bindInteractions() {
+    let selectedCard = null;
+
+    // klik na kartičku = označiť
+    document.querySelectorAll(".card").forEach(card => {
+      card.onclick = () => {
+        document.querySelectorAll(".card").forEach(c => c.classList.remove("selected"));
+        card.classList.add("selected");
+        selectedCard = card;
+      };
+    });
+
+    // klik na bunku
+    document.querySelectorAll(".drop").forEach(cell => {
+      cell.onclick = () => {
+        // 1) ak je vybraná kartička – vložiť ju sem
+        if (selectedCard) {
+          // ak už v bunke niečo je, najskôr vrátiť to späť
+          if (cell.textContent) {
+            const old = document.createElement("div");
+            old.className = "card";
+            old.textContent = cell.textContent;
+            document.getElementById("cards").appendChild(old);
+            bindInteractions();
+          }
+          cell.textContent = selectedCard.textContent;
+          selectedCard.remove();
+          selectedCard = null;
+          checkFilled();
+        }
+        // 2) ak nie je vybraná žiadna kartička, ale bunka obsahuje tvar – vrátiť ho späť
+        else if (cell.textContent) {
+          const old = document.createElement("div");
+          old.className = "card";
+          old.textContent = cell.textContent;
+          document.getElementById("cards").appendChild(old);
+          cell.textContent = "";
+          bindInteractions();
+          // po odstránení tvaru z bunky treba skryť tlačidlo Ďalej/Vyhodnotiť
+          document.getElementById("controls").innerHTML = "";
+        }
+      };
+    });
+  }
+
+  function checkFilled() {
+    const all = [...document.querySelectorAll(".drop")];
+    if (all.every(c => c.textContent.trim())) {
+      const btn = document.createElement("button");
+      btn.textContent = (currentIndex < verbs.length-1)
+        ? "Ďalej"
+        : "Vyhodnotiť odpovede";
+      btn.onclick = () => {
+        saveAnswer();
+        currentIndex++;
+        currentIndex < verbs.length
+          ? renderVerb()
+          : showResults();
+      };
+      const ctrl = document.getElementById("controls");
+      ctrl.innerHTML = "";
+      ctrl.appendChild(btn);
+    }
+  }
+
+  function saveAnswer() {
+    const row = [...document.querySelectorAll(".drop")]
+      .map(c => c.textContent.trim());
+    answers.push(row);
+  }
+
+  function showResults() {
+    let html = `<h3>Výsledky</h3>`;
+    let total = 0, correct = 0;
+
+    verbs.forEach((v,i) => {
+      html += `<h4>${i+1}. ${v.infinitive}</h4>
+        <table class="compact-table">
+          <tr><th>Osobné zámeno</th><th>Vaše</th><th>Správne</th></tr>`;
+      v.forms.forEach((f,j) => {
+        const u = answers[i][j];
+        const ok = u === f.form;
+        html += `<tr>
+          <td>${f.pronoun}</td>
+          <td class="${ok?'correct':'incorrect'}">${u}</td>
+          <td>${f.form}</td>
+        </tr>`;
+        total++;
+        if (ok) correct++;
+      });
+      html += `</table>`;
+    });
+
+    const pct = Math.round(correct/total*100);
+    html += `<p><strong>Správne: ${correct}/${total} (${pct}%)</strong></p>`;
+
+    document.getElementById("exerciseArea").innerHTML = "";
+    document.getElementById("cards").innerHTML = "";
+    document.getElementById("controls").innerHTML = "";
+    document.getElementById("finalFeedback").innerHTML = html;
+  }
+
+
+function saveAsHtml() {
+  // 1) Vytiahneme si snapshot aktuálnych slovies
+  const snapshot = verbs.map(v => ({
+    infinitive: v.infinitive,
+    forms: v.forms.map(f => ({ pronoun: f.pronoun, form: f.form }))
+  }));
+
+  // 2) Pripravíme časovú značku
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const dateStr = `${pad(now.getDate())}.${pad(now.getMonth()+1)}.${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+  // 3) Vygenerujeme HTML ako text
+  const html = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Cvičenie – časovanie slovies</title>
+  <style>
+    body { font-family: Courier bold, monospace; background: #f0f4f8; padding: 20px; }
+    h1, h2, h3, h4, p { margin: 0 0 10px; }
+    label, input { display: block; margin: 10px 0; font-size: 16px; }
+    input { padding: 6px; width: 300px; }
+    table { border-collapse: collapse; margin: 10px 0; width: 50%; background: #e0f7fa; }
+    th, td { border: 2px solid white; padding: 12px; text-align: center; font-size: 30px; cursor: pointer; }
+    .card { display: inline-block; padding: 6px 12px; margin: 5px; background: #eef; font-size: 160%; border: 1px solid #99c; cursor: pointer; }
+    .selected { background: #cfc; }
+    .correct { background: #cfc; }
+    .incorrect { background: #fbb; }
+    .controls { margin-top: 20px; }
+    @media print {
+      input, button { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Názov cvičenia:</h1>
+  <h2>Cvičenie s oneskorenou spätnou väzbou</h2>
+  <label for="studentName">Meno žiaka:</label>
+  <input type="text" id="studentName" placeholder="Sem napíšte meno žiaka">
+<span style="display: block; text-align: center; font-weight: bold; font-size: 120%; color: blue;">Najprv klikni na tvar slovesa pod tabuľkou a potom klikni na správnu bunku.<br>Ak chceš už umiestnený tvar vymeniť, klikni znova do bunky, čím sa vráti daný tvar pod tabuľku.</span>
+<div style="height: 30px;"></div>
+  <div id="exerciseArea"></div>
+  <div id="cards"></div>
+  <div class="controls" id="controls"></div>
+  <div id="finalResults"></div>
+
+  <script>
+    // Dáta cvičenia
+    const verbs = ${JSON.stringify(snapshot)};
+    let currentIndex = 0;
+    let answers = [];
+
+    function shuffle(a) { return a.sort(() => Math.random() - 0.5); }
+
+    function renderVerb() {
+      const v = verbs[currentIndex];
+      const area = document.getElementById("exerciseArea");
+      area.innerHTML = \`
+        <h3>\${currentIndex+1}. sloveso: <em>\${v.infinitive}</em></h3>
+        <table>
+          <tr><th>Osobné zámeno</th><th>Časovaný tvar</th></tr>
+          \${v.forms.map((f,i)=>
+            '<tr><td>'+f.pronoun+'</td><td class="drop" data-i="'+i+'"></td></tr>'
+          ).join('')}
+        </table>\`;
+      document.getElementById("cards").innerHTML =
+        shuffle(v.forms.map(f=>f.form))
+          .map(t=>'<div class="card">'+t+'</div>').join('');
+      document.getElementById("controls").innerHTML = "";
+      bind();
+    }
+
+    function bind() {
+      let selected = null;
+      document.querySelectorAll(".card").forEach(c => {
+        c.onclick = () => {
+          document.querySelectorAll(".card").forEach(x=>x.classList.remove("selected"));
+          c.classList.add("selected");
+          selected = c;
+        };
+      });
+      document.querySelectorAll(".drop").forEach(cell => {
+        cell.onclick = () => {
+          if (selected) {
+            if (cell.textContent) {
+              // vrátime starú hodnotu kartičke
+              const old = document.createElement("div");
+              old.className = "card";
+              old.textContent = cell.textContent;
+              document.getElementById("cards").appendChild(old);
+              bind();
+            }
+            cell.textContent = selected.textContent;
+            selected.remove();
+            selected = null;
+            checkFilled();
+          } else if (cell.textContent) {
+            // ak nie je vybraná žiadna karta, vrátime bunku
+            const old = document.createElement("div");
+            old.className = "card";
+            old.textContent = cell.textContent;
+            document.getElementById("cards").appendChild(old);
+            cell.textContent = "";
+            bind();
+            document.getElementById("controls").innerHTML = "";
+          }
+        };
+      });
+    }
+
+    function checkFilled() {
+      const all = [...document.querySelectorAll(".drop")];
+      if (all.every(c=>c.textContent.trim())) {
+        const btn = document.createElement("button");
+        btn.textContent = currentIndex < verbs.length - 1 
+          ? "Ďalej" 
+          : "Vyhodnotiť odpovede";
+        btn.onclick = () => {
+          answers.push(all.map(c=>c.textContent));
+          currentIndex++;
+          if (currentIndex < verbs.length) {
+            renderVerb();
+          } else {
+            showResults();
+          }
+        };
+        document.getElementById("controls").innerHTML = "";
+        document.getElementById("controls").appendChild(btn);
+      }
+    }
+
+    function showResults() {
+      const student = document.getElementById("studentName").value || "– neznáme –";
+      let html = \`
+        <h2>Výsledky</h2>
+        <p><strong>Meno žiaka:</strong> \${student}</p>
+        <p><strong>Dátum a čas:</strong> ${dateStr}</p>
+        <hr>\`;
+      let total = 0, correct = 0;
+      verbs.forEach((v,i) => {
+        html += '<h3>'+v.infinitive+'</h3>'
+          + '<table style="width: 900px; font-size: 120%;"><tr><th style="width: 200px; font-size: 120%;">Osobné zámeno</th><th style="width: 350px; font-size: 120%;">Vaša odpoveď</th><th style="width: 350px; font-size: 120%;">Správny tvar</th></tr>';
+        v.forms.forEach((f,j) => {
+          const u = answers[i][j];
+          const ok = u === f.form;
+          html += '<tr>'
+            + '<td>'+f.pronoun+'</td>'
+            + '<td class="'+(ok?'correct':'incorrect')+'">'+u+'</td>'
+            + '<td>'+f.form+'</td>'
+            + '</tr>';
+          total++;
+          if (ok) correct++;
+        });
+        html += '</table>';
+      });
+      const pct = Math.round(correct/total*100);
+      html += \`
+        <p><strong>Skóre:</strong> \${correct} z \${total} (\${pct}%)</p>\`;
+
+      document.body.innerHTML = 
+        document.querySelector('h1').outerHTML
+        + html
+        + '<p><em>Na záznam ako PDF použite Ctrl+P</em></p>';
+    }
+
+    // Štart prvej úlohy až po zadaní mena
+    document.getElementById("studentName").addEventListener("change", () => {
+      renderVerb();
+    });
+  <\/script>
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>`;
+
+  // 4) Stiahneme ho ako súbor
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `cvicenie_casovanie_${pad(now.getDate())}${pad(now.getMonth()+1)}${now.getFullYear()}_${pad(now.getHours())}${pad(now.getMinutes())}.html`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(a.href);
+    a.remove();
+  }, 0);
+}
+
+</script>
+<script>
+  // Podpora pre tabulátor vo vstupnom poli
+  document.getElementById("verbInput").addEventListener("keydown", function(e) {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      // vložíme znak tabulátora na aktuálnu pozíciu
+      this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+      // posunieme kurzor za vložený tabulátor
+      this.selectionStart = this.selectionEnd = start + 1;
+      // uložíme do localStorage (aby sa nezmazalo)
+      localStorage.setItem("generatorVerbInput", this.value);
+    }
+  });
+  </script>
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

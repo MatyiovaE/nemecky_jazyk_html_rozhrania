@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor HTML cvičení - Doplňovanie slov klikaním (viac slov vo vete)</title>
+    <style>
+        body {
+            font-family: Courier bold, monospace;
+			font-size: 1rem;
+            line-height: 1.6;
+            background-color: #f4f7f6;
+            color: #000000;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: #0056b3;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+			font-family: Courier bold, monospace;
+        }
+        textarea {
+            height: 250px;
+            font-family: monospace;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .instructions {
+            background-color: #e6f7ff;
+            border-left: 5px solid #007bff;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+        .instructions code {
+            background-color: #d1ecf1;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 style="text-align: center;">Generátor HTML cvičení<br>Doplňovanie viacerých slov do jednej vety klikaním - oneskorená odozva</h1>
+
+        <div class="instructions">
+            <strong>Ako na to:</strong>
+            <ul>
+                <li>Úlohy oddeľte **jedným prázdnym riadkom**.</li>
+                <li>Formát doplňovačky:<br>
+                    <code>Eva, čo ... sa dnes ... ?[TAB]si:sa:sú[TAB]naučila:naučil:naučili</code>
+                </li>
+                <li>Nový riadok v texte vytvoríte lomkou <code>/</code>.</li>
+            </ul>
+        </div>
+
+        <label for="exerciseTitle">Názov cvičenia:</label>
+        <input type="text" id="exerciseTitle" style="width: 100%;" placeholder="Napr. Doplňovačka - zámená">
+
+        <label for="dataInput">Vstupné údaje pre cvičenie:</label>
+        <textarea id="dataInput" placeholder="Príklad úlohy 1:&#10;Na, wie ... das Spiel? / Schlecht.[TAB]war:hatte&#10;&#10;Príklad úlohy 2:&#10;Eva ... sa dnes ... ?[TAB]si:sa:sú[TAB]naučila:naučil:naučili"></textarea>
+
+        <button id="generateBtn">Vygenerovať HTML stránku</button>
+    </div>
+
+    <script>
+        const dataInput = document.getElementById('dataInput');
+        const exerciseTitleInput = document.getElementById('exerciseTitle');
+        const generateBtn = document.getElementById('generateBtn');
+
+        // LocalStorage
+        window.addEventListener('load', () => {
+            if (localStorage.getItem('exerciseData')) dataInput.value = localStorage.getItem('exerciseData');
+            if (localStorage.getItem('exerciseTitle')) exerciseTitleInput.value = localStorage.getItem('exerciseTitle');
+        });
+        dataInput.addEventListener('input', () => localStorage.setItem('exerciseData', dataInput.value));
+        exerciseTitleInput.addEventListener('input', () => localStorage.setItem('exerciseTitle', exerciseTitleInput.value));
+
+        // TAB v textarea
+        dataInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '\t' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+            }
+        });
+
+        // Spracovanie dát
+        function parseData(rawData) {
+            const BREAK_MARKER = '###BR###'; 
+            const taskBlocks = rawData.split(/\n\s*\n+/); 
+            const tasks = [];
+
+            for (const block of taskBlocks) {
+                if (block.trim() === '') continue;
+                const lines = block.split('\n');
+                const taskLines = [];
+
+                for (const line of lines) {
+                    let currentLine = line.trim();
+                    if (currentLine === '') continue;
+
+                    const parts = currentLine.split('\t'); 
+                    let sentence = parts[0];
+                    const optionGroupsRaw = parts.slice(1);
+
+                    sentence = sentence.split('/').join(BREAK_MARKER);
+
+                    const gapCount = (sentence.match(/\.\.\./g) || []).length;
+                    
+                    if (gapCount > 0 && gapCount === optionGroupsRaw.length) {
+                        const sentenceParts = sentence.split('...'); 
+                        const optionGroups = [];
+                        for (const groupRaw of optionGroupsRaw) {
+                            const options = groupRaw.split(':').map(opt => opt.trim());
+                            if (options.length > 0) {
+                                optionGroups.push({ correct: options[0], options: options });
+                            }
+                        }
+                        if (sentenceParts.length === gapCount + 1) {
+                            taskLines.push({
+                                type: 'fill',
+                                sentenceParts: sentenceParts,
+                                optionGroups: optionGroups
+                            });
+                        }
+                    } else if (gapCount === 0) {
+                        let content = currentLine.split('/').join(BREAK_MARKER);
+                        taskLines.push({ type: 'text', content: content });
+                    }
+                }
+                if (taskLines.length > 0) tasks.push(taskLines); 
+            }
+            return tasks; 
+        }
+
+        // Generovanie
+        generateBtn.addEventListener('click', () => {
+            const title = exerciseTitleInput.value.trim() || "Cvičenie";
+            const rawData = dataInput.value.trim();
+            
+            if (!rawData) { alert("Zadajte údaje."); return; }
+
+            const tasks = parseData(rawData); 
+            if (tasks.length === 0) { alert("Chyba formátu dát."); return; }
+
+            const htmlContent = createHtmlTemplate(title, tasks); 
+            downloadHtml(htmlContent, title);
+        });
+
+        function downloadHtml(content, title) {
+            const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const safeTitle = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "_");
+            a.href = url;
+            a.download = `cvicenie_${safeTitle}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // --- ŠABLÓNA ---
+        function createHtmlTemplate(title, tasks) { 
+            const tasksJson = JSON.stringify(tasks);
+            
+            return `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body { font-family: 'Courier New', Courier, monospace; font-weight: bold; background-color: #f9f9f9; color: #333; padding: 20px; line-height: 1.6; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #0056b3; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 30px; }
+        
+        .question-block { display: none; margin-bottom: 20px; }
+        .question-block.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .text-line, .fill-in-sentence { font-size: 1.3rem; margin: 15px 0; }
+        .fill-in-sentence { line-height: 2.2; }
+
+        .placeholder { display: inline-block; min-width: 50px; border-bottom: 2px dashed #007bff; color: #007bff; text-align: center; margin: 0 5px; cursor: default; font-size: 1.3rem; padding: 0 5px; }
+        .placeholder.filled { border-bottom: 2px solid #000; color: #000; font-weight: bold; }
+
+        .all-options-container { margin-top: 25px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .option-group { background: #f0f0f0; padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; border: 1px solid #ddd; }
+        .option-btn { font-size: 1.1rem; padding: 8px 16px; cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; font-family: inherit; font-weight: bold; transition: 0.2s; }
+        .option-btn:hover { background: #e2e6ea; }
+        .option-btn.selected { background: #007bff; color: white; border-color: #0056b3; }
+        .option-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .nav-buttons { margin: 20px 0; display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; }
+        .nav-btn { width: 35px; height: 35px; border: none; background: #ddd; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .nav-btn.active { background: #007bff; color: white; }
+        .nav-btn.completed { background: #28a745; color: white; }
+        .nav-btn.active.completed { background: #218838; border: 2px solid #000; }
+
+        .controls { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+        .main-btn { padding: 12px 24px; font-size: 1.2rem; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; color: white; margin: 0 10px; }
+        #nextBtn { background-color: #17a2b8; }
+        #evaluateBtn { background-color: #28a745; }
+        .main-btn:disabled { background-color: #ccc; cursor: default; }
+
+        .results-box { display: none; margin-top: 30px; background: #e8f5e9; border: 1px solid #c8e6c9; padding: 20px; border-radius: 8px; text-align: left; }
+        .symbol { font-size: 1.4rem; margin-left: 5px; }
+        .correct-answer-symbol { color: green; }
+        .incorrect-answer-symbol { color: red; }
+        .print-btn { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            .results-box { display: block !important; border: none; }
+            body { background: white; }
+            .container { box-shadow: none; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>${title}</h1>
+    
+    <div class="no-print" style="text-align: left; margin-bottom: 20px;">
+        <label>Meno žiaka: <input type="text" id="studentName" style="padding: 5px; font-size: 1rem;"></label>
+    </div>
+
+    <div id="exerciseArea"></div>
+
+    <div class="nav-buttons no-print" id="navButtons"></div>
+
+    <div class="controls no-print">
+        <button id="nextBtn" class="main-btn">Ďalej</button>
+        <button id="evaluateBtn" class="main-btn" style="display:none;">Vyhodnotiť</button>
+    </div>
+
+    <div id="summaryBox" class="results-box">
+        <h2>Výsledky</h2>
+        <p><strong>Žiak:</strong> <span id="resName"></span></p>
+        <p><strong>Skóre:</strong> <span id="resScore"></span></p>
+        <p><strong>Dátum:</strong> <span id="resDate"></span></p>
+        <button class="print-btn" onclick="window.print()">Vytlačiť výsledky</button>
+        <button class="print-btn" id="detailBtn">Zobraziť detail odpovedí</button>
+    </div>
+</div>
+
+<script>
+    // DATA
+    let tasks = ${tasksJson}; 
+    const BREAK_MARKER = '###BR###';
+
+    let currentIdx = 0;
+    let userAnswers = []; // pole objektov pre odpovede
+    let isFinished = false;
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function init() {
+        // Zamiešanie úloh pri štarte
+        shuffleArray(tasks);
+        tasks.forEach((_, i) => userAnswers[i] = {});
+        
+        renderAllTasks();
+        renderNav();
+        showTask(0);
+        
+        document.getElementById('nextBtn').addEventListener('click', goNext);
+        document.getElementById('evaluateBtn').addEventListener('click', evaluate);
+        document.getElementById('detailBtn').addEventListener('click', showDetails);
+    }
+
+    function renderAllTasks() {
+        const area = document.getElementById('exerciseArea');
+        
+        tasks.forEach((lines, tIndex) => {
+            const div = document.createElement('div');
+            div.className = 'question-block';
+            div.id = 'task-' + tIndex;
+
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'all-options-container';
+
+            lines.forEach((line, lIndex) => {
+                if (line.type === 'text') {
+                    const p = document.createElement('p');
+                    p.className = 'text-line';
+                    p.innerHTML = line.content.split(BREAK_MARKER).join('<br>');
+                    div.appendChild(p);
+                } 
+                else if (line.type === 'fill') {
+                    const p = document.createElement('p');
+                    p.className = 'fill-in-sentence';
+                    
+                    line.sentenceParts.forEach((part, gIndex) => {
+                        const textSegments = part.split(BREAK_MARKER);
+                        textSegments.forEach((seg, segIdx) => {
+                            p.appendChild(document.createTextNode(seg));
+                            if (segIdx < textSegments.length - 1) {
+                                p.appendChild(document.createElement('br'));
+                            }
+                        });
+
+                        if (gIndex < line.optionGroups.length) {
+                            const gapKey = lIndex + '-' + gIndex;
+                            
+                            const span = document.createElement('span');
+                            span.className = 'placeholder';
+                            span.textContent = '...';
+                            span.id = 'ph-' + tIndex + '-' + gapKey;
+                            p.appendChild(span);
+
+                            const group = document.createElement('div');
+                            group.className = 'option-group';
+                            
+                            const opts = [...line.optionGroups[gIndex].options];
+                            opts.sort(() => Math.random() - 0.5);
+
+                            opts.forEach(opt => {
+                                const btn = document.createElement('button');
+                                btn.className = 'option-btn';
+                                btn.textContent = opt;
+                                btn.onclick = () => selectOption(tIndex, gapKey, opt, btn, line.optionGroups[gIndex].correct);
+                                group.appendChild(btn);
+                            });
+                            optionsContainer.appendChild(group);
+                        }
+                    });
+                    div.appendChild(p);
+                }
+            });
+            div.appendChild(optionsContainer);
+            area.appendChild(div);
+        });
+    }
+
+    function selectOption(tIdx, gapKey, text, btn, correctVal) {
+        if (isFinished) return;
+
+        userAnswers[tIdx][gapKey] = text;
+
+        const ph = document.getElementById('ph-' + tIdx + '-' + gapKey);
+        ph.textContent = text;
+        ph.classList.add('filled');
+
+        const group = btn.parentElement;
+        group.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+
+        updateNav();
+    }
+
+    function showTask(idx) {
+        document.querySelectorAll('.question-block').forEach(b => b.classList.remove('active'));
+        document.getElementById('task-' + idx).classList.add('active');
+        currentIdx = idx;
+        
+        const next = document.getElementById('nextBtn');
+        const evalBtn = document.getElementById('evaluateBtn');
+        
+        if (idx === tasks.length - 1) {
+            next.style.display = 'none';
+            evalBtn.style.display = 'inline-block';
+        } else {
+            next.style.display = 'inline-block';
+            next.innerText = 'Ďalej';
+            evalBtn.style.display = 'none';
+        }
+        updateNav();
+    }
+
+    function goNext() {
+        if (currentIdx < tasks.length - 1) showTask(currentIdx + 1);
+    }
+
+    function renderNav() {
+        const c = document.getElementById('navButtons');
+        c.innerHTML = '';
+        tasks.forEach((_, i) => {
+            const b = document.createElement('button');
+            b.className = 'nav-btn';
+            b.innerText = i + 1;
+            b.onclick = () => showTask(i);
+            c.appendChild(b);
+        });
+    }
+
+    function updateNav() {
+        const btns = document.querySelectorAll('.nav-btn');
+        btns.forEach((b, i) => {
+            b.className = 'nav-btn';
+            if (i === currentIdx) b.classList.add('active');
+            if (Object.keys(userAnswers[i]).length > 0) b.classList.add('completed');
+        });
+    }
+
+    function evaluate() {
+        isFinished = true;
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('evaluateBtn').style.display = 'none';
+        
+        let correct = 0;
+        let total = 0;
+
+        tasks.forEach((lines, tIdx) => {
+            lines.forEach((line, lIdx) => {
+                if (line.type === 'fill') {
+                    line.sentenceParts.forEach((part, gIndex) => {
+                        if (gIndex < line.optionGroups.length) {
+                            total++;
+                            const gapKey = lIdx + '-' + gIndex;
+                            const userAns = userAnswers[tIdx][gapKey];
+                            const corrAns = line.optionGroups[gIndex].correct;
+                            const isCorr = (userAns === corrAns);
+                            
+                            if (isCorr) correct++;
+
+                            // Vizuálna kontrola v úlohe
+                            const ph = document.getElementById('ph-' + tIdx + '-' + gapKey);
+                            const mark = document.createElement('span');
+                            mark.className = 'symbol ' + (isCorr ? 'correct-answer-symbol' : 'incorrect-answer-symbol');
+                            mark.innerHTML = isCorr ? '✔' : '❌';
+                            ph.parentNode.insertBefore(mark, ph.nextSibling);
+                        }
+                    });
+                }
+            });
+        });
+
+        const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
+        document.getElementById('resName').innerText = document.getElementById('studentName').value || "Anonym";
+        document.getElementById('resScore').innerText = \`\${correct} / \${total} (\${percent}%)\`;
+        document.getElementById('resDate').innerText = new Date().toLocaleString('sk-SK');
+        document.getElementById('summaryBox').style.display = 'block';
+
+        document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+    }
+
+    // *** NOVÁ FUNKCIA PRE DETAILNÉ VÝSLEDKY ***
+    function showDetails() {
+        const win = window.open('', '_blank');
+        let tableRows = '';
+
+        tasks.forEach((lines, tIdx) => {
+            lines.forEach((line, lIdx) => {
+                // 1. Ak je to obyčajný text, zobrazíme ho kurzívou ako kontext
+                if (line.type === 'text') {
+                    const textContent = line.content.split(BREAK_MARKER).join('<br>');
+                    tableRows += \`
+                        <tr><td colspan="2" style="background:#fcfcfc; color:#555; font-style:italic; font-size:0.9rem; border-bottom:1px solid #eee; padding:5px 10px;">\${textContent}</td></tr>
+                    \`;
+                }
+                // 2. Ak je to doplňovačka
+                if (line.type === 'fill') {
+                    let sentenceHtml = '';
+                    let evaluationHtml = '';
+
+                    line.sentenceParts.forEach((part, gIndex) => {
+                        // Pridáme text pred medzerou
+                        sentenceHtml += part.split(BREAK_MARKER).join('<br>');
+
+                        if (gIndex < line.optionGroups.length) {
+                            const gapKey = lIdx + '-' + gIndex;
+                            const userAns = userAnswers[tIdx][gapKey];
+                            const correctAns = line.optionGroups[gIndex].correct;
+                            const isFilled = (userAns !== undefined);
+                            const isCorrect = isFilled && (userAns === correctAns);
+
+                            // STĹPEC 1: Veta s odpoveďou
+                            let displayAns = isFilled ? userAns : "____";
+                            let color = isCorrect ? 'green' : (isFilled ? 'red' : '#999');
+                            
+                            sentenceHtml += \`<strong style="color:\${color}; border-bottom:1px solid \${color}; padding:0 2px;">\${displayAns}</strong>\`;
+
+                            // STĹPEC 2: Vyhodnotenie
+                            if (isCorrect) {
+                                evaluationHtml += \`<div style="margin-bottom:5px; color:green;">✔ Správne</div>\`;
+                            } else {
+                                evaluationHtml += \`<div style="margin-bottom:5px; color:red;">
+                                    ❌ <strong>\${displayAns}</strong><br>
+                                    <span style="color:#333; font-size:0.9em;">Správne má byť: <strong>\${correctAns}</strong></span>
+                                </div>\`;
+                            }
+                            
+                            // Oddeľovač ak je viac medzier v jednej vete
+                            if (gIndex < line.optionGroups.length - 1) {
+                                evaluationHtml += '<hr style="border:0; border-top:1px dashed #ccc; margin:5px 0;">';
+                            }
+                        }
+                    });
+
+                    tableRows += \`
+                        <tr>
+                            <td style="vertical-align:top; padding:10px; border-bottom:1px solid #ccc; width:60%;">\${sentenceHtml}</td>
+                            <td style="vertical-align:top; padding:10px; border-bottom:1px solid #ccc;">\${evaluationHtml}</td>
+                        </tr>
+                    \`;
+                }
+            });
+        });
+
+        const html = \`<!DOCTYPE html>
+        <html><head><title>Detailné výsledky</title>
+        <style>
+            body{font-family:sans-serif; padding:20px;}
+            table{width:100%; border-collapse:collapse; margin-top:20px;}
+            th{background:#eee; text-align:left; padding:10px; border:1px solid #999;}
+            td{border:1px solid #ccc;}
+            h2{color:#0056b3;}
+        </style></head>
+        <body>
+            <h2>Detailné výsledky: \${document.getElementById('studentName').value}</h2>
+            <p>Dátum: \${new Date().toLocaleString('sk-SK')}</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Veta s doplnenou odpoveďou</th>
+                        <th>Vyhodnotenie</th>
+                    </tr>
+                </thead>
+                <tbody>\${tableRows}</tbody>
+            </table>
+            <br><button onclick="window.print()" style="padding:10px 20px; font-size:16px;">Vytlačiť výsledky</button>
+        </body></html>\`;
+        
+        win.document.write(html);
+        win.document.close();
+    }
+
+    init();
+<\/script>
+<div class="no-print" style="margin-top: 50px; text-align: center; font-size: 0.8rem; color: #aaa;">
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+</div>
+</body>
+</html>`;
+        }
+    </script>
+	<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+</body>
+</html>

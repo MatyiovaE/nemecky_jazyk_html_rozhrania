@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor náhodných prvkov z reťazca - príprava</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-success {
+            background-color: #2ecc71;
+            font-size: 18px;
+            padding: 15px 20px;
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        .info-text {
+            font-size: 0.9em;
+            color: #555;
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 20px;
+        }
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #777;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor náhodných prvkov z reťazca - príprava</h1>
+
+    <div class="form-group">
+        <label for="author">Meno autora:</label>
+        <input type="text" id="author" placeholder="Zadajte meno autora">
+    </div>
+
+    <div class="form-group">
+        <label for="year">Rok:</label>
+        <input type="number" id="year" placeholder="2026">
+    </div>
+
+    <div class="form-group">
+        <label for="generatorName">Názov generátora:</label>
+        <input type="text" id="generatorName" placeholder="Zadajte názov generátora">
+    </div>
+
+    <div>
+        <button class="btn" onclick="exportJSON()">Exportovať nastavenia do súboru .json</button>
+        <button class="btn" onclick="document.getElementById('importFile').click()">Importovať nastavenia zo súboru .json</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(event)">
+    </div>
+
+    <div class="info-text">
+        Uložte si údaje zadané do vstupných polí generátora pomocou tlačidla <b>Exportovať nastavenia do súboru .json</b>. Po otvorení tohoto generátora v inom prehliadači alebo v inom počítači môžete tieto uložené údaje načítať znova pomocou tlačidla <b>Importovať nastavenia zo súboru .json</b>.
+    </div>
+
+    <div class="form-group">
+        <label for="elements">Reťazce (podpora HTML: &lt;b&gt;, &lt;i&gt;, &lt;u&gt;, &lt;span&gt;):</label>
+		<p><b>Zadávajte prvky v reťazcoch oddelené medzerou, čiarkou alebo klávesom [TAB].<br>Ak chcete zadať viacslovné pojmy/výrazy (napr. mená, vety atď.), každý zadajte na osobitný riadok.</b></p>
+        <textarea id="elements" placeholder="Napr.: <b>Tučné meno</b> alebo <i>Šikmý text</i>"></textarea>
+    </div>
+
+    <button class="btn btn-success" onclick="generateHTML()">Stiahnuť generátor náhodných prvkov v .html</button>
+
+    <footer>
+        Spracovala pomocou UI: Mgr. Erika Matyiová (2026)
+    </footer>
+
+    <script>
+        // Podpora TAB
+        document.getElementById('elements').addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+            }
+        });
+
+        function exportJSON() {
+            const data = {
+                author: document.getElementById('author').value,
+                year: document.getElementById('year').value,
+                generatorName: document.getElementById('generatorName').value,
+                elements: document.getElementById('elements').value
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "nastavenia_generatora.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.author !== undefined) document.getElementById('author').value = data.author;
+                    if (data.year !== undefined) document.getElementById('year').value = data.year;
+                    if (data.generatorName !== undefined) document.getElementById('generatorName').value = data.generatorName;
+                    if (data.elements !== undefined) document.getElementById('elements').value = data.elements;
+                } catch (err) { alert("Chyba pri importe."); }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function removeDiacritics(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+
+        function createSafeFilename(name) {
+            if (!name || name.trim() === "") return "generator_nahodnych_prvkov.html";
+            let safeName = removeDiacritics(name).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+            return safeName.toLowerCase() + ".html";
+        }
+
+        function generateHTML() {
+            const author = document.getElementById('author').value || "";
+            const year = document.getElementById('year').value || "";
+            const generatorName = document.getElementById('generatorName').value || "";
+            const rawElements = document.getElementById('elements').value;
+
+            let elementsArray = [];
+            if (rawElements.includes('\n')) {
+                elementsArray = rawElements.split(/\r?\n/).map(el => el.trim()).filter(el => el !== "");
+            } else {
+                elementsArray = rawElements.split(/[\t, ]+/).map(el => el.trim()).filter(el => el !== "");
+            }
+
+            if (elementsArray.length === 0) {
+                alert("Nezadali ste žiadne prvky.");
+                return;
+            }
+
+            const safeFilename = createSafeFilename(generatorName);
+            const displayTitle = generatorName || "Generátor náhodných prvkov";
+
+            const htmlTemplate = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${displayTitle}</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #fafafa; }
+        h1 { color: #333; }
+        .meta-info { color: #777; margin-bottom: 30px; }
+        #big-result { 
+            font-size: 8rem; 
+            font-weight: bold; 
+            color: rgb(0, 0, 255); 
+            min-height: 200px; 
+            margin: 40px 0; 
+            word-break: break-word; 
+            line-height: 1.2;
+        }
+        /* Zabezpečenie, aby HTML tagy vnútri neprepísali základnú farbu, ak to nie je v span */
+        #big-result * { color: inherit; }
+        
+        .gen-btn { background-color: #3498db; color: white; border: none; padding: 20px 40px; font-size: 24px; cursor: pointer; border-radius: 8px; font-weight: bold; margin: 10px;}
+        .gen-btn:hover { background-color: #2980b9; }
+        .history-container { margin-top: 40px; border-top: 2px solid #ddd; padding-top: 20px; text-align: center;}
+        #history-list { font-size: 1.2rem; color: #555; max-width: 800px; margin: 0 auto; line-height: 1.8; }
+        .controls { position: sticky; top: 0; background: #fafafa; padding: 20px; z-index: 100; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <h1>${displayTitle}</h1>
+    <div class="meta-info">Autor: ${author} (${year})</div>
+    <div class="controls">
+        <button class="gen-btn" id="generateBtn" onclick="generateRandom()">Generuj náhodný prvok</button>
+    </div>
+    <div id="big-result"></div>
+    <div class="history-container">
+        <h3>Už vygenerované prvky:</h3>
+        <div id="history-list">Zatiaľ nebolo vygenerované nič.</div>
+    </div>
+    <script>
+        const originalElements = ${JSON.stringify(elementsArray)};
+        let availableElements = [...originalElements];
+        let generatedElements = [];
+
+        function generateRandom() {
+            if (availableElements.length === 0) {
+                alert("Všetky prvky už boli vygenerované! Ak chcete začať znova, obnovte stránku (F5).");
+                document.getElementById('generateBtn').disabled = true;
+                return;
+            }
+            const randomIndex = Math.floor(Math.random() * availableElements.length);
+            const selectedElement = availableElements.splice(randomIndex, 1)[0];
+            generatedElements.push(selectedElement);
+
+            // Zmena na innerHTML pre podporu formátovania
+            document.getElementById('big-result').innerHTML = selectedElement;
+            document.getElementById('history-list').innerHTML = generatedElements.join(', ');
+        }
+    <\/script>
+</body>
+</html>`;
+
+            const blob = new Blob([htmlTemplate], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = safeFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
