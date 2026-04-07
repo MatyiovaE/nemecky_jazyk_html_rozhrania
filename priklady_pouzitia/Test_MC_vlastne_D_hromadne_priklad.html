@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Orientácia v čase - test s výberom odpovede</title>
+  <style>
+    :root { --bg-light:#fff; --text-light:#000; --bg-dark:#001f3f; --text-dark:#fff; }
+    body { font-family:Courier bold,monospace; font-size:120%; padding:20px; margin:0; background:var(--bg-light); color:var(--text-light); transition:0.3s; }
+    body.dark-mode { background:var(--bg-dark); color:var(--text-dark); }
+    #themeToggle { position:fixed; top:15px; right:15px; z-index:100; padding:6px 12px; border:none; border-radius:4px; background:#ddd; cursor:pointer; transition:0.3s; }
+    #themeToggle.dark { background:#444; color:#fff; }
+    .question-block { border:1px solid #ccc; padding:10px; margin:10px 0; border-radius:4px; }
+    .question-title { font-weight:bold; margin-bottom:5px; }
+    .answers label { display:block; margin:4px 0; padding:4px; border-radius:3px; cursor:pointer; }
+    .missing { background:#ffe6b3; }
+    .correct { background:#c8f7c5; }
+    .incorrect { background:#f7c5d1; }
+    body.dark-mode .missing, body.dark-mode .correct, body.dark-mode .incorrect { color:#000; }
+    /* Start screen styles */
+    #startScreen { border: 2px solid #ccc; padding: 20px; border-radius: 8px; max-width: 600px; margin-top: 20px; }
+    .start-input { display: block; margin-bottom: 15px; width: 100%; padding: 8px; box-sizing: border-box; font-size: 1rem; }
+    #startBtn { padding: 10px 25px; font-size: 1.2rem; background-color: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    #startBtn:hover { background-color: #45a049; }
+    /* Results styles */
+    #results { margin-top:30px; padding:15px; border-top: 2px solid #ccc; }
+    .detail-btn { background-color: #008CBA; color: white; border: none; padding: 10px 20px; font-size: 1rem; cursor: pointer; border-radius: 4px; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <button id="themeToggle">🌙 Tmavý režim</button>
+  <h2>Orientácia v čase - test s výberom odpovede</h2>
+  <div style="margin-top:-15px; margin-bottom:20px; font-style:italic; opacity:0.8;">Autor: Mgr. Erika Matyiová | Rok: 2026</div>
+  <div id="startScreen">
+    <label><b>Meno žiaka, trieda:</b></label>
+    <input type="text" id="inputName" class="start-input" placeholder="Zadajte vaše meno (nepovinné)">
+    <label><b>Počet otázok (max 19):</b></label>
+    <input type="number" id="inputCount" class="start-input" value="19" min="1" max="19">
+    <button id="startBtn" onclick="startTest()">Štart</button>
+  </div>
+  <form id="quizForm" style="display:none;"></form>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.getElementById('themeToggle');
+      if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        btn.classList.add('dark');
+        btn.textContent = '☀️ Svetlý režim';
+      }
+      btn.addEventListener('click', function() {
+        var dark = document.body.classList.toggle('dark-mode');
+        btn.classList.toggle('dark');
+        btn.textContent = dark ? '☀️ Svetlý režim' : '🌙 Tmavý režim';
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+      });
+    });
+
+    var originalQuestions = [{"term":"pondelok je","correct":"1. deň v týždni","answers":["7. deň v týždni","3. deň v týždni"]},{"term":"utorok je","correct":"2. deň v týždni","answers":["6. deň v týždni","4. deň v týždni"]},{"term":"streda je","correct":"3. deň v týždni","answers":["1. deň v týždni","5. deň v týždni"]},{"term":"štvrtok je","correct":"4. deň v týždni","answers":["2. deň v týždni","3. deň v týždni"]},{"term":"piatok je","correct":"5. deň v týždni","answers":["2. deň v týždni","3. deň v týždni"]},{"term":"sobota je","correct":"6. deň v týždni","answers":["2. deň v týždni","7. deň v týždni"]},{"term":"nedeľa je","correct":"7. deň v týždni","answers":["5. deň v týždni","2. deň v týždni"]},{"term":"január je","correct":"1. mesiac v roku","answers":["3. mesiac v roku","5. mesiac v roku"]},{"term":"február je","correct":"2. mesiac v roku","answers":["1. mesiac v roku","6. mesiac v roku"]},{"term":"marec je","correct":"3. mesiac v roku","answers":["5. mesiac v roku","8. mesiac v roku"]},{"term":"apríl je","correct":"4. mesiac v roku","answers":["9. mesiac v roku","2. mesiac v roku"]},{"term":"máj je","correct":"5. mesiac v roku","answers":["10. mesiac v roku","12. mesiac v roku"]},{"term":"jún je","correct":"6. mesiac v roku","answers":["5. mesiac v roku","1. mesiac v roku"]},{"term":"júl je","correct":"7. mesiac v roku","answers":["4. mesiac v roku","10. mesiac v roku"]},{"term":"august je","correct":"8. mesiac v roku","answers":["3. mesiac v roku","2. mesiac v roku"]},{"term":"september je","correct":"9. mesiac v roku","answers":["7. mesiac v roku","4. mesiac v roku"]},{"term":"október je","correct":"10. mesiac v roku","answers":["8. mesiac v roku","1. mesiac v roku"]},{"term":"november je","correct":"11. mesiac v roku","answers":["2. mesiac v roku","7. mesiac v roku"]},{"term":"december je","correct":"12. mesiac v roku","answers":["1. mesiac v roku","4. mesiac v roku"]}];
+    var numberingType = 'alpha';
+    var testTitleName = 'Orientácia v čase - test s výberom odpovede';
+    window.qs = [];
+
+    // Globálne premenné pre výsledky
+    var resultData = { name: '', score: 0, percent: 0, date: '' };
+
+    function shuffle(a){ for (var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t;} return a; }
+    function pick(a,n){ return shuffle(a.slice()).slice(0,n); }
+
+    function getQuestionPrefix(index) {
+       if (numberingType === 'alpha') {
+         return String.fromCharCode(65 + index) + '.';
+       } else {
+         return (index + 1) + '.';
+       }
+    }
+
+    function startTest() {
+      var nameInput = document.getElementById('inputName').value.trim();
+      resultData.name = nameInput ? nameInput : 'XY';
+      var count = parseInt(document.getElementById('inputCount').value);
+      if (!count || count < 1) { alert('Počet otázok musí byť aspoň 1.'); return; }
+      if (count > originalQuestions.length) count = originalQuestions.length;
+
+      document.getElementById('startScreen').style.display = 'none';
+      var form = document.getElementById('quizForm');
+      form.style.display = 'block';
+      form.innerHTML = '';
+
+      window.qs = pick(originalQuestions, count)
+                .map(function(q){ return { term: q.term, correct: q.correct, opts: shuffle([q.correct].concat(q.answers)), userAnswer: null, isCorrect: false }; });
+
+      window.qs.forEach(function(q,i){
+        var block = document.createElement('div'); block.className = 'question-block';
+        var title = document.createElement('div'); title.className = 'question-title';
+        title.textContent = getQuestionPrefix(i) + ' ' + q.term;
+        block.appendChild(title);
+        var ansContainer = document.createElement('div'); ansContainer.className = 'answers';
+        q.opts.forEach(function(opt){
+          var lbl = document.createElement('label');
+          var rd = document.createElement('input'); rd.type = 'radio'; rd.name = 'q' + i; rd.value = opt;
+          lbl.appendChild(rd);
+          lbl.appendChild(document.createTextNode(' ' + opt));
+          ansContainer.appendChild(lbl);
+        });
+        block.appendChild(ansContainer);
+        form.appendChild(block);
+      });
+
+      var submitBtn = document.createElement('button');
+      submitBtn.type = 'button';
+      submitBtn.textContent = 'Vyhodnotiť';
+      submitBtn.style.marginTop = '20px';
+      submitBtn.style.padding = '15px 30px';
+      submitBtn.style.fontSize = '1.3rem';
+      submitBtn.style.backgroundColor = '#4CAF50';
+      submitBtn.style.color = 'white';
+      submitBtn.style.border = 'none';
+      submitBtn.style.borderRadius = '5px';
+      submitBtn.style.cursor = 'pointer';
+      submitBtn.onclick = evaluateTest;
+      form.appendChild(submitBtn);
+      var resultsDiv = document.createElement('div'); resultsDiv.id = 'results'; form.appendChild(resultsDiv);
+    }
+
+    function evaluateTest() {
+      var score = 0;
+      var blocks = document.getElementsByClassName('question-block');
+      var oldFbs = document.querySelectorAll('.feedback-msg');
+      oldFbs.forEach(e => e.remove());
+
+      Array.from(blocks).forEach(function(block, i){
+        var elems = document.getElementsByName('q' + i);
+        var selected = Array.from(elems).find(function(r){ return r.checked; });
+        window.qs[i].userAnswer = selected ? selected.value : null;
+        window.qs[i].isCorrect = (window.qs[i].userAnswer === window.qs[i].correct);
+
+        Array.from(elems).forEach(function(r){
+          r.parentNode.classList.remove('correct', 'incorrect', 'missing');
+        });
+        block.classList.remove('missing');
+
+        var feedback = '';
+        if (!selected) {
+          block.classList.add('missing'); feedback = '⚠️ chýbajúca odpoveď';
+          Array.from(elems).forEach(r => { if(r.value === window.qs[i].correct) r.parentNode.classList.add('correct'); });
+        } else if (selected.value === window.qs[i].correct) {
+          score++; feedback = '✅ správna odpoveď';
+          Array.from(elems).forEach(r => { if(r.value === window.qs[i].correct) r.parentNode.classList.add('correct'); });
+        } else {
+          feedback = '❌ nesprávna odpoveď';
+          Array.from(elems).forEach(r => { 
+             if(r.checked) r.parentNode.classList.add('incorrect');
+             if(r.value === window.qs[i].correct) r.parentNode.classList.add('correct');
+          });
+        }
+        var fbEl = document.createElement('div'); fbEl.className = 'feedback-msg';
+        fbEl.style.fontWeight = 'bold'; fbEl.style.marginTop = '5px'; fbEl.textContent = feedback;
+        block.appendChild(fbEl);
+      });
+
+      resultData.score = score;
+      resultData.percent = Math.round(score / (window.qs.length || 1) * 100);
+      resultData.date = new Date().toLocaleString();
+
+      var out = document.getElementById('results');
+      out.innerHTML = `<h3>Prehľad výsledkov</h3>
+        <p><strong>Názov testu:</strong> ${testTitleName}</p>
+        <p><strong>Meno žiaka:</strong> ${resultData.name}</p>
+        <p><strong>Bodové a percentuálne hodnotenie:</strong> ${resultData.score} / ${window.qs.length} (${resultData.percent} %)</p>
+        <p><strong>Dátum a čas:</strong> ${resultData.date}</p>`;
+
+      var detailBtn = document.createElement('button');
+      detailBtn.className = 'detail-btn';
+      detailBtn.textContent = 'Detailné výsledky';
+      detailBtn.onclick = openDetailedResults;
+      out.appendChild(detailBtn);
+    }
+
+    function openDetailedResults() {
+       var win = window.open('', '_blank');
+       var css = `
+         body { font-family: Courier bold, monospace; padding: 20px; }
+         h2, h3 { border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+         th, td { border: 1px solid #999; padding: 10px; text-align: left; vertical-align: top; }
+         th { background-color: #eee; }
+         .symbol { font-size: 1.5em; font-weight: bold; }
+         .correct-ans { color: green; font-weight: bold; }
+         .user-wrong { color: red; text-decoration: line-through; }
+         .legend { margin-top: 30px; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; }
+         @media print { button { display: none; } body { font-size: 12pt; } }
+       `;
+       var rows = '';
+       window.qs.forEach(function(q, i) {
+          var qPrefix = getQuestionPrefix(i);
+          var symbol = '';
+          var uAns = '';
+          if (q.userAnswer === null) {
+             symbol = '!';
+             uAns = '<span style="color:#c27e00">(bez odpovede)</span>';
+          } else if (q.isCorrect) {
+             symbol = '✅';
+             uAns = q.userAnswer;
+          } else {
+             symbol = '❌';
+             uAns = '<span class="user-wrong">' + q.userAnswer + '</span>';
+          }
+          rows += `<tr>
+             <td><b>${qPrefix} ${q.term}</b><br><br>Správna odpoveď: <span class="correct-ans">${q.correct}</span></td>
+             <td>${uAns}<br><br><span class="symbol">${symbol}</span></td>
+          </tr>`;
+       });
+
+       var content = `
+         <html><head><title>Detailné výsledky - ${resultData.name}</title><style>${css}</style></head><body>
+         <h2>Detailné výsledky</h2>
+         <p><strong>Názov testu:</strong> ${testTitleName}</p>
+         <p><strong>Meno žiaka:</strong> ${resultData.name}</p>
+         <p><strong>Bodové a percentuálne hodnotenie:</strong> ${resultData.score} / ${window.qs.length} (${resultData.percent} %)</p>
+         <p><strong>Dátum a čas:</strong> ${resultData.date}</p>
+         <h3>Detailný prehľad</h3>
+         <table>
+           <thead><tr><th style="width:60%">Zadanie a správna odpoveď</th><th>Odpoveď žiaka a hodnotenie</th></tr></thead>
+           <tbody>${rows}</tbody>
+         </table>
+         <div class="legend">
+           <b>Legenda symbolov:</b><br>
+           ✅ = Správna odpoveď<br>
+           ❌ = Nesprávna odpoveď<br>
+           ! = Žiak neuviedol odpoveď
+         </div>
+         <br><button onclick="window.print()" style="padding:10px 20px; font-weight:bold; cursor:pointer;">🖨️ Vytlačiť (Ctrl + P)</button>
+         </body></html>
+       `;
+       win.document.write(content);
+       win.document.close();
+    }
+  </script>
+  <br><br><b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)<br><br>
+</body>
+</html>

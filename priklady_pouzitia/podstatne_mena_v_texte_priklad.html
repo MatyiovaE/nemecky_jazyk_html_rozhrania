@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Podstatné mená v texte</title>
+    <style>
+        body { font-family: "Monaco", monospace; background: #f4f7f6; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; margin-bottom: 5px; }
+        .meta { color: #7f8c8d; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        #start-area { text-align: center; padding: 40px 0; }
+        .input-name { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 5px; font-family: "Monaco", monospace; }
+        .btn { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-family: "Monaco", monospace; font-size: 1em; }
+        .btn-green { background: #27ae60; color: white; }
+        .btn-blue { background: #3498db; color: white; margin-top: 15px; }
+        #exercise-area { display: none; }
+        .instructions { background: #fff8e1; padding: 15px; border-left: 5px solid #ffc107; margin-bottom: 20px; }
+        .text-box { line-height: 2.5; font-size: 1.15em; margin-bottom: 30px; padding: 10px; border: 1px solid #fafafa; }
+        
+        /* Interactive items */
+        .item { cursor: pointer; border-radius: 3px; transition: 0.2s; padding: 2px 1px; }
+        .item:hover { background: #f0f0f0; }
+        .selected { background-color: #d3d3d3 !important; }
+        
+        /* Feedback colors */
+        .correct { background-color: #c8e6c9 !important; border-bottom: 2px solid #2e7d32; }
+        .incorrect { background-color: #ffcdd2 !important; border-bottom: 2px solid #c62828; }
+        .missed { background-color: #ffe0b2 !important; border-bottom: 2px solid #ef6c00; }
+        
+        .legend { font-size: 0.85em; margin: 20px 0; display: none; padding: 10px; background: #f9f9f9; border-radius: 5px; }
+        #summary { display: none; padding: 20px; border-top: 2px solid #eee; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Podstatné mená v texte</h1>
+        <div class="meta">Mgr. Erika Matyiová | 2026</div>
+
+        <div id="start-area">
+            <label>Meno žiaka:</label>
+            <input type="text" id="studentName" class="input-name" placeholder="Zadaj svoje meno...">
+            <button class="btn btn-green" onclick="startApp()">Štart</button>
+        </div>
+
+        <div id="exercise-area">
+            <div class="instructions"><strong>Pokyny:</strong> Nájdi všetky podstatné mená. Klikni na ne myšou. Ak si rozmyslíš svoju voľbu, klikni na už označenú položku.</div>
+            <div class="text-box" id="mainText"><div style="color: rgb(0, 0, 0);"><b>Na&nbsp;<span class="target" style="padding: 0px 2px;">lúke</span></b></div><div style="color: rgb(0, 0, 0);"><br></div><div style="color: rgb(0, 0, 0);">Bol slnečný&nbsp;<span class="target" style="padding: 0px 2px;">deň</span>.</div><div style="color: rgb(0, 0, 0);"><span class="target" style="padding: 0px 2px;">Katka</span>&nbsp;si vzala&nbsp;<span class="target" style="padding: 0px 2px;">knižku</span>&nbsp;a vybehla na&nbsp;<span class="target" style="padding: 0px 2px;">lúku</span>. A tam – pre&nbsp;<span class="target" style="padding: 0px 2px;">krásu</span>&nbsp;tisícich&nbsp;<span class="target" style="padding: 0px 2px;">kvetov</span>&nbsp;– na&nbsp;<span class="target" style="padding: 0px 2px;">chvíľu</span>&nbsp;pozabudla na&nbsp;<span class="target" style="padding: 0px 2px;">učenie</span>&nbsp;a len tak, od samej&nbsp;<span class="target" style="padding: 0px 2px;">radosti</span>&nbsp;rozbehla sa medzi&nbsp;<span class="target" style="padding: 0px 2px;">kvety</span>.</div><div style="color: rgb(0, 0, 0);">Po&nbsp;<span class="target" style="padding: 0px 2px;">chvíli</span>&nbsp;zastala a zohla sa, že si niekoľko&nbsp;<span class="target" style="padding: 0px 2px;">kvietkov</span>&nbsp;odtrhne. Ktoré&nbsp;<span class="target" style="padding: 0px 2px;">dievčatko</span>&nbsp;by ich&nbsp;<span class="target" style="padding: 0px 2px;">kráse</span>&nbsp;odolalo?</div><div style="color: rgb(0, 0, 0);">Vtom sa&nbsp;<span class="target" style="padding: 0px 2px;">kvietky</span>&nbsp;ozvali:</div><div style="color: rgb(0, 0, 0);">– Máš nás rado,&nbsp;<span class="target" style="padding: 0px 2px;">dievčatko</span>?</div><div style="color: rgb(0, 0, 0);">– Oj, a ako veľmi.</div><div style="color: rgb(0, 0, 0);">– Netrhaj nás teda. My nerastieme a nekvitneme iba pre teba. Chceme ešte žiť a tešiť sa z jasného&nbsp;<span class="target" style="padding: 0px 2px;">slnka</span>, tak ako sa ty tešíš z nás. Ako sme potešili teba, chceme tešiť všetkých&nbsp;<span class="target" style="padding: 0px 2px;">ľudí</span>, ktorí tadeto pôjdu. A máš rado&nbsp;<span class="target" style="padding: 0px 2px;">med</span>?</div><div style="color: rgb(0, 0, 0);">– Pravdaže, mám.</div><div style="color: rgb(0, 0, 0);">– No vidíš. Z čoho by&nbsp;<span class="target" style="padding: 0px 2px;">včielky</span>&nbsp;robili&nbsp;<span class="target" style="padding: 0px 2px;">med</span>, keby nás nebolo? Sme tu teda nielen pre&nbsp;<span class="target" style="padding: 0px 2px;">radosť</span>, ale aj pre&nbsp;<span class="target" style="padding: 0px 2px;">úžitok</span>.</div><div style="color: rgb(0, 0, 0);">Vtedy si&nbsp;<span class="target" style="padding: 0px 2px;">Katka</span>&nbsp;všimla aj&nbsp;<span class="target" style="padding: 0px 2px;">včielky</span>. Koľko ich len bolo na&nbsp;<span class="target" style="padding: 0px 2px;">lúke</span>! A ako usilovne z&nbsp;<span class="target" style="padding: 0px 2px;">kvetu</span>&nbsp;na&nbsp;<span class="target" style="padding: 0px 2px;">kvet</span>&nbsp;preletovali.</div><div style="color: rgb(0, 0, 0);"><span class="target" style="padding: 0px 2px;">Katka</span>&nbsp;<span class="target" style="padding: 0px 2px;">kvietky</span>&nbsp;nežne pohladkala. Sadla si do&nbsp;<span class="target" style="padding: 0px 2px;">trávy</span>&nbsp;a roztvorila&nbsp;<span class="target" style="padding: 0px 2px;">knihu</span>.</div><div style="color: rgb(0, 0, 0);"><br></div><div style="color: rgb(0, 0, 0);">Ján Andel<br>https://najlepsiepredeti.sk/na-luke/#more-89</div></div>
+            
+            <button id="evalBtn" class="btn btn-green" onclick="evaluateExercise()">Vyhodnotiť</button>
+
+            <div class="legend" id="legend">
+                <strong>Vysvetlivky:</strong><br>
+                <span class="correct">správna odpoveď</span> | 
+                <span class="incorrect">nesprávna odpoveď</span> | 
+                <span class="missed">neoznačená odpoveď (chýbala)</span>
+            </div>
+
+            <div id="summary"></div>
+            <button id="detailBtn" class="btn btn-blue" style="display:none" onclick="showDetails()">Detailné výsledky</button>
+        </div>
+    </div>
+
+    <script>
+        let isDone = false;
+
+        function startApp() {
+            document.getElementById('start-area').style.display = 'none';
+            document.getElementById('exercise-area').style.display = 'block';
+            prepareText();
+        }
+
+        function prepareText() {
+            const box = document.getElementById('mainText');
+            
+            // 1. First, label existing targets
+            const targets = box.querySelectorAll('.target');
+            targets.forEach(t => {
+                t.classList.add('item');
+                t.dataset.isTarget = "true";
+            });
+
+            // 2. Wrap all other text nodes into spans to make them clickable
+            wrapWords(box);
+
+            // 3. Add click events to ALL items
+            document.querySelectorAll('.item').forEach(el => {
+                el.onclick = function() { if(!isDone) this.classList.toggle('selected'); };
+                el.ondblclick = function() { if(!isDone) this.classList.remove('selected'); };
+            });
+        }
+
+        function wrapWords(parent) {
+            const nodes = Array.from(parent.childNodes);
+            nodes.forEach(node => {
+                if (node.nodeType === 3) { // Text node
+                    const text = node.textContent;
+                    if (text.trim().length === 0) return;
+                    
+                    const fragment = document.createDocumentFragment();
+                    // Split by spaces but keep them
+                    const parts = text.split(/(\s+)/);
+                    parts.forEach(p => {
+                        if (p.trim().length > 0) {
+                            const span = document.createElement('span');
+                            span.className = 'item';
+                            span.textContent = p;
+                            fragment.appendChild(span);
+                        } else {
+                            fragment.appendChild(document.createTextNode(p));
+                        }
+                    });
+                    parent.replaceChild(fragment, node);
+                } else if (node.nodeType === 1 && !node.classList.contains('target')) {
+                    wrapWords(node);
+                }
+            });
+        }
+
+        function evaluateExercise() {
+            isDone = true;
+            const items = document.querySelectorAll('.item');
+            let correctCount = 0;
+            let totalTargets = document.querySelectorAll('.item[data-is-target="true"]').length;
+            let wrongCount = 0;
+
+            items.forEach(el => {
+                const isTarget = el.dataset.isTarget === "true";
+                const isSelected = el.classList.contains('selected');
+
+                if (isSelected && isTarget) {
+                    el.classList.add('correct');
+                    correctCount++;
+                } else if (isSelected && !isTarget) {
+                    el.classList.add('incorrect');
+                    wrongCount++;
+                } else if (!isSelected && isTarget) {
+                    el.classList.add('missed');
+                }
+                el.classList.remove('selected');
+            });
+
+            const percent = totalTargets > 0 ? Math.round((correctCount / totalTargets) * 100) : 0;
+            const studentName = document.getElementById('studentName').value || "XY";
+            const date = new Date();
+            const timestamp = date.toLocaleDateString('sk-SK') + ", " + date.toLocaleTimeString('sk-SK', {hour:'2-digit', minute:'2-digit'});
+
+            const summary = document.getElementById('summary');
+            summary.style.display = 'block';
+            summary.innerHTML = `
+                <strong>Názov testu:</strong> Podstatné mená v texte<br>
+                <strong>Meno žiaka:</strong> ${studentName}<br>
+                <strong>Bodové a percentuálne hodnotenie:</strong> ${correctCount} z ${totalTargets} (${percent}%)<br>
+                <strong>Dátum a čas:</strong> ${timestamp}
+            `;
+
+            document.getElementById('legend').style.display = 'block';
+            document.getElementById('evalBtn').style.display = 'none';
+            document.getElementById('detailBtn').style.display = 'inline-block';
+
+            // Data for detailed view
+            window.resData = {
+                title: "Podstatné mená v texte",
+                name: studentName,
+                stats: `${correctCount} z ${totalTargets} (${percent}%)`,
+                time: timestamp,
+                allTargets: Array.from(document.querySelectorAll('.item[data-is-target="true"]')).map(i => i.textContent.trim()),
+                studentChoices: Array.from(document.querySelectorAll('.item.correct, .item.incorrect')).map(i => ({
+                    txt: i.textContent.trim(),
+                    status: i.classList.contains('correct')
+                })),
+                missed: Array.from(document.querySelectorAll('.item.missed')).map(i => i.textContent.trim())
+            };
+        }
+
+        function showDetails() {
+            const d = window.resData;
+            const win = window.open('', '_blank');
+            win.document.write(`
+                <html>
+                <head>
+                    <title>Detailné výsledky</title>
+                    <style>
+                        body { font-family: "Monaco", monospace; padding: 30px; line-height: 1.6; }
+                        h2 { border-bottom: 2px solid #333; padding-bottom: 5px; }
+                        .tick { color: green; font-weight: bold; }
+                        .cross { color: red; font-weight: bold; }
+                        .warn { color: orange; font-weight: bold; }
+                        @media print { .no-print { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    <p><strong>Názov testu:</strong> ${d.title}</p>
+                    <p><strong>Meno žiaka:</strong> ${d.name}</p>
+                    <p><strong>Bodové a percentuálne hodnotenie:</strong> ${d.stats}</p>
+                    <p><strong>Dátum a čas:</strong> ${d.time}</p>
+                    
+                    <hr>
+                    <h2>Detailný prehľad</h2>
+                    
+                    <p><strong>Správne odpovede:</strong><br>${d.allTargets.join(', ') || 'Žiadne'}</p>
+
+                    <p><strong>Odpovede žiaka:</strong><br>
+                    ${d.studentChoices.map(c => `<div><span class="${c.status ? 'tick':'cross'}">${c.status ? '✓' : '✗'}</span> ${c.txt}</div>`).join('') || 'Žiadne'}
+                    </p>
+
+                    <p><strong>Neoznačené (chýbajúce) položky:</strong><br>
+                    ${d.missed.map(m => `<div><span class="warn">!</span> ${m}</div>`).join('') || 'Žiadne'}
+                    </p>
+
+                    <hr>
+                    <p>Vysvetlivky symbolov:<br> ✓ správne | ✗ nesprávne | ! chýbajúce</p>
+                    <button class="no-print" onclick="window.print()">Vytlačiť (Ctrl + P)</button>
+                </body>
+                </html>
+            `);
+            win.document.close();
+        }
+    </script>
+</script>
+</body>
+</html>         

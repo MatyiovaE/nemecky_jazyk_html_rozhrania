@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zobrazovač zadaní/otázok</title>
+    <style>
+        body {
+            font-family: 'Monaco', monospace;
+            color: darkgreen;
+            font-weight: bold;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+        }
+        h1, h2 { text-align: center; }
+        .meta-info {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        #setup-screen {
+            text-align: center;
+            margin-top: 50px;
+            padding: 30px;
+            border: 2px dashed darkgreen;
+        }
+        #setup-screen input {
+            font-family: 'Monaco', monospace;
+            font-weight: bold;
+            font-size: 1.2em;
+            width: 80px;
+            text-align: center;
+            color: darkgreen;
+        }
+        button {
+            font-family: 'Monaco', monospace;
+            font-weight: bold;
+            font-size: 1.5em;
+            color: darkgreen;
+            background-color: #e8f5e9;
+            border: 2px solid darkgreen;
+            padding: 10px 30px;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #c8e6c9;
+        }
+        #quiz-screen { display: none; }
+        
+        .counter-text {
+            font-size: 1.2em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .active-item {
+            font-size: 4em; /* Veľmi veľké písmo */
+			text-align: center;
+            line-height: 1.3;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 3px solid darkgreen;
+            background-color: #f1f8e9;
+        }
+        .upcoming-item {
+            font-size: 2em; /* Polovičné písmo (4em / 2 = 2em) */
+			text-align: center;
+            opacity: 0.6;
+            margin-top: 20px;
+            padding: 10px;
+            border-bottom: 1px dotted darkgreen;
+        }
+        footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid darkgreen;
+            text-align: center;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 style="font-size: 2.5em;">Zobrazovač zadaní/otázok</h1>
+    <div class="meta-info">Autor: Mgr. Erika Matyiová | Rok: 2026</div>
+
+    <div id="setup-screen">
+        <label style="font-size: 1.5em;">Zadajte počet zadaní/otázok, ktoré sa majú zobraziť: 
+            <input type="number" id="q-count" min="1" max="6" value="6">
+        </label><br>
+        <button id="start-btn">Štart</button>
+    </div>
+
+    <div id="quiz-screen">
+        <div id="active-container"></div>
+        <button id="next-btn" style="display:block; margin: 30px auto;">Ďalej</button>
+        <div id="upcoming-container"></div>
+    </div>
+
+    <footer>
+        <p>Autor: Mgr. Erika Matyiová | Rok: 2026 | Predmet: Konverzácia v slovenskom jazyku | Téma: Bežný rozhovor</p>
+    </footer>
+
+    <script>
+        const rawItems = [{"type":"otázka","text":"Aký je dnes deň?"},{"type":"otázka","text":"Aký deň bude zajtra?"},{"type":"otázka","text":"Čo si jedol/jedla na raňajky?"},{"type":"otázka","text":"Kedy sa vrátiš domov?"},{"type":"otázka","text":"Máš rád/rada citrónovú zmrzlinu?"},{"type":"otázka","text":"Ako často jedávaš zemiaky za týždeň?"}];
+        let activeItems = [];
+        let currentIndex = 0;
+
+        // Funkcia na pomiešanie (Fisher-Yates shuffle)
+        function shuffle(array) {
+            let arr = array.slice();
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        window.onload = () => {
+            // Pomiešanie ihneď pri načítaní stránky
+            rawItemsShuffled = shuffle(rawItems);
+        };
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            let count = parseInt(document.getElementById('q-count').value, 10);
+            if(isNaN(count) || count < 1) count = 1;
+            if(count > rawItemsShuffled.length) count = rawItemsShuffled.length;
+            
+            // Vyberieme zadaný počet z už pomiešaného poľa
+            activeItems = rawItemsShuffled.slice(0, count);
+            
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            render();
+        });
+
+        document.getElementById('next-btn').addEventListener('click', () => {
+            currentIndex++;
+            render();
+        });
+
+        function render() {
+            const activeContainer = document.getElementById('active-container');
+            const upcomingContainer = document.getElementById('upcoming-container');
+            const nextBtn = document.getElementById('next-btn');
+
+            if (currentIndex >= activeItems.length) {
+                activeContainer.innerHTML = '<div class="active-item" style="text-align:center;">Všetky zadania boli dokončené!</div>';
+                upcomingContainer.innerHTML = '';
+                nextBtn.style.display = 'none';
+                return;
+            }
+
+            const current = activeItems[currentIndex];
+            let typeCapitalized = current.type.charAt(0).toUpperCase() + current.type.slice(1);
+
+            // Vykreslenie aktuálneho (veľkého)
+            activeContainer.innerHTML = `
+                <div class="counter-text">${typeCapitalized} číslo ${currentIndex + 1} z celkového počtu ${activeItems.length}</div>
+                <div class="active-item">${current.text}</div>
+            `;
+
+            // Skrytie tlačidla Ďalej, ak ide o posledný prvok
+            if (currentIndex === activeItems.length - 1) {
+                nextBtn.style.display = 'none';
+            } else {
+                nextBtn.style.display = 'block';
+            }
+
+            // Vykreslenie budúcich (polovičných)
+            let upcomingHTML = '';
+            for (let i = currentIndex + 1; i < activeItems.length; i++) {
+                let uType = activeItems[i].type.charAt(0).toUpperCase() + activeItems[i].type.slice(1);
+                upcomingHTML += `
+                    <div class="upcoming-item">
+                        <span style="font-size: 0.6em; color: #555;">${uType} číslo ${i + 1}</span><br>
+                        ${activeItems[i].text}
+                    </div>
+                `;
+            }
+            upcomingContainer.innerHTML = upcomingHTML;
+        }
+    </script>
+</body>
+</html>

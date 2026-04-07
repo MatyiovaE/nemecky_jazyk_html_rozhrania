@@ -1,0 +1,331 @@
+
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Uložené cvičenie – skloňovanie</title>
+  <style>
+
+    body {
+      font-family: Courier bold, monospace;
+      background-color: #f0f4f8;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .bulk-input {
+      max-width: 800px;
+      margin: 0 auto 20px;
+      text-align: left;
+    }
+    .bulk-input label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+    #bulkTextarea {
+      width: 100%;
+      height: 180px;
+      padding: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+      font-family: monospace;
+      white-space: pre;
+      overflow: auto;
+    }
+    .controls {
+      max-width: 800px;
+      margin: 0 auto 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+	  }
+	
+    .controls label {
+      font-weight: bold;
+    }
+    .controls input[type="number"] {
+      width: 60px;
+      padding: 6px;
+      font-size: 16px;
+    }
+    .controls button {
+      padding: 8px 14px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 0 auto 20px;
+      width: 60%;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 2px solid #ccc;
+      text-align: center;
+      padding: 4px;
+      font-size: 16px;
+      user-select: none;
+    }
+    th {
+      background-color: white;
+      font-weight: normal;
+    }
+    .white-cell { background-color: white; color: black; font-size: 15px; }
+    #exerciseTable th:nth-child(1),
+    #exerciseTable td:nth-child(1) { width: 150px; }
+    #exerciseTable th:nth-child(2),
+    #exerciseTable td:nth-child(2) { width: 170px; }
+    #exerciseTable th:nth-child(3),
+    #exerciseTable td:nth-child(3) { width: 170px; }
+    .white       { background-color: white; }
+    .lightgray   { background-color: #d3d3d3; }
+    .lightpurple { background-color: #dda0dd; }
+    .lightorange { background-color: #ffd580; }
+    .darkgreen   { background-color: #3cb371; }
+    .lightbrown  { background-color: #deb887; }
+    .wheat       { background-color: #fdedce; }
+    td[data-answer] { font-size: 20px; cursor: pointer; font-weight: bold; }
+    .bank {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .bank-item {
+      display: inline-block;
+      padding: 6px 12px;
+      font-size: 18px;
+      margin: 4px;
+      background: #eef;
+      border: 1px solid #99c;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .selected  { outline: 2px dashed #333; }
+    .correct   { box-shadow: inset 0 0 0 2px green; }
+    .incorrect { box-shadow: inset 0 0 0 2px red; }
+    .score {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  
+  </style>
+</head>
+<body>
+
+  <h2>Cvičenie na skloňovanie podstatných mien</h2>
+<div style="text-align:center; margin-bottom: 16px;">
+  <p>Rozmiestni jednotlivé položky do buniek podľa pokynov.<br>
+  Ak chceš svoje rozhodnutie zmeniť, klikni na danú bunku dvakrát a potom pokračuj v priraďovaní.<br>
+  Po ukončení klikni na tlačidlo "Vyhodnotiť".</p>
+  <p><strong>Krok 1:</strong> Klikni na bunku.<br>
+     <strong>Krok 2:</strong> Klikni na položku pod tabuľkou.</p>
+</div>
+  <table id="exerciseTable">
+    <tbody><tr>
+      <th>pád</th>
+      <th><strong>singulár</strong></th>
+      <th><strong>plurál</strong></th>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>nominatív</strong><br>Kto? Čo?<br>(... je to?)</td>
+      <td class="white" data-key="n_sing" data-answer=""></td>
+      <td class="lightgray" data-key="n_plur" data-answer=""></td>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>genitív</strong><br>Koho? Čoho?<br>(Bez/Od ...?)</td>
+      <td class="lightpurple" data-key="g_sing" data-answer=""></td>
+      <td class="lightpurple" data-key="g_plur" data-answer=""></td>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>datív</strong><br>Komu? Čomu?<br>(... to dám?)</td>
+      <td class="lightorange" data-key="d_sing" data-answer=""></td>
+      <td class="lightorange" data-key="d_plur" data-answer=""></td>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>akuzatív</strong><br>Koho? Čo?<br>(... vidím?)</td>
+      <td class="darkgreen" data-key="a_sing" data-answer=""></td>
+      <td class="darkgreen" data-key="a_plur" data-answer=""></td>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>lokál</strong><br>O kom? O čom?<br>(... píšem?)</td>
+      <td class="lightbrown" data-key="l_sing" data-answer=""></td>
+      <td class="lightbrown" data-key="l_plur" data-answer=""></td>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>inštrumentál</strong><br>S kým? S čím?<br>(... sa hrám?)</td>
+      <td class="wheat" data-key="i_sing" data-answer=""></td>
+      <td class="wheat" data-key="i_plur" data-answer=""></td>
+    </tr>
+  </tbody></table>
+  <div class="bank" id="bank"></div>
+  <div class="score" id="score"></div>
+
+  <div style="text-align:center; margin: 12px 0;">
+    <button id="btnCheck">Vyhodnotiť</button>
+    <button id="btnReset">Reset</button>
+    <button id="btnPrev">Predchádzajúce</button>
+    <button id="btnNext">Ďalšie slovo</button>
+  </div>
+
+  <script>
+    const SESSION_LIST = [{"n_sing":"dieťa","n_plur":"deti","g_sing":"dieťaťa","g_plur":"detí","d_sing":"dieťaťu","d_plur":"deťom","a_sing":"dieťa","a_plur":"deti","l_sing":"dieťati","l_plur":"deťoch","i_sing":"dieťaťom","i_plur":"deťmi"},{"n_sing":"žena","n_plur":"ženy","g_sing":"ženy","g_plur":"žien","d_sing":"žene","d_plur":"ženám","a_sing":"ženu","a_plur":"ženy","l_sing":"žene","l_plur":"ženách","i_sing":"ženou","i_plur":"ženami"},{"n_sing":"kľúč","n_plur":"kľúče","g_sing":"kľúča","g_plur":"kľúčov","d_sing":"kľúču","d_plur":"kľúčom","a_sing":"kľúč","a_plur":"kľúče","l_sing":"kľúči","l_plur":"kľúčoch","i_sing":"kľúčom","i_plur":"kľúčmi"}];
+    let currentIndex = 0;
+    let cumulativeCorrect = 0;
+    const cumulativeTotal = SESSION_LIST.length * 12;
+    let scoredCurrent = false;
+
+    const table   = document.getElementById('exerciseTable');
+    const bank    = document.getElementById('bank');
+    const scoreEl = document.getElementById('score');
+
+    const btnCheck = document.getElementById('btnCheck');
+    const btnReset = document.getElementById('btnReset');
+    const btnPrev  = document.getElementById('btnPrev');
+    const btnNext  = document.getElementById('btnNext');
+
+    function clearExerciseArea() {
+      bank.innerHTML = '';
+      scoreEl.textContent = '';
+      table.querySelectorAll('td[data-key]').forEach(td => {
+        td.textContent = '';
+        td.classList.remove('correct','incorrect','selected');
+      });
+    }
+
+    function populateBank(formsObj) {
+      const list = [];
+      for (let key in formsObj) list.push(formsObj[key]);
+      list.sort(() => Math.random() - .5);
+      list.forEach(w => {
+        const span = document.createElement('span');
+        span.className = 'bank-item';
+        span.textContent = w;
+        bank.appendChild(span);
+      });
+    }
+
+    function loadNoun(idx) {
+      clearExerciseArea();
+      scoredCurrent = false;
+      const noun = SESSION_LIST[idx];
+      table.querySelectorAll('td[data-key]').forEach(td => {
+        td.dataset.answer = noun[td.dataset.key];
+      });
+      populateBank(noun);
+      updateNav();
+    }
+
+    function updateNav() {
+      btnPrev.disabled = (currentIndex === 0);
+      btnNext.disabled = (currentIndex + 1 >= SESSION_LIST.length);
+      btnCheck.disabled = false;
+    }
+
+    // Výber bunky + priraďovanie z banky
+    let selectedCell = null;
+    table.addEventListener('click', e => {
+      if (e.target.tagName === 'TD' && e.target.dataset.key) {
+        table.querySelectorAll('td').forEach(td => td.classList.remove('selected'));
+        selectedCell = e.target;
+        selectedCell.classList.add('selected');
+      }
+    });
+
+    table.addEventListener('dblclick', e => {
+      if (e.target.tagName==='TD' && e.target.dataset.key && e.target.textContent.trim()) {
+        const word = e.target.textContent;
+        e.target.textContent = '';
+        e.target.classList.remove('correct','incorrect','selected');
+        const span = document.createElement('span');
+        span.className = 'bank-item';
+        span.textContent = word;
+        bank.appendChild(span);
+      }
+    });
+
+    bank.addEventListener('click', e => {
+      if (e.target.classList.contains('bank-item') &&
+          selectedCell && !selectedCell.textContent.trim()) {
+        selectedCell.textContent = e.target.textContent;
+        e.target.remove();
+        selectedCell.classList.remove('selected');
+        selectedCell = null;
+      }
+    });
+
+    // Vyhodnotenie
+    btnCheck.addEventListener('click', () => {
+      if (scoredCurrent) return;
+      let correct = 0, total = 0;
+      table.querySelectorAll('td[data-key]').forEach(td => {
+        total++;
+        td.classList.remove('correct','incorrect');
+        if (td.textContent.trim() === td.dataset.answer) {
+          td.classList.add('correct');
+          correct++;
+        } else {
+          td.classList.add('incorrect');
+        }
+      });
+      cumulativeCorrect += correct;
+      scoredCurrent = true;
+
+      const pctThis = total ? ((correct/total)*100).toFixed(1) : 0;
+      if (currentIndex + 1 < SESSION_LIST.length) {
+        scoreEl.innerHTML =
+          '<div>Skóre tohto slova: <strong>' + correct + '/' + total + '</strong> (' + pctThis + ' %)</div>';
+      } else {
+        const pctAll = cumulativeTotal ? ((cumulativeCorrect / cumulativeTotal)*100).toFixed(1) : 0;
+        scoreEl.innerHTML =
+          '<div>Skóre tohto slova: <strong>' + correct + '/' + total + '</strong> (' + pctThis + ' %)</div>' +
+          '<div><strong>Celkové skóre:</strong> ' + cumulativeCorrect + '/' + cumulativeTotal + ' (' + pctAll + ' %)</div>' +
+          '<div style="margin-top:8px;color:green;"><strong>Hotovo! 🎉</strong></div>';
+      }
+    });
+
+    // Reset
+    btnReset.addEventListener('click', () => {
+      table.querySelectorAll('td[data-key]').forEach(td => {
+        if (td.textContent.trim()) {
+          const span = document.createElement('span');
+          span.className = 'bank-item';
+          span.textContent = td.textContent;
+          bank.appendChild(span);
+        }
+        td.textContent = '';
+        td.classList.remove('correct','incorrect','selected');
+      });
+      scoreEl.textContent = '';
+      scoredCurrent = false;
+      btnCheck.disabled = false;
+    });
+
+    // Navigácia
+    btnPrev.addEventListener('click', () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        loadNoun(currentIndex);
+      }
+    });
+
+    btnNext.addEventListener('click', () => {
+      if (currentIndex + 1 < SESSION_LIST.length) {
+        currentIndex++;
+        loadNoun(currentIndex);
+      }
+    });
+
+    // Štart
+    loadNoun(0);
+	
+  </script>
+  <br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

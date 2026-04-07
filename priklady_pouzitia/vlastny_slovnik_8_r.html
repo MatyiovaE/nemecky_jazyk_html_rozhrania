@@ -1,0 +1,2806 @@
+<!DOCTYPE html>
+<html lang="sk"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Slovník – 8. ročník</title><style>
+  body{font-family:system-ui,sans-serif;margin:20px}
+  h1{font-size:1.3rem;margin-bottom:10px}
+  h2{font-size:1.05rem;margin:16px 0}
+  input{width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:12px}
+  .entry{padding:8px;border:1px solid #e5e7eb;border-radius:8px;margin:6px 0;background:#fff;cursor:pointer}
+  .term{font-weight:600}
+  .def{font-weight:600;color:#374151;margin-top:4px}
+  .icon{cursor:pointer;margin-left:6px;color:#2563eb}
+  .hidden{display:none}
+  .muted{color:#6b7280}
+</style></head><body>
+<h1>Slovník – 8. ročník</h1>
+<input id="search" placeholder="Hľadať..." />
+<div id="container">
+<h2>8. ročník</h2>
+  <div class="entry" data-text="allein sám/sama">
+    <div class="term">
+      allein
+      <span class="icon" onclick="speak('allein','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      sám/sama
+      <span class="icon" onclick="speak('sám/sama','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="also takže, teda">
+    <div class="term">
+      also
+      <span class="icon" onclick="speak('also','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      takže, teda
+      <span class="icon" onclick="speak('takže, teda','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="am freitag v piatok">
+    <div class="term">
+      am Freitag
+      <span class="icon" onclick="speak('am Freitag','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      v piatok
+      <span class="icon" onclick="speak('v piatok','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="am kiosk pri stánku">
+    <div class="term">
+      am Kiosk
+      <span class="icon" onclick="speak('am Kiosk','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      pri stánku
+      <span class="icon" onclick="speak('pri stánku','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="am nachmittag poobede">
+    <div class="term">
+      am Nachmittag
+      <span class="icon" onclick="speak('am Nachmittag','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      poobede
+      <span class="icon" onclick="speak('poobede','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="au ja! áno!/jasné!">
+    <div class="term">
+      Au ja!
+      <span class="icon" onclick="speak('Au ja!','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Áno!/Jasné!
+      <span class="icon" onclick="speak('Áno!/Jasné!','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="auf wiedersehen. dovidenia.">
+    <div class="term">
+      Auf Wiedersehen.
+      <span class="icon" onclick="speak('Auf Wiedersehen.','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Dovidenia.
+      <span class="icon" onclick="speak('Dovidenia.','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="aufräumen upratovať">
+    <div class="term">
+      aufräumen
+      <span class="icon" onclick="speak('aufräumen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      upratovať
+      <span class="icon" onclick="speak('upratovať','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="aufstehen vstať">
+    <div class="term">
+      aufstehen
+      <span class="icon" onclick="speak('aufstehen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      vstať
+      <span class="icon" onclick="speak('vstať','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="bio biológia">
+    <div class="term">
+      Bio
+      <span class="icon" onclick="speak('Bio','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      biológia
+      <span class="icon" onclick="speak('biológia','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="bis morgen. tak zajtra.">
+    <div class="term">
+      Bis morgen.
+      <span class="icon" onclick="speak('Bis morgen.','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Tak zajtra.
+      <span class="icon" onclick="speak('Tak zajtra.','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="brauchen potrebovať">
+    <div class="term">
+      brauchen
+      <span class="icon" onclick="speak('brauchen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      potrebovať
+      <span class="icon" onclick="speak('potrebovať','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das abendessen večera">
+    <div class="term">
+      das Abendessen
+      <span class="icon" onclick="speak('das Abendessen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      večera
+      <span class="icon" onclick="speak('večera','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das australien austrália">
+    <div class="term">
+      das Australien
+      <span class="icon" onclick="speak('das Australien','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Austrália
+      <span class="icon" onclick="speak('Austrália','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das brot, die brote chlieb">
+    <div class="term">
+      das Brot, die Brote
+      <span class="icon" onclick="speak('das Brot, die Brote','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      chlieb
+      <span class="icon" onclick="speak('chlieb','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das brötchen, die brötchen žemľa">
+    <div class="term">
+      das Brötchen, die Brötchen
+      <span class="icon" onclick="speak('das Brötchen, die Brötchen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      žemľa
+      <span class="icon" onclick="speak('žemľa','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das buch, die bücher kniha">
+    <div class="term">
+      das Buch, die Bücher
+      <span class="icon" onclick="speak('das Buch, die Bücher','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kniha
+      <span class="icon" onclick="speak('kniha','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das eis zmrzlina, ľad">
+    <div class="term">
+      das Eis
+      <span class="icon" onclick="speak('das Eis','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      zmrzlina, ľad
+      <span class="icon" onclick="speak('zmrzlina, ľad','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das essen jedlo">
+    <div class="term">
+      das Essen
+      <span class="icon" onclick="speak('das Essen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jedlo
+      <span class="icon" onclick="speak('jedlo','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das fleisch mäso">
+    <div class="term">
+      das Fleisch
+      <span class="icon" onclick="speak('das Fleisch','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      mäso
+      <span class="icon" onclick="speak('mäso','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das flugzeug, die flugzeuge lietadlo">
+    <div class="term">
+      das Flugzeug, die Flugzeuge
+      <span class="icon" onclick="speak('das Flugzeug, die Flugzeuge','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      lietadlo
+      <span class="icon" onclick="speak('lietadlo','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das frühstück raňajky">
+    <div class="term">
+      das Frühstück
+      <span class="icon" onclick="speak('das Frühstück','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      raňajky
+      <span class="icon" onclick="speak('raňajky','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das geht. to pôjde.">
+    <div class="term">
+      Das geht.
+      <span class="icon" onclick="speak('Das geht.','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      To pôjde.
+      <span class="icon" onclick="speak('To pôjde.','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das geld peniaze">
+    <div class="term">
+      das Geld
+      <span class="icon" onclick="speak('das Geld','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      peniaze
+      <span class="icon" onclick="speak('peniaze','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das gemüse zelenina">
+    <div class="term">
+      das Gemüse
+      <span class="icon" onclick="speak('das Gemüse','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      zelenina
+      <span class="icon" onclick="speak('zelenina','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das getränk, die getränke nápoj">
+    <div class="term">
+      das Getränk, die Getränke
+      <span class="icon" onclick="speak('das Getränk, die Getränke','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      nápoj
+      <span class="icon" onclick="speak('nápoj','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das griechenland grécko">
+    <div class="term">
+      das Griechenland
+      <span class="icon" onclick="speak('das Griechenland','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Grécko
+      <span class="icon" onclick="speak('Grécko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das heft, die hefte zošit">
+    <div class="term">
+      das Heft, die Hefte
+      <span class="icon" onclick="speak('das Heft, die Hefte','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      zošit
+      <span class="icon" onclick="speak('zošit','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das china čína">
+    <div class="term">
+      das China
+      <span class="icon" onclick="speak('das China','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Čína
+      <span class="icon" onclick="speak('Čína','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das ist verrückt! to je bláznivé!">
+    <div class="term">
+      Das ist verrückt!
+      <span class="icon" onclick="speak('Das ist verrückt!','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      To je bláznivé!
+      <span class="icon" onclick="speak('To je bláznivé!','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das judo džudo">
+    <div class="term">
+      das Judo
+      <span class="icon" onclick="speak('das Judo','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      džudo
+      <span class="icon" onclick="speak('džudo','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das lieblingsessen, die lieblingsessen obľúbené jedlo">
+    <div class="term">
+      das Lieblingsessen, die Lieblingsessen
+      <span class="icon" onclick="speak('das Lieblingsessen, die Lieblingsessen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      obľúbené jedlo
+      <span class="icon" onclick="speak('obľúbené jedlo','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das lieblingswort, die lieblingswörter obľúbené slovo">
+    <div class="term">
+      das Lieblingswort, die Lieblingswörter
+      <span class="icon" onclick="speak('das Lieblingswort, die Lieblingswörter','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      obľúbené slovo
+      <span class="icon" onclick="speak('obľúbené slovo','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das lineal, die lineale pravítko">
+    <div class="term">
+      das Lineal, die Lineale
+      <span class="icon" onclick="speak('das Lineal, die Lineale','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      pravítko
+      <span class="icon" onclick="speak('pravítko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das mittagessen obed">
+    <div class="term">
+      das Mittagessen
+      <span class="icon" onclick="speak('das Mittagessen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      obed
+      <span class="icon" onclick="speak('obed','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das obst ovocie">
+    <div class="term">
+      das Obst
+      <span class="icon" onclick="speak('das Obst','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ovocie
+      <span class="icon" onclick="speak('ovocie','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das polen poľsko">
+    <div class="term">
+      das Polen
+      <span class="icon" onclick="speak('das Polen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Poľsko
+      <span class="icon" onclick="speak('Poľsko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das popcorn pukance/popkorn">
+    <div class="term">
+      das Popcorn
+      <span class="icon" onclick="speak('das Popcorn','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      pukance/popkorn
+      <span class="icon" onclick="speak('pukance/popkorn','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das raumschiff, die raumschiffe kozmická loď">
+    <div class="term">
+      das Raumschiff, die Raumschiffe
+      <span class="icon" onclick="speak('das Raumschiff, die Raumschiffe','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kozmická loď
+      <span class="icon" onclick="speak('kozmická loď','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das russland rusko">
+    <div class="term">
+      das Russland
+      <span class="icon" onclick="speak('das Russland','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Rusko
+      <span class="icon" onclick="speak('Rusko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das schiff, die schiffe loď">
+    <div class="term">
+      das Schiff, die Schiffe
+      <span class="icon" onclick="speak('das Schiff, die Schiffe','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      loď
+      <span class="icon" onclick="speak('loď','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das spanien španielsko">
+    <div class="term">
+      das Spanien
+      <span class="icon" onclick="speak('das Spanien','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Španielsko
+      <span class="icon" onclick="speak('Španielsko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das spezi kola s limonádou">
+    <div class="term">
+      das Spezi
+      <span class="icon" onclick="speak('das Spezi','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kola s limonádou
+      <span class="icon" onclick="speak('kola s limonádou','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das stadion, die stadien štadión">
+    <div class="term">
+      das Stadion, die Stadien
+      <span class="icon" onclick="speak('das Stadion, die Stadien','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      štadión
+      <span class="icon" onclick="speak('štadión','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das tschechien česko">
+    <div class="term">
+      das Tschechien
+      <span class="icon" onclick="speak('das Tschechien','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Česko
+      <span class="icon" onclick="speak('Česko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das turnier, die turniere turnaj, zápas, súťaž">
+    <div class="term">
+      das Turnier, die Turniere
+      <span class="icon" onclick="speak('das Turnier, die Turniere','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      turnaj, zápas, súťaž
+      <span class="icon" onclick="speak('turnaj, zápas, súťaž','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das wasser voda">
+    <div class="term">
+      das Wasser
+      <span class="icon" onclick="speak('das Wasser','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      voda
+      <span class="icon" onclick="speak('voda','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="das zimmer, die zimmer izba">
+    <div class="term">
+      das Zimmer, die Zimmer
+      <span class="icon" onclick="speak('das Zimmer, die Zimmer','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      izba
+      <span class="icon" onclick="speak('izba','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="dein tvoj">
+    <div class="term">
+      dein
+      <span class="icon" onclick="speak('dein','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      tvoj
+      <span class="icon" onclick="speak('tvoj','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="denken myslieť">
+    <div class="term">
+      denken
+      <span class="icon" onclick="speak('denken','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      myslieť
+      <span class="icon" onclick="speak('myslieť','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der abend, die abende večer (časť dňa)">
+    <div class="term">
+      der Abend, die Abende
+      <span class="icon" onclick="speak('der Abend, die Abende','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      večer (časť dňa)
+      <span class="icon" onclick="speak('večer (časť dňa)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der apfel, die äpfel jablko">
+    <div class="term">
+      der Apfel, die Äpfel
+      <span class="icon" onclick="speak('der Apfel, die Äpfel','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jablko
+      <span class="icon" onclick="speak('jablko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der architekt architekt">
+    <div class="term">
+      der Architekt
+      <span class="icon" onclick="speak('der Architekt','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      architekt
+      <span class="icon" onclick="speak('architekt','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der arzt lekár">
+    <div class="term">
+      der Arzt
+      <span class="icon" onclick="speak('der Arzt','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      lekár
+      <span class="icon" onclick="speak('lekár','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der bleistift, die bleistifte ceruzka">
+    <div class="term">
+      der Bleistift, die Bleistifte
+      <span class="icon" onclick="speak('der Bleistift, die Bleistifte','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ceruzka
+      <span class="icon" onclick="speak('ceruzka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der block, die blöcke (trhací) blok">
+    <div class="term">
+      der Block, die Blöcke
+      <span class="icon" onclick="speak('der Block, die Blöcke','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      (trhací) blok
+      <span class="icon" onclick="speak('(trhací) blok','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der bruder, die brüder brat">
+    <div class="term">
+      der Bruder, die Brüder
+      <span class="icon" onclick="speak('der Bruder, die Brüder','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      brat
+      <span class="icon" onclick="speak('brat','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der cent cent">
+    <div class="term">
+      der Cent
+      <span class="icon" onclick="speak('der Cent','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      cent
+      <span class="icon" onclick="speak('cent','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der cocktail koktail">
+    <div class="term">
+      der Cocktail
+      <span class="icon" onclick="speak('der Cocktail','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      koktail
+      <span class="icon" onclick="speak('koktail','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der comic, die comics komiks">
+    <div class="term">
+      der Comic, die Comics
+      <span class="icon" onclick="speak('der Comic, die Comics','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      komiks
+      <span class="icon" onclick="speak('komiks','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der computer, die computer počítač">
+    <div class="term">
+      der Computer, die Computer
+      <span class="icon" onclick="speak('der Computer, die Computer','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      počítač
+      <span class="icon" onclick="speak('počítač','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der cousin, die cousins bratranec">
+    <div class="term">
+      der Cousin, die Cousins
+      <span class="icon" onclick="speak('der Cousin, die Cousins','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      bratranec
+      <span class="icon" onclick="speak('bratranec','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der durst smäd">
+    <div class="term">
+      der Durst
+      <span class="icon" onclick="speak('der Durst','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      smäd
+      <span class="icon" onclick="speak('smäd','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der eistee ľadový čaj">
+    <div class="term">
+      der Eistee
+      <span class="icon" onclick="speak('der Eistee','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ľadový čaj
+      <span class="icon" onclick="speak('ľadový čaj','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der eiswürfel, die eiswürfel kocka ľadu">
+    <div class="term">
+      der Eiswürfel, die Eiswürfel
+      <span class="icon" onclick="speak('der Eiswürfel, die Eiswürfel','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kocka ľadu
+      <span class="icon" onclick="speak('kocka ľadu','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der euro euro">
+    <div class="term">
+      der Euro
+      <span class="icon" onclick="speak('der Euro','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      euro
+      <span class="icon" onclick="speak('euro','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der fisch, die fische ryba">
+    <div class="term">
+      der Fisch, die Fische
+      <span class="icon" onclick="speak('der Fisch, die Fische','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ryba
+      <span class="icon" onclick="speak('ryba','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der füller, die füller plniace pero">
+    <div class="term">
+      der Füller, die Füller
+      <span class="icon" onclick="speak('der Füller, die Füller','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      plniace pero
+      <span class="icon" onclick="speak('plniace pero','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der großvater, die großväter starý otec">
+    <div class="term">
+      der Großvater, die Großväter
+      <span class="icon" onclick="speak('der Großvater, die Großväter','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      starý otec
+      <span class="icon" onclick="speak('starý otec','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der hausmann muž v domácnosti">
+    <div class="term">
+      der Hausmann
+      <span class="icon" onclick="speak('der Hausmann','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      muž v domácnosti
+      <span class="icon" onclick="speak('muž v domácnosti','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der kaffee káva">
+    <div class="term">
+      der Kaffee
+      <span class="icon" onclick="speak('der Kaffee','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      káva
+      <span class="icon" onclick="speak('káva','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der kakao kakao">
+    <div class="term">
+      der Kakao
+      <span class="icon" onclick="speak('der Kakao','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kakao
+      <span class="icon" onclick="speak('kakao','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der kapitän, die kapitäne kapitán">
+    <div class="term">
+      der Kapitän, die Kapitäne
+      <span class="icon" onclick="speak('der Kapitän, die Kapitäne','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kapitán
+      <span class="icon" onclick="speak('kapitán','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der koch kuchár">
+    <div class="term">
+      der Koch
+      <span class="icon" onclick="speak('der Koch','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kuchár
+      <span class="icon" onclick="speak('kuchár','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der kuchen, die kuchen koláč">
+    <div class="term">
+      der Kuchen, die Kuchen
+      <span class="icon" onclick="speak('der Kuchen, die Kuchen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      koláč
+      <span class="icon" onclick="speak('koláč','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der kuli, die kulis (guľôčkové) pero">
+    <div class="term">
+      der Kuli, die Kulis
+      <span class="icon" onclick="speak('der Kuli, die Kulis','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      (guľôčkové) pero
+      <span class="icon" onclick="speak('(guľôčkové) pero','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der lehrer učiteľ">
+    <div class="term">
+      der Lehrer
+      <span class="icon" onclick="speak('der Lehrer','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      učiteľ
+      <span class="icon" onclick="speak('učiteľ','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der mann, die männer muž">
+    <div class="term">
+      der Mann, die Männer
+      <span class="icon" onclick="speak('der Mann, die Männer','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      muž
+      <span class="icon" onclick="speak('muž','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der marker, die marker zvýrazňovač">
+    <div class="term">
+      der Marker, die Marker
+      <span class="icon" onclick="speak('der Marker, die Marker','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      zvýrazňovač
+      <span class="icon" onclick="speak('zvýrazňovač','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der mittag, die mittage poludnie">
+    <div class="term">
+      der Mittag, die Mittage
+      <span class="icon" onclick="speak('der Mittag, die Mittage','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      poludnie
+      <span class="icon" onclick="speak('poludnie','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der morgen, die morgen ráno (časť dňa)">
+    <div class="term">
+      der Morgen, die Morgen
+      <span class="icon" onclick="speak('der Morgen, die Morgen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ráno (časť dňa)
+      <span class="icon" onclick="speak('ráno (časť dňa)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der nachmittag, die nachmittage popoludnie/poobedie">
+    <div class="term">
+      der Nachmittag, die Nachmittage
+      <span class="icon" onclick="speak('der Nachmittag, die Nachmittage','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      popoludnie/poobedie
+      <span class="icon" onclick="speak('popoludnie/poobedie','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der name, die namen meno">
+    <div class="term">
+      der Name, die Namen
+      <span class="icon" onclick="speak('der Name, die Namen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      meno
+      <span class="icon" onclick="speak('meno','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der onkel, die onkel strýko">
+    <div class="term">
+      der Onkel, die Onkel
+      <span class="icon" onclick="speak('der Onkel, die Onkel','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      strýko
+      <span class="icon" onclick="speak('strýko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der opa, die opas dedko">
+    <div class="term">
+      der Opa, die Opas
+      <span class="icon" onclick="speak('der Opa, die Opas','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      dedko
+      <span class="icon" onclick="speak('dedko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der radiergummi, die radiergummis guma">
+    <div class="term">
+      der Radiergummi, die Radiergummis
+      <span class="icon" onclick="speak('der Radiergummi, die Radiergummis','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      guma
+      <span class="icon" onclick="speak('guma','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der reis ryža">
+    <div class="term">
+      der Reis
+      <span class="icon" onclick="speak('der Reis','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ryža
+      <span class="icon" onclick="speak('ryža','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der saft, die säfte šťava, džús">
+    <div class="term">
+      der Saft, die Säfte
+      <span class="icon" onclick="speak('der Saft, die Säfte','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      šťava, džús
+      <span class="icon" onclick="speak('šťava, džús','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der salat, die salate šalát">
+    <div class="term">
+      der Salat, die Salate
+      <span class="icon" onclick="speak('der Salat, die Salate','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      šalát
+      <span class="icon" onclick="speak('šalát','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der sekretär sekretár">
+    <div class="term">
+      der Sekretär
+      <span class="icon" onclick="speak('der Sekretär','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      sekretár
+      <span class="icon" onclick="speak('sekretár','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der spitzer, die spitzer strúhadlo (na ceruzku)">
+    <div class="term">
+      der Spitzer, die Spitzer
+      <span class="icon" onclick="speak('der Spitzer, die Spitzer','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      strúhadlo (na ceruzku)
+      <span class="icon" onclick="speak('strúhadlo (na ceruzku)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der tänzer tanečník">
+    <div class="term">
+      der Tänzer
+      <span class="icon" onclick="speak('der Tänzer','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      tanečník
+      <span class="icon" onclick="speak('tanečník','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der tee čaj">
+    <div class="term">
+      der Tee
+      <span class="icon" onclick="speak('der Tee','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      čaj
+      <span class="icon" onclick="speak('čaj','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der trainer tréner">
+    <div class="term">
+      der Trainer
+      <span class="icon" onclick="speak('der Trainer','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      tréner
+      <span class="icon" onclick="speak('tréner','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der vater, die väter otec">
+    <div class="term">
+      der Vater, die Väter
+      <span class="icon" onclick="speak('der Vater, die Väter','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      otec
+      <span class="icon" onclick="speak('otec','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der vormittag, die vormittage predpoludnie/doobedie">
+    <div class="term">
+      der Vormittag, die Vormittage
+      <span class="icon" onclick="speak('der Vormittag, die Vormittage','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      predpoludnie/doobedie
+      <span class="icon" onclick="speak('predpoludnie/doobedie','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="der zucker cukor">
+    <div class="term">
+      der Zucker
+      <span class="icon" onclick="speak('der Zucker','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      cukor
+      <span class="icon" onclick="speak('cukor','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die architektin architektka">
+    <div class="term">
+      die Architektin
+      <span class="icon" onclick="speak('die Architektin','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      architektka
+      <span class="icon" onclick="speak('architektka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die ärztin lekárka">
+    <div class="term">
+      die Ärztin
+      <span class="icon" onclick="speak('die Ärztin','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      lekárka
+      <span class="icon" onclick="speak('lekárka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die banane, die bananen banán">
+    <div class="term">
+      die Banane, die Bananen
+      <span class="icon" onclick="speak('die Banane, die Bananen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      banán
+      <span class="icon" onclick="speak('banán','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die cola kola">
+    <div class="term">
+      die Cola
+      <span class="icon" onclick="speak('die Cola','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kola
+      <span class="icon" onclick="speak('kola','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die cousine, die cousinen sesternica">
+    <div class="term">
+      die Cousine, die Cousinen
+      <span class="icon" onclick="speak('die Cousine, die Cousinen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      sesternica
+      <span class="icon" onclick="speak('sesternica','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die dvd, die dvds dvd">
+    <div class="term">
+      die DVD, die DVDs
+      <span class="icon" onclick="speak('die DVD, die DVDs','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      DVD
+      <span class="icon" onclick="speak('DVD','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die eltern (pl.) rodičia">
+    <div class="term">
+      die Eltern (Pl.)
+      <span class="icon" onclick="speak('die Eltern (Pl.)','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      rodičia
+      <span class="icon" onclick="speak('rodičia','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die energie energia">
+    <div class="term">
+      die Energie
+      <span class="icon" onclick="speak('die Energie','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      energia
+      <span class="icon" onclick="speak('energia','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die familie, die familien rodina">
+    <div class="term">
+      die Familie, die Familien
+      <span class="icon" onclick="speak('die Familie, die Familien','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      rodina
+      <span class="icon" onclick="speak('rodina','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die flasche, die flaschen fľaša">
+    <div class="term">
+      die Flasche, die Flaschen
+      <span class="icon" onclick="speak('die Flasche, die Flaschen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      fľaša
+      <span class="icon" onclick="speak('fľaša','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die frau, die frauen žena">
+    <div class="term">
+      die Frau, die Frauen
+      <span class="icon" onclick="speak('die Frau, die Frauen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      žena
+      <span class="icon" onclick="speak('žena','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die freizeit voľný čas">
+    <div class="term">
+      die Freizeit
+      <span class="icon" onclick="speak('die Freizeit','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      voľný čas
+      <span class="icon" onclick="speak('voľný čas','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die geschwister (pl.) súrodenci">
+    <div class="term">
+      die Geschwister (Pl.)
+      <span class="icon" onclick="speak('die Geschwister (Pl.)','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      súrodenci
+      <span class="icon" onclick="speak('súrodenci','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die großeltern (pl.) starí rodičia">
+    <div class="term">
+      die Großeltern (Pl.)
+      <span class="icon" onclick="speak('die Großeltern (Pl.)','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      starí rodičia
+      <span class="icon" onclick="speak('starí rodičia','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die großmutter, die großmütter stará mama">
+    <div class="term">
+      die Großmutter, die Großmütter
+      <span class="icon" onclick="speak('die Großmutter, die Großmütter','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      stará mama
+      <span class="icon" onclick="speak('stará mama','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die hausfrau žena v domácnosti">
+    <div class="term">
+      die Hausfrau
+      <span class="icon" onclick="speak('die Hausfrau','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      žena v domácnosti
+      <span class="icon" onclick="speak('žena v domácnosti','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die chips (pl.) čipsy">
+    <div class="term">
+      die Chips (Pl.)
+      <span class="icon" onclick="speak('die Chips (Pl.)','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      čipsy
+      <span class="icon" onclick="speak('čipsy','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die kartoffel, die kartoffeln zemiak">
+    <div class="term">
+      die Kartoffel, die Kartoffeln
+      <span class="icon" onclick="speak('die Kartoffel, die Kartoffeln','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      zemiak
+      <span class="icon" onclick="speak('zemiak','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die köchin kuchárka">
+    <div class="term">
+      die Köchin
+      <span class="icon" onclick="speak('die Köchin','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kuchárka
+      <span class="icon" onclick="speak('kuchárka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die lehrerin učiteľka">
+    <div class="term">
+      die Lehrerin
+      <span class="icon" onclick="speak('die Lehrerin','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      učiteľka
+      <span class="icon" onclick="speak('učiteľka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die lieblingsfarbe, die lieblingsfarben obľúbená farba">
+    <div class="term">
+      die Lieblingsfarbe, die Lieblingsfarben
+      <span class="icon" onclick="speak('die Lieblingsfarbe, die Lieblingsfarben','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      obľúbená farba
+      <span class="icon" onclick="speak('obľúbená farba','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die limo limča, limonáda">
+    <div class="term">
+      die Limo
+      <span class="icon" onclick="speak('die Limo','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      limča, limonáda
+      <span class="icon" onclick="speak('limča, limonáda','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die mahlzeiten (pl.) jedlá počas dňa">
+    <div class="term">
+      die Mahlzeiten (pl.)
+      <span class="icon" onclick="speak('die Mahlzeiten (pl.)','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jedlá počas dňa
+      <span class="icon" onclick="speak('jedlá počas dňa','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die mango, die mangos mango">
+    <div class="term">
+      die Mango, die Mangos
+      <span class="icon" onclick="speak('die Mango, die Mangos','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      mango
+      <span class="icon" onclick="speak('mango','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die marmelade, die marmeladen džem">
+    <div class="term">
+      die Marmelade, die Marmeladen
+      <span class="icon" onclick="speak('die Marmelade, die Marmeladen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      džem
+      <span class="icon" onclick="speak('džem','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die milch mlieko">
+    <div class="term">
+      die Milch
+      <span class="icon" onclick="speak('die Milch','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      mlieko
+      <span class="icon" onclick="speak('mlieko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die mutter, die mütter matka">
+    <div class="term">
+      die Mutter, die Mütter
+      <span class="icon" onclick="speak('die Mutter, die Mütter','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      matka
+      <span class="icon" onclick="speak('matka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die nacht, die nächte noc">
+    <div class="term">
+      die Nacht, die Nächte
+      <span class="icon" onclick="speak('die Nacht, die Nächte','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      noc
+      <span class="icon" onclick="speak('noc','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die obstsorten (pl.) druhy ovocia">
+    <div class="term">
+      die Obstsorten (Pl.)
+      <span class="icon" onclick="speak('die Obstsorten (Pl.)','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      druhy ovocia
+      <span class="icon" onclick="speak('druhy ovocia','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die oma, die omas babka">
+    <div class="term">
+      die Oma, die Omas
+      <span class="icon" onclick="speak('die Oma, die Omas','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      babka
+      <span class="icon" onclick="speak('babka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die orange, die orangen pomaranč">
+    <div class="term">
+      die Orange, die Orangen
+      <span class="icon" onclick="speak('die Orange, die Orangen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      pomaranč
+      <span class="icon" onclick="speak('pomaranč','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die pizza, die pizzas pizza">
+    <div class="term">
+      die Pizza, die Pizzas
+      <span class="icon" onclick="speak('die Pizza, die Pizzas','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      pizza
+      <span class="icon" onclick="speak('pizza','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die prinzessin, die prinzessinnen princezná">
+    <div class="term">
+      die Prinzessin, die Prinzessinnen
+      <span class="icon" onclick="speak('die Prinzessin, die Prinzessinnen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      princezná
+      <span class="icon" onclick="speak('princezná','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die sache, die sachen vec">
+    <div class="term">
+      die Sache, die Sachen
+      <span class="icon" onclick="speak('die Sache, die Sachen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      vec
+      <span class="icon" onclick="speak('vec','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die sekretärin sekretárka">
+    <div class="term">
+      die Sekretärin
+      <span class="icon" onclick="speak('die Sekretärin','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      sekretárka
+      <span class="icon" onclick="speak('sekretárka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die schere, die scheren nožnice">
+    <div class="term">
+      die Schere, die Scheren
+      <span class="icon" onclick="speak('die Schere, die Scheren','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      nožnice
+      <span class="icon" onclick="speak('nožnice','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die schokolade, die schokoladen čokoláda">
+    <div class="term">
+      die Schokolade, die Schokoladen
+      <span class="icon" onclick="speak('die Schokolade, die Schokoladen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      čokoláda
+      <span class="icon" onclick="speak('čokoláda','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die schreibwaren (pl.) písacie potreby">
+    <div class="term">
+      die Schreibwaren (Pl.)
+      <span class="icon" onclick="speak('die Schreibwaren (Pl.)','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      písacie potreby
+      <span class="icon" onclick="speak('písacie potreby','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die schweiz švajčiarsko">
+    <div class="term">
+      die Schweiz
+      <span class="icon" onclick="speak('die Schweiz','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Švajčiarsko
+      <span class="icon" onclick="speak('Švajčiarsko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die schwester, die schwestern sestra">
+    <div class="term">
+      die Schwester, die Schwestern
+      <span class="icon" onclick="speak('die Schwester, die Schwestern','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      sestra
+      <span class="icon" onclick="speak('sestra','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die slowakei slovensko">
+    <div class="term">
+      die Slowakei
+      <span class="icon" onclick="speak('die Slowakei','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Slovensko
+      <span class="icon" onclick="speak('Slovensko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die sporthalle, die sporthallen športová hala">
+    <div class="term">
+      die Sporthalle, die Sporthallen
+      <span class="icon" onclick="speak('die Sporthalle, die Sporthallen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      športová hala
+      <span class="icon" onclick="speak('športová hala','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die suppe ist kalt. tá polievka je studená.">
+    <div class="term">
+      Die Suppe ist kalt.
+      <span class="icon" onclick="speak('Die Suppe ist kalt.','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Tá polievka je studená.
+      <span class="icon" onclick="speak('Tá polievka je studená.','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die suppe schmeckt fantastisch. tá polievka chutí fantasticky.">
+    <div class="term">
+      Die Suppe schmeckt fantastisch.
+      <span class="icon" onclick="speak('Die Suppe schmeckt fantastisch.','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Tá polievka chutí fantasticky.
+      <span class="icon" onclick="speak('Tá polievka chutí fantasticky.','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die suppe, die suppen polievka">
+    <div class="term">
+      die Suppe, die Suppen
+      <span class="icon" onclick="speak('die Suppe, die Suppen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      polievka
+      <span class="icon" onclick="speak('polievka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die tageszeiten (pl.) časti dňa">
+    <div class="term">
+      die Tageszeiten (Pl.)
+      <span class="icon" onclick="speak('die Tageszeiten (Pl.)','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      časti dňa
+      <span class="icon" onclick="speak('časti dňa','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die tante, die tanten teta">
+    <div class="term">
+      die Tante, die Tanten
+      <span class="icon" onclick="speak('die Tante, die Tanten','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      teta
+      <span class="icon" onclick="speak('teta','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die tänzerin tanečníčka">
+    <div class="term">
+      die Tänzerin
+      <span class="icon" onclick="speak('die Tänzerin','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      tanečníčka
+      <span class="icon" onclick="speak('tanečníčka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die trainerin trénerka">
+    <div class="term">
+      die Trainerin
+      <span class="icon" onclick="speak('die Trainerin','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      trénerka
+      <span class="icon" onclick="speak('trénerka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die türkei turecko">
+    <div class="term">
+      die Türkei
+      <span class="icon" onclick="speak('die Türkei','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Turecko
+      <span class="icon" onclick="speak('Turecko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die uhr (iba sg.) hodina (časový údaj)">
+    <div class="term">
+      die Uhr (iba sg.)
+      <span class="icon" onclick="speak('die Uhr (iba sg.)','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      hodina (časový údaj)
+      <span class="icon" onclick="speak('hodina (časový údaj)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die zeit, die zeiten čas">
+    <div class="term">
+      die Zeit, die Zeiten
+      <span class="icon" onclick="speak('die Zeit, die Zeiten','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      čas
+      <span class="icon" onclick="speak('čas','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die zeitung, die zeitungen noviny">
+    <div class="term">
+      die Zeitung, die Zeitungen
+      <span class="icon" onclick="speak('die Zeitung, die Zeitungen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      noviny
+      <span class="icon" onclick="speak('noviny','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="die zitrone, die zitronen citrón">
+    <div class="term">
+      die Zitrone, die Zitronen
+      <span class="icon" onclick="speak('die Zitrone, die Zitronen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      citrón
+      <span class="icon" onclick="speak('citrón','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="du isst ty ješ">
+    <div class="term">
+      du isst
+      <span class="icon" onclick="speak('du isst','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ty ješ
+      <span class="icon" onclick="speak('ty ješ','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="du kannst ty môžeš">
+    <div class="term">
+      du kannst
+      <span class="icon" onclick="speak('du kannst','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ty môžeš
+      <span class="icon" onclick="speak('ty môžeš','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="du magst ty máš rád/rada">
+    <div class="term">
+      du magst
+      <span class="icon" onclick="speak('du magst','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ty máš rád/rada
+      <span class="icon" onclick="speak('ty máš rád/rada','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="du möchtest ty by si chcel/chcela">
+    <div class="term">
+      du möchtest
+      <span class="icon" onclick="speak('du möchtest','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ty by si chcel/chcela
+      <span class="icon" onclick="speak('ty by si chcel/chcela','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="du möchtest ty by si chcel/chcela">
+    <div class="term">
+      du möchtest
+      <span class="icon" onclick="speak('du möchtest','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ty by si chcel/chcela
+      <span class="icon" onclick="speak('ty by si chcel/chcela','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="du musst ty musíš">
+    <div class="term">
+      du musst
+      <span class="icon" onclick="speak('du musst','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ty musíš
+      <span class="icon" onclick="speak('ty musíš','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="du schläfst ty spíš">
+    <div class="term">
+      du schläfst
+      <span class="icon" onclick="speak('du schläfst','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ty spíš
+      <span class="icon" onclick="speak('ty spíš','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="duschen sprchovať sa">
+    <div class="term">
+      duschen
+      <span class="icon" onclick="speak('duschen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      sprchovať sa
+      <span class="icon" onclick="speak('sprchovať sa','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="echt? naozaj?/fakt?">
+    <div class="term">
+      Echt?
+      <span class="icon" onclick="speak('Echt?','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Naozaj?/Fakt?
+      <span class="icon" onclick="speak('Naozaj?/Fakt?','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="ein neurčitý člen (mužský a stredný rod)">
+    <div class="term">
+      ein
+      <span class="icon" onclick="speak('ein','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      neurčitý člen (mužský a stredný rod)
+      <span class="icon" onclick="speak('neurčitý člen (mužský a stredný rod)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="eine neurčitý člen (ženský rod)">
+    <div class="term">
+      eine
+      <span class="icon" onclick="speak('eine','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      neurčitý člen (ženský rod)
+      <span class="icon" onclick="speak('neurčitý člen (ženský rod)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="einkaufen nakupovať">
+    <div class="term">
+      einkaufen
+      <span class="icon" onclick="speak('einkaufen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      nakupovať
+      <span class="icon" onclick="speak('nakupovať','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="entschuldigung! prepáčte!">
+    <div class="term">
+      Entschuldigung!
+      <span class="icon" onclick="speak('Entschuldigung!','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Prepáčte!
+      <span class="icon" onclick="speak('Prepáčte!','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="er isst on je (konzumuje)">
+    <div class="term">
+      er isst
+      <span class="icon" onclick="speak('er isst','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      on je (konzumuje)
+      <span class="icon" onclick="speak('on je (konzumuje)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="er ist on je (existuje)">
+    <div class="term">
+      er ist
+      <span class="icon" onclick="speak('er ist','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      on je (existuje)
+      <span class="icon" onclick="speak('on je (existuje)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="er kann on môže">
+    <div class="term">
+      er kann
+      <span class="icon" onclick="speak('er kann','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      on môže
+      <span class="icon" onclick="speak('on môže','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="er mag on má rád">
+    <div class="term">
+      er mag
+      <span class="icon" onclick="speak('er mag','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      on má rád
+      <span class="icon" onclick="speak('on má rád','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="er möchte on by chcel">
+    <div class="term">
+      er möchte
+      <span class="icon" onclick="speak('er möchte','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      on by chcel
+      <span class="icon" onclick="speak('on by chcel','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="er muss on musí">
+    <div class="term">
+      er muss
+      <span class="icon" onclick="speak('er muss','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      on musí
+      <span class="icon" onclick="speak('on musí','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="er schläft on spí">
+    <div class="term">
+      er schläft
+      <span class="icon" onclick="speak('er schläft','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      on spí
+      <span class="icon" onclick="speak('on spí','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="er zeichnet on kreslí">
+    <div class="term">
+      er zeichnet
+      <span class="icon" onclick="speak('er zeichnet','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      on kreslí
+      <span class="icon" onclick="speak('on kreslí','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="es ist ... uhr. je ... hodín.">
+    <div class="term">
+      Es ist ... Uhr.
+      <span class="icon" onclick="speak('Es ist ... Uhr.','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Je ... hodín.
+      <span class="icon" onclick="speak('Je ... hodín.','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="es mag ono má rado">
+    <div class="term">
+      es mag
+      <span class="icon" onclick="speak('es mag','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ono má rado
+      <span class="icon" onclick="speak('ono má rado','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="es möchte ono by chcelo">
+    <div class="term">
+      es möchte
+      <span class="icon" onclick="speak('es möchte','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ono by chcelo
+      <span class="icon" onclick="speak('ono by chcelo','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="essen jesť">
+    <div class="term">
+      essen
+      <span class="icon" onclick="speak('essen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jesť
+      <span class="icon" onclick="speak('jesť','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="fantastisch fantastický">
+    <div class="term">
+      fantastisch
+      <span class="icon" onclick="speak('fantastisch','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      fantastický
+      <span class="icon" onclick="speak('fantastický','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="frau wagner pani wagner">
+    <div class="term">
+      Frau Wagner
+      <span class="icon" onclick="speak('Frau Wagner','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      pani Wagner
+      <span class="icon" onclick="speak('pani Wagner','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="furchtbar strašne">
+    <div class="term">
+      furchtbar
+      <span class="icon" onclick="speak('furchtbar','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      strašne
+      <span class="icon" onclick="speak('strašne','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="glauben myslieť si; veriť">
+    <div class="term">
+      glauben
+      <span class="icon" onclick="speak('glauben','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      myslieť si; veriť
+      <span class="icon" onclick="speak('myslieť si; veriť','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="halb pol">
+    <div class="term">
+      halb
+      <span class="icon" onclick="speak('halb','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      pol
+      <span class="icon" onclick="speak('pol','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="herr wagner pán wagner">
+    <div class="term">
+      Herr Wagner
+      <span class="icon" onclick="speak('Herr Wagner','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      pán Wagner
+      <span class="icon" onclick="speak('pán Wagner','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="hier, bitte. nech sa páči.">
+    <div class="term">
+      Hier, bitte.
+      <span class="icon" onclick="speak('Hier, bitte.','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Nech sa páči.
+      <span class="icon" onclick="speak('Nech sa páči.','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="ihr jej">
+    <div class="term">
+      ihr
+      <span class="icon" onclick="speak('ihr','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jej
+      <span class="icon" onclick="speak('jej','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="ihr familienname jej priezvisko">
+    <div class="term">
+      ihr Familienname
+      <span class="icon" onclick="speak('ihr Familienname','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jej priezvisko
+      <span class="icon" onclick="speak('jej priezvisko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="ihr haus jej dom">
+    <div class="term">
+      ihr Haus
+      <span class="icon" onclick="speak('ihr Haus','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jej dom
+      <span class="icon" onclick="speak('jej dom','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="ihr mögt vy máte radi/rady (tykanie v množ. čísle)">
+    <div class="term">
+      ihr mögt
+      <span class="icon" onclick="speak('ihr mögt','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      vy máte radi/rady (tykanie v množ. čísle)
+      <span class="icon" onclick="speak('vy máte radi/rady (tykanie v množ. čísle)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="ihr möchtet vy by ste chceli (tykanie v pl.)">
+    <div class="term">
+      ihr möchtet
+      <span class="icon" onclick="speak('ihr möchtet','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      vy by ste chceli (tykanie v pl.)
+      <span class="icon" onclick="speak('vy by ste chceli (tykanie v pl.)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="ihre schwester jej sestra">
+    <div class="term">
+      ihre Schwester
+      <span class="icon" onclick="speak('ihre Schwester','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jej sestra
+      <span class="icon" onclick="speak('jej sestra','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="ich kann ja môžem">
+    <div class="term">
+      ich kann
+      <span class="icon" onclick="speak('ich kann','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ja môžem
+      <span class="icon" onclick="speak('ja môžem','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="ich mag ja mám rád/rada">
+    <div class="term">
+      ich mag
+      <span class="icon" onclick="speak('ich mag','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ja mám rád/rada
+      <span class="icon" onclick="speak('ja mám rád/rada','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="ich möchte ja by som chcel/chela">
+    <div class="term">
+      ich möchte
+      <span class="icon" onclick="speak('ich möchte','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ja by som chcel/chela
+      <span class="icon" onclick="speak('ja by som chcel/chela','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="ich muss ja musím">
+    <div class="term">
+      ich muss
+      <span class="icon" onclick="speak('ich muss','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ja musím
+      <span class="icon" onclick="speak('ja musím','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="kalt studený">
+    <div class="term">
+      kalt
+      <span class="icon" onclick="speak('kalt','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      studený
+      <span class="icon" onclick="speak('studený','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="kaufen kúpiť/kupovať">
+    <div class="term">
+      kaufen
+      <span class="icon" onclick="speak('kaufen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kúpiť/kupovať
+      <span class="icon" onclick="speak('kúpiť/kupovať','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="kochen variť">
+    <div class="term">
+      kochen
+      <span class="icon" onclick="speak('kochen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      variť
+      <span class="icon" onclick="speak('variť','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="können môcť, vedieť, dokázať">
+    <div class="term">
+      können
+      <span class="icon" onclick="speak('können','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      môcť, vedieť, dokázať
+      <span class="icon" onclick="speak('môcť, vedieť, dokázať','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="kosten stáť (o cene)">
+    <div class="term">
+      kosten
+      <span class="icon" onclick="speak('kosten','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      stáť (o cene)
+      <span class="icon" onclick="speak('stáť (o cene)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="lernen učiť sa/naučiť sa">
+    <div class="term">
+      lernen
+      <span class="icon" onclick="speak('lernen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      učiť sa/naučiť sa
+      <span class="icon" onclick="speak('učiť sa/naučiť sa','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="mehr viac">
+    <div class="term">
+      mehr
+      <span class="icon" onclick="speak('mehr','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      viac
+      <span class="icon" onclick="speak('viac','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="mein môj">
+    <div class="term">
+      mein
+      <span class="icon" onclick="speak('mein','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      môj
+      <span class="icon" onclick="speak('môj','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="mein bruder môj brat">
+    <div class="term">
+      mein Bruder
+      <span class="icon" onclick="speak('mein Bruder','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      môj brat
+      <span class="icon" onclick="speak('môj brat','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="mein cousin môj bratranec">
+    <div class="term">
+      mein Cousin
+      <span class="icon" onclick="speak('mein Cousin','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      môj bratranec
+      <span class="icon" onclick="speak('môj bratranec','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="mein großvater môj starý otec">
+    <div class="term">
+      mein Großvater
+      <span class="icon" onclick="speak('mein Großvater','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      môj starý otec
+      <span class="icon" onclick="speak('môj starý otec','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="mein onkel môj strýko">
+    <div class="term">
+      mein Onkel
+      <span class="icon" onclick="speak('mein Onkel','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      môj strýko
+      <span class="icon" onclick="speak('môj strýko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="mein opa môj dedko">
+    <div class="term">
+      mein Opa
+      <span class="icon" onclick="speak('mein Opa','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      môj dedko
+      <span class="icon" onclick="speak('môj dedko','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="mein vater môj otec">
+    <div class="term">
+      mein Vater
+      <span class="icon" onclick="speak('mein Vater','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      môj otec
+      <span class="icon" onclick="speak('môj otec','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine brüder moji bratia">
+    <div class="term">
+      meine Brüder
+      <span class="icon" onclick="speak('meine Brüder','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moji bratia
+      <span class="icon" onclick="speak('moji bratia','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine cousine moja sesternica">
+    <div class="term">
+      meine Cousine
+      <span class="icon" onclick="speak('meine Cousine','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moja sesternica
+      <span class="icon" onclick="speak('moja sesternica','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine cousinen moje sesternice">
+    <div class="term">
+      meine Cousinen
+      <span class="icon" onclick="speak('meine Cousinen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moje sesternice
+      <span class="icon" onclick="speak('moje sesternice','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine cousins moji bratranci; moji bratranci a sesternice">
+    <div class="term">
+      meine Cousins
+      <span class="icon" onclick="speak('meine Cousins','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moji bratranci; moji bratranci a sesternice
+      <span class="icon" onclick="speak('moji bratranci; moji bratranci a sesternice','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine eltern moji rodičia">
+    <div class="term">
+      meine Eltern
+      <span class="icon" onclick="speak('meine Eltern','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moji rodičia
+      <span class="icon" onclick="speak('moji rodičia','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine geschwister moji súrodenci">
+    <div class="term">
+      meine Geschwister
+      <span class="icon" onclick="speak('meine Geschwister','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moji súrodenci
+      <span class="icon" onclick="speak('moji súrodenci','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine großeltern moji starí rodičia">
+    <div class="term">
+      meine Großeltern
+      <span class="icon" onclick="speak('meine Großeltern','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moji starí rodičia
+      <span class="icon" onclick="speak('moji starí rodičia','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine großmutter moja stará mama">
+    <div class="term">
+      meine Großmutter
+      <span class="icon" onclick="speak('meine Großmutter','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moja stará mama
+      <span class="icon" onclick="speak('moja stará mama','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine mutter moja matka">
+    <div class="term">
+      meine Mutter
+      <span class="icon" onclick="speak('meine Mutter','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moja matka
+      <span class="icon" onclick="speak('moja matka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine oma moja babka">
+    <div class="term">
+      meine Oma
+      <span class="icon" onclick="speak('meine Oma','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moja babka
+      <span class="icon" onclick="speak('moja babka','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine onkel moji strýkovia">
+    <div class="term">
+      meine Onkel
+      <span class="icon" onclick="speak('meine Onkel','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moji strýkovia
+      <span class="icon" onclick="speak('moji strýkovia','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine schwester moja sestra">
+    <div class="term">
+      meine Schwester
+      <span class="icon" onclick="speak('meine Schwester','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moja sestra
+      <span class="icon" onclick="speak('moja sestra','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine schwestern moje sestry">
+    <div class="term">
+      meine Schwestern
+      <span class="icon" onclick="speak('meine Schwestern','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moje sestry
+      <span class="icon" onclick="speak('moje sestry','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine tante moja teta">
+    <div class="term">
+      meine Tante
+      <span class="icon" onclick="speak('meine Tante','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moja teta
+      <span class="icon" onclick="speak('moja teta','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="meine tanten moje tety">
+    <div class="term">
+      meine Tanten
+      <span class="icon" onclick="speak('meine Tanten','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      moje tety
+      <span class="icon" onclick="speak('moje tety','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="mit s/so">
+    <div class="term">
+      mit
+      <span class="icon" onclick="speak('mit','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      s/so
+      <span class="icon" onclick="speak('s/so','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="mögen mať rád">
+    <div class="term">
+      mögen
+      <span class="icon" onclick="speak('mögen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      mať rád
+      <span class="icon" onclick="speak('mať rád','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="möchten chcieť (podmieňovací spôsob)">
+    <div class="term">
+      möchten
+      <span class="icon" onclick="speak('möchten','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      chcieť (podmieňovací spôsob)
+      <span class="icon" onclick="speak('chcieť (podmieňovací spôsob)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="morgen zajtra">
+    <div class="term">
+      morgen
+      <span class="icon" onclick="speak('morgen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      zajtra
+      <span class="icon" onclick="speak('zajtra','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="müssen musieť">
+    <div class="term">
+      müssen
+      <span class="icon" onclick="speak('müssen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      musieť
+      <span class="icon" onclick="speak('musieť','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="na ja no, nuž">
+    <div class="term">
+      na ja
+      <span class="icon" onclick="speak('na ja','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      no, nuž
+      <span class="icon" onclick="speak('no, nuž','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="na toll! no super! (ironicky)">
+    <div class="term">
+      Na toll!
+      <span class="icon" onclick="speak('Na toll!','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      No super! (ironicky)
+      <span class="icon" onclick="speak('No super! (ironicky)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="nerven ísť na nervy">
+    <div class="term">
+      nerven
+      <span class="icon" onclick="speak('nerven','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ísť na nervy
+      <span class="icon" onclick="speak('ísť na nervy','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="niemand nikto">
+    <div class="term">
+      niemand
+      <span class="icon" onclick="speak('niemand','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      nikto
+      <span class="icon" onclick="speak('nikto','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="noch ešte">
+    <div class="term">
+      noch
+      <span class="icon" onclick="speak('noch','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ešte
+      <span class="icon" onclick="speak('ešte','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="normal normálny">
+    <div class="term">
+      normal
+      <span class="icon" onclick="speak('normal','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      normálny
+      <span class="icon" onclick="speak('normálny','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="oh, mist! do kelu!">
+    <div class="term">
+      Oh, Mist!
+      <span class="icon" onclick="speak('Oh, Mist!','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Do kelu!
+      <span class="icon" onclick="speak('Do kelu!','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sein jeho">
+    <div class="term">
+      sein
+      <span class="icon" onclick="speak('sein','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jeho
+      <span class="icon" onclick="speak('jeho','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sein kind jeho dieťa">
+    <div class="term">
+      sein Kind
+      <span class="icon" onclick="speak('sein Kind','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jeho dieťa
+      <span class="icon" onclick="speak('jeho dieťa','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sein vorname jeho krstné meno">
+    <div class="term">
+      sein Vorname
+      <span class="icon" onclick="speak('sein Vorname','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jeho krstné meno
+      <span class="icon" onclick="speak('jeho krstné meno','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="seine lampe jeho lampa">
+    <div class="term">
+      seine Lampe
+      <span class="icon" onclick="speak('seine Lampe','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      jeho lampa
+      <span class="icon" onclick="speak('jeho lampa','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="schade škoda">
+    <div class="term">
+      schade
+      <span class="icon" onclick="speak('schade','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      škoda
+      <span class="icon" onclick="speak('škoda','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="schauen pozerať sa">
+    <div class="term">
+      schauen
+      <span class="icon" onclick="speak('schauen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      pozerať sa
+      <span class="icon" onclick="speak('pozerať sa','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="schlafen spať">
+    <div class="term">
+      schlafen
+      <span class="icon" onclick="speak('schlafen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      spať
+      <span class="icon" onclick="speak('spať','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="schmecken chutiť">
+    <div class="term">
+      schmecken
+      <span class="icon" onclick="speak('schmecken','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      chutiť
+      <span class="icon" onclick="speak('chutiť','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie vy (vykanie)">
+    <div class="term">
+      Sie
+      <span class="icon" onclick="speak('Sie','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Vy (vykanie)
+      <span class="icon" onclick="speak('Vy (vykanie)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie isst ona je (konzumuje)">
+    <div class="term">
+      sie isst
+      <span class="icon" onclick="speak('sie isst','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ona je (konzumuje)
+      <span class="icon" onclick="speak('ona je (konzumuje)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie ist ona je (existuje)">
+    <div class="term">
+      sie ist
+      <span class="icon" onclick="speak('sie ist','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ona je (existuje)
+      <span class="icon" onclick="speak('ona je (existuje)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie kann ona môže">
+    <div class="term">
+      sie kann
+      <span class="icon" onclick="speak('sie kann','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ona môže
+      <span class="icon" onclick="speak('ona môže','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie mag ona má rada">
+    <div class="term">
+      sie mag
+      <span class="icon" onclick="speak('sie mag','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ona má rada
+      <span class="icon" onclick="speak('ona má rada','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie mögen oni majú radi/ony majú rady">
+    <div class="term">
+      sie mögen
+      <span class="icon" onclick="speak('sie mögen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      oni majú radi/ony majú rady
+      <span class="icon" onclick="speak('oni majú radi/ony majú rady','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie mögen vy máte rád/rada/radi/rady (vykanie)">
+    <div class="term">
+      Sie mögen
+      <span class="icon" onclick="speak('Sie mögen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Vy máte rád/rada/radi/rady (vykanie)
+      <span class="icon" onclick="speak('Vy máte rád/rada/radi/rady (vykanie)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie möchte ona by chcela">
+    <div class="term">
+      sie möchte
+      <span class="icon" onclick="speak('sie möchte','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ona by chcela
+      <span class="icon" onclick="speak('ona by chcela','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie möchten oni/ony by chceli">
+    <div class="term">
+      sie möchten
+      <span class="icon" onclick="speak('sie möchten','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      oni/ony by chceli
+      <span class="icon" onclick="speak('oni/ony by chceli','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie möchten vy by ste chceli (vykanie)">
+    <div class="term">
+      Sie möchten
+      <span class="icon" onclick="speak('Sie möchten','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Vy by ste chceli (vykanie)
+      <span class="icon" onclick="speak('Vy by ste chceli (vykanie)','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie muss ona musí">
+    <div class="term">
+      sie muss
+      <span class="icon" onclick="speak('sie muss','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ona musí
+      <span class="icon" onclick="speak('ona musí','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie schläft ona spí">
+    <div class="term">
+      sie schläft
+      <span class="icon" onclick="speak('sie schläft','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ona spí
+      <span class="icon" onclick="speak('ona spí','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="sie zeichnet ona kreslí">
+    <div class="term">
+      sie zeichnet
+      <span class="icon" onclick="speak('sie zeichnet','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      ona kreslí
+      <span class="icon" onclick="speak('ona kreslí','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="spinnst du? zbláznil/a si sa?">
+    <div class="term">
+      Spinnst du?
+      <span class="icon" onclick="speak('Spinnst du?','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Zbláznil/a si sa?
+      <span class="icon" onclick="speak('Zbláznil/a si sa?','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="stehen stáť/byť napísané">
+    <div class="term">
+      stehen
+      <span class="icon" onclick="speak('stehen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      stáť/byť napísané
+      <span class="icon" onclick="speak('stáť/byť napísané','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="trainieren trénovať">
+    <div class="term">
+      trainieren
+      <span class="icon" onclick="speak('trainieren','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      trénovať
+      <span class="icon" onclick="speak('trénovať','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="tut mir leid. je mi ľúto.">
+    <div class="term">
+      Tut mir leid.
+      <span class="icon" onclick="speak('Tut mir leid.','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Je mi ľúto.
+      <span class="icon" onclick="speak('Je mi ľúto.','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="üben cvičiť/precvičovať">
+    <div class="term">
+      üben
+      <span class="icon" onclick="speak('üben','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      cvičiť/precvičovať
+      <span class="icon" onclick="speak('cvičiť/precvičovať','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="um o">
+    <div class="term">
+      um
+      <span class="icon" onclick="speak('um','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      o
+      <span class="icon" onclick="speak('o','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="um ... uhr o ... hodine">
+    <div class="term">
+      um ... Uhr
+      <span class="icon" onclick="speak('um ... Uhr','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      o ... hodine
+      <span class="icon" onclick="speak('o ... hodine','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="von ... bis ... od ... do ...">
+    <div class="term">
+      von ... bis ...
+      <span class="icon" onclick="speak('von ... bis ...','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      od ... do ...
+      <span class="icon" onclick="speak('od ... do ...','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="wann kedy">
+    <div class="term">
+      wann
+      <span class="icon" onclick="speak('wann','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kedy
+      <span class="icon" onclick="speak('kedy','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="wann lernst du? kedy sa učíš?">
+    <div class="term">
+      Wann lernst du?
+      <span class="icon" onclick="speak('Wann lernst du?','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Kedy sa učíš?
+      <span class="icon" onclick="speak('Kedy sa učíš?','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="was isst du zum abendessen? čo jedávaš na večeru?">
+    <div class="term">
+      Was isst du zum Abendessen?
+      <span class="icon" onclick="speak('Was isst du zum Abendessen?','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Čo jedávaš na večeru?
+      <span class="icon" onclick="speak('Čo jedávaš na večeru?','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="was isst du zum frühstück? čo jedávaš na raňajky?">
+    <div class="term">
+      Was isst du zum Frühstück?
+      <span class="icon" onclick="speak('Was isst du zum Frühstück?','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Čo jedávaš na raňajky?
+      <span class="icon" onclick="speak('Čo jedávaš na raňajky?','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="was isst du zum mittagessen? čo jedávaš na obed?">
+    <div class="term">
+      Was isst du zum Mittagessen?
+      <span class="icon" onclick="speak('Was isst du zum Mittagessen?','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Čo jedávaš na obed?
+      <span class="icon" onclick="speak('Čo jedávaš na obed?','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="weniger menej">
+    <div class="term">
+      weniger
+      <span class="icon" onclick="speak('weniger','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      menej
+      <span class="icon" onclick="speak('menej','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="wie spät ist es? koľko je hodín?">
+    <div class="term">
+      Wie spät ist es?
+      <span class="icon" onclick="speak('Wie spät ist es?','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Koľko je hodín?
+      <span class="icon" onclick="speak('Koľko je hodín?','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="wir mögen my máme radi/rady">
+    <div class="term">
+      wir mögen
+      <span class="icon" onclick="speak('wir mögen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      my máme radi/rady
+      <span class="icon" onclick="speak('my máme radi/rady','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="wir möchten my by sme chceli">
+    <div class="term">
+      wir möchten
+      <span class="icon" onclick="speak('wir möchten','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      my by sme chceli
+      <span class="icon" onclick="speak('my by sme chceli','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="wirklich? skutočne?">
+    <div class="term">
+      Wirklich?
+      <span class="icon" onclick="speak('Wirklich?','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Skutočne?
+      <span class="icon" onclick="speak('Skutočne?','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="zeichnen kresliť">
+    <div class="term">
+      zeichnen
+      <span class="icon" onclick="speak('zeichnen','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      kresliť
+      <span class="icon" onclick="speak('kresliť','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="zum abendessen esse ich ... . na večeru jedávam ... .">
+    <div class="term">
+      Zum Abendessen esse ich ... .
+      <span class="icon" onclick="speak('Zum Abendessen esse ich ... .','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Na večeru jedávam ... .
+      <span class="icon" onclick="speak('Na večeru jedávam ... .','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="zum frühstück esse ich ... . na raňajky jedávam ... .">
+    <div class="term">
+      Zum Frühstück esse ich ... .
+      <span class="icon" onclick="speak('Zum Frühstück esse ich ... .','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Na raňajky jedávam ... .
+      <span class="icon" onclick="speak('Na raňajky jedávam ... .','sk-SK')">🔊</span>
+    </div>
+  </div>
+  <div class="entry" data-text="zum mittagessen esse ich ... . na obed jedávam ... .">
+    <div class="term">
+      Zum Mittagessen esse ich ... .
+      <span class="icon" onclick="speak('Zum Mittagessen esse ich ... .','de-DE')">🔊</span>
+    </div>
+    <div class="def">
+      Na obed jedávam ... .
+      <span class="icon" onclick="speak('Na obed jedávam ... .','sk-SK')">🔊</span>
+    </div>
+  </div>
+</div><script>
+function speak(text,lang){
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang=lang; speechSynthesis.speak(u);
+}
+(function(){
+  const q=document.getElementById('search');
+  const entries=Array.from(document.querySelectorAll('.entry'));
+  q.addEventListener('input',()=>{
+    const s=q.value.trim().toLowerCase();
+    entries.forEach(e=>e.style.display=s? (e.getAttribute('data-text').includes(s)?'':'none') : '');
+  });
+  entries.forEach(e=>e.addEventListener('click',()=>{
+    entries.forEach(x=>x.style.display='none');
+    e.style.display='';
+  }));
+})();
+</script></body></html>

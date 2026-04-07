@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Zoradenie viet v dialógoch - IA cvičenie</title>
+  <style>
+    body { font-family:Courier bold, monospace; max-width:800px; margin:2em auto; padding:0 1em;}
+    .task { border:1px solid #ccc; padding:1em; margin-bottom:2em; border-radius:4px; }
+    .slots { display:flex; flex-direction:column; gap:.5em; margin-bottom:1em; }
+    .slot { min-height:2.5em; border:2px dashed #888; padding:.5em; cursor:pointer; }
+    .slot.correct { border-color:green; background:#e0ffe0; }
+    .slot.incorrect { border-color:red; background:#ffe0e0; }
+    .cards { display:flex; flex-wrap:wrap; gap:.5em; margin-bottom:1em; }
+    .card { background:#f0f0f0; padding:.5em 1em; border:1px solid #888; border-radius:4px; cursor:pointer; }
+    .card.selected { background:#d0e6ff; box-shadow:0 0 0 2px #007BFF; transform:scale(1.05); }
+    .buttons { display:flex; gap:1em; }
+    .buttons button { padding:.5em 1em; background:#007BFF; color:#fff; border:none; border-radius:4px; }
+    .buttons button:hover { background:#005bb5; }
+  </style>
+</head>
+<body>
+  <h1>Zoradenie viet v dialógoch - IA cvičenie</h1>
+  <p>Klikni najprv na kartičku, potom na bunku. Kliknutím na vloženú vetu ju vrátiš späť pod tabuľku.</p>
+
+  
+    <div class="task" data-index="0">
+      <h2>Úloha 1</h2>
+      <div class="slots">
+        <div class="slot" data-slot="0"></div><div class="slot" data-slot="1"></div><div class="slot" data-slot="2"></div>
+      </div>
+      <div class="cards">
+        <div class="card">B: Ďakujem, dobre. A ty?</div><div class="card">A: Ahoj, ako sa máš?</div><div class="card">A: Ďakujem, ujde to.</div>
+      </div>
+      <div class="buttons">
+        <button class="check">Vyhodnotiť</button>
+        <button class="retry">Opakovať pokus</button>
+      </div>
+    </div>
+  
+    <div class="task" data-index="1">
+      <h2>Úloha 2</h2>
+      <div class="slots">
+        <div class="slot" data-slot="0"></div><div class="slot" data-slot="1"></div><div class="slot" data-slot="2"></div>
+      </div>
+      <div class="cards">
+        <div class="card">A: Ďakujem, ujde to.</div><div class="card">A: Dobrý deň, ako sa máte?</div><div class="card">B: Dobrý deň, ďakujem, dobre. A vy?</div>
+      </div>
+      <div class="buttons">
+        <button class="check">Vyhodnotiť</button>
+        <button class="retry">Opakovať pokus</button>
+      </div>
+    </div>
+  
+<br><br>
+      <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+  <script>
+    const originalData = [["A: Ahoj, ako sa máš?","B: Ďakujem, dobre. A ty?","A: Ďakujem, ujde to."],["A: Dobrý deň, ako sa máte?","B: Dobrý deň, ďakujem, dobre. A vy?","A: Ďakujem, ujde to."]];
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    document.querySelectorAll('.task').forEach(taskEl => {
+      const idx = +taskEl.dataset.index;
+      let selectedCard = null;
+      const slotsEl = taskEl.querySelector('.slots');
+      const cardsEl = taskEl.querySelector('.cards');
+
+      cardsEl.addEventListener('click', e => {
+        if (!e.target.classList.contains('card')) return;
+        if (selectedCard) selectedCard.classList.remove('selected');
+        selectedCard = e.target;
+        selectedCard.classList.add('selected');
+      });
+
+      slotsEl.addEventListener('click', e => {
+        if (!e.target.classList.contains('slot')) return;
+        const slot = e.target;
+        if (selectedCard) {
+          slot.textContent = selectedCard.textContent;
+          slot.dataset.value = selectedCard.textContent;
+          selectedCard.remove();
+          selectedCard = null;
+          return;
+        }
+        if (slot.dataset.value) {
+          const text = slot.dataset.value;
+          slot.textContent = '';
+          delete slot.dataset.value;
+          slot.classList.remove('correct','incorrect');
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.textContent = text;
+          cardsEl.append(card);
+        }
+      });
+
+      taskEl.querySelector('.check').addEventListener('click', () => {
+        slotsEl.querySelectorAll('.slot').forEach((slot, pos) => {
+          slot.classList.remove('correct','incorrect');
+          if (slot.dataset.value === originalData[idx][pos]) {
+            slot.classList.add('correct');
+          } else {
+            slot.classList.add('incorrect');
+          }
+        });
+      });
+
+      taskEl.querySelector('.retry').addEventListener('click', () => {
+        slotsEl.querySelectorAll('.slot').forEach(slot => {
+          slot.textContent = '';
+          delete slot.dataset.value;
+          slot.classList.remove('correct','incorrect');
+        });
+        cardsEl.innerHTML = '';
+        shuffle([...originalData[idx]]).forEach(text => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.textContent = text;
+          cardsEl.append(card);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

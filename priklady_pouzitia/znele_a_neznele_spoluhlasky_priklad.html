@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Znelé a neznelé spoluhlásky</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #fdfdfd; text-align: center; margin: 0; padding: 20px; user-select: none; }
+        .header { margin-bottom: 20px; }
+        h1 { color: #333; margin-bottom: 5px; }
+        .meta { color: #666; font-size: 0.9em; margin-bottom: 15px; }
+        
+        #setupScreen { max-width: 600px; margin: 50px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        input[type="text"], input[type="number"] { padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 5px; margin: 5px; width: 200px; }
+        .btn-start { background-color: #27ae60; color: white; border: none; padding: 10px 30px; font-size: 18px; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        .btn-start:hover { background-color: #219150; transform: scale(1.05); }
+
+        #gameScreen { display: none; max-width: 1200px; margin: 0 auto; }
+        .instructions { font-size: 1.1em; color: #444; margin-bottom: 20px; background: #e8f8f5; padding: 10px; border-radius: 5px; display: inline-block; }
+        
+        .active-term-container { min-height: 100px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .active-term { font-size: 3em; font-weight: bold; padding: 20px; border-radius: 10px; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s; border: 2px solid transparent; }
+        .active-term.error { background-color: #fadbd8; border-color: #e74c3c; color: #c0392b; animation: shake 0.5s; }
+        .error-msg { color: #c0392b; font-weight: bold; margin-top: 10px; min-height: 24px; visibility: hidden; }
+        
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+        .columns-container { display: flex; gap: 15px; justify-content: center; align-items: stretch; min-height: 400px; }
+        .column { flex: 1; border-radius: 10px; padding: 15px; display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s; position: relative; border: 2px solid transparent; }
+        .column:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 10; }
+        .column-header { text-align: center; font-weight: bold; margin-bottom: 15px; word-wrap: break-word; white-space: pre-wrap; line-height: 1.2; }
+        
+        .placed-item { margin: 5px 0; padding: 8px; border-radius: 4px; font-weight: bold; color: #000; border: 1px solid rgba(0,0,0,0.05); }
+        
+        .hud { position: fixed; top: 10px; right: 20px; text-align: right; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .score-big { font-size: 1.5em; font-weight: bold; color: #2c3e50; }
+        
+        .footer { margin-top: 40px; font-size: 0.8em; color: #aaa; }
+        
+        #evalBtn { display: none; margin-top: 30px; padding: 15px 30px; font-size: 1.2em; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #evalBtn:hover { background-color: #2980b9; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Znelé a neznelé spoluhlásky</h1>
+        <div class="meta">Mgr. Erika Matyiová (2026)</div>
+    </div>
+
+    <div id="setupScreen">
+        <h3>Zadajte údaje pre začiatok testu</h3>
+        <div>
+            <label>Meno žiaka:</label><br>
+            <input type="text" id="studentName" placeholder="Zadaj svoje meno">
+        </div>
+        <br>
+        <div>
+            <label>Počet úloh:</label><br>
+            <input type="number" id="questionCount" value="10" min="1">
+        </div>
+        <br>
+        <button class="btn-start" onclick="startTest()">Štart</button>
+    </div>
+
+    <div id="gameScreen">
+        <div class="hud">
+            <div id="progressDisplay">0/10</div>
+            <div id="scoreDisplay" class="score-big">0 bodov</div>
+        </div>
+
+        <div class="instructions">Klikni na správny stĺpec. Ak si klikol nesprávne, opakuj pokus. Body sa ti pripočítavajú len za úlohy, ktoré si vyriešil správne na prvýkrát.</div>
+
+        <div class="active-term-container">
+            <div id="currentTerm" class="active-term">...</div>
+            <div id="errorMsg" class="error-msg">Nesprávny pokus. Skús znova.</div>
+        </div>
+
+        <div id="columnsArea" class="columns-container">
+            </div>
+        
+        <h2 id="endMessage" style="display:none; color: #27ae60; margin-top:20px;">🎉 Hotovo!</h2>
+        <button id="evalBtn" onclick="showEvaluation()">Hodnotenie</button>
+    </div>
+
+    <div class="footer">
+        Spracované pomocou UI: Mgr. Erika Matyiová (2026)
+    </div>
+
+    <script>
+        const config = {"author":"Mgr. Erika Matyiová","year":"2026","testTitle":"Znelé a neznelé spoluhlásky","instructions":"Klikni na správny stĺpec. Ak si klikol nesprávne, opakuj pokus. Body sa ti pripočítavajú len za úlohy, ktoré si vyriešil správne na prvýkrát.","columns":[{"id":0,"title":"párová znelá spoluhláska","bg":"#b7ffad","color":"#000000","size":"20"},{"id":1,"title":"párová neznelá spoluhláska","bg":"#ffc7c7","color":"#000000","size":"20"},{"id":2,"title":"nepárová znelá spoluhláska","bg":"#fff7a3","color":"#000000","size":"20"}],"terms":[{"term":"b","target":"párová znelá spoluhláska"},{"term":"d","target":"párová znelá spoluhláska"},{"term":"ď","target":"párová znelá spoluhláska"},{"term":"dz","target":"párová znelá spoluhláska"},{"term":"dž","target":"párová znelá spoluhláska"},{"term":"g","target":"párová znelá spoluhláska"},{"term":"h","target":"párová znelá spoluhláska"},{"term":"z","target":"párová znelá spoluhláska"},{"term":"ž","target":"párová znelá spoluhláska"},{"term":"v","target":"párová znelá spoluhláska"},{"term":"p","target":"párová neznelá spoluhláska"},{"term":"t","target":"párová neznelá spoluhláska"},{"term":"ť","target":"párová neznelá spoluhláska"},{"term":"c","target":"párová neznelá spoluhláska"},{"term":"č","target":"párová neznelá spoluhláska"},{"term":"k","target":"párová neznelá spoluhláska"},{"term":"ch","target":"párová neznelá spoluhláska"},{"term":"s","target":"párová neznelá spoluhláska"},{"term":"š","target":"párová neznelá spoluhláska"},{"term":"f","target":"párová neznelá spoluhláska"},{"term":"m","target":"nepárová znelá spoluhláska"},{"term":"n","target":"nepárová znelá spoluhláska"},{"term":"ň","target":"nepárová znelá spoluhláska"},{"term":"ľ","target":"nepárová znelá spoluhláska"},{"term":"l","target":"nepárová znelá spoluhláska"},{"term":"ĺ","target":"nepárová znelá spoluhláska"},{"term":"r","target":"nepárová znelá spoluhláska"},{"term":"ŕ","target":"nepárová znelá spoluhláska"},{"term":"j","target":"nepárová znelá spoluhláska"}],"placedItemSize":"35"};
+        
+        // Game State
+        let currentTermObj = null;
+        let remainingTerms = [];
+        let score = 0;
+        let answeredCount = 0;
+        let totalQuestions = 0;
+        let historyLog = []; // { term, correctTarget, studentSelection, result }
+        let isFirstTry = true;
+        let firstWrongSelection = null; // Stores the first wrong answer choice
+        let studentName = "";
+
+        // Initialization
+        function startTest() {
+            studentName = document.getElementById('studentName').value.trim() || "XY";
+            let qCountInput = parseInt(document.getElementById('questionCount').value);
+            
+            // Prepare terms
+            let allTerms = [...config.terms];
+            shuffleArray(allTerms);
+            
+            totalQuestions = Math.min(qCountInput, allTerms.length);
+            remainingTerms = allTerms.slice(0, totalQuestions);
+            
+            if(remainingTerms.length === 0) {
+                alert("Chyba: Žiadne pojmy na zobrazenie.");
+                return;
+            }
+
+            document.getElementById('setupScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            
+            renderColumns();
+            updateHUD();
+            nextQuestion();
+        }
+
+        function renderColumns() {
+            const container = document.getElementById('columnsArea');
+            container.innerHTML = '';
+            
+            config.columns.forEach(col => {
+                let div = document.createElement('div');
+                div.className = 'column';
+                div.style.backgroundColor = col.bg;
+                div.onclick = () => handleColumnClick(col.title);
+                
+                let header = document.createElement('div');
+                header.className = 'column-header';
+                header.innerText = col.title;
+                header.style.color = col.color;
+                header.style.fontSize = col.size + 'px';
+                
+                div.appendChild(header);
+                // Container for placed items
+                let itemsContainer = document.createElement('div');
+                itemsContainer.id = 'col-items-' + sanitizeId(col.title);
+                div.appendChild(itemsContainer);
+                
+                container.appendChild(div);
+            });
+        }
+
+        function nextQuestion() {
+            if (remainingTerms.length === 0) {
+                endGame();
+                return;
+            }
+            
+            currentTermObj = remainingTerms.pop();
+            const termDisplay = document.getElementById('currentTerm');
+            termDisplay.innerText = currentTermObj.term;
+            termDisplay.classList.remove('error');
+            document.getElementById('errorMsg').style.visibility = 'hidden';
+            isFirstTry = true;
+            firstWrongSelection = null; // Reset for new question
+        }
+
+        function handleColumnClick(clickedColTitle) {
+            if (!currentTermObj) return;
+
+            const correctColTitle = currentTermObj.target;
+            
+            // Simple string matching
+            if (clickedColTitle.trim() === correctColTitle.trim()) {
+                // Correct
+                if (isFirstTry) {
+                    score++;
+                }
+                
+                // Determine what to record as student's answer:
+                // If it was first try, their answer is the correct one.
+                // If it wasn't first try, their answer is the FIRST wrong selection they made.
+                let recordedAnswer = isFirstTry ? clickedColTitle : firstWrongSelection;
+
+                historyLog.push({
+                    term: currentTermObj.term,
+                    correctTarget: correctColTitle,
+                    studentSelection: recordedAnswer,
+                    result: isFirstTry
+                });
+
+                // Move visual
+                addToColumn(clickedColTitle, currentTermObj.term);
+                
+                answeredCount++;
+                updateHUD();
+                nextQuestion();
+                
+            } else {
+                // Incorrect
+                if (isFirstTry) {
+                    // Capture the first wrong choice for the history log
+                    firstWrongSelection = clickedColTitle;
+                }
+                
+                isFirstTry = false;
+                const termDisplay = document.getElementById('currentTerm');
+                termDisplay.classList.add('error');
+                document.getElementById('errorMsg').style.visibility = 'visible';
+                
+                setTimeout(() => {
+                    termDisplay.classList.remove('error');
+                }, 500);
+            }
+        }
+
+        function addToColumn(colTitle, termText) {
+            const container = document.getElementById('col-items-' + sanitizeId(colTitle));
+            const colConfig = config.columns.find(c => c.title === colTitle);
+            const baseColorHex = colConfig.bg;
+
+            let item = document.createElement('div');
+            item.className = 'placed-item';
+            item.innerText = termText;
+            
+            item.style.fontSize = config.placedItemSize + 'px';
+            item.style.backgroundColor = darkenHexToHSL(baseColorHex, 0.15);
+            
+            container.appendChild(item);
+        }
+
+        function updateHUD() {
+            document.getElementById('progressDisplay').innerText = answeredCount + '/' + totalQuestions;
+            document.getElementById('scoreDisplay').innerText = score + (score === 1 ? ' bod' : (score >= 2 && score <= 4 ? ' body' : ' bodov'));
+        }
+
+        function endGame() {
+            currentTermObj = null;
+            document.getElementById('currentTerm').style.display = 'none';
+            document.getElementById('endMessage').style.display = 'block';
+            document.getElementById('evalBtn').style.display = 'inline-block';
+        }
+
+        function showEvaluation() {
+            const percentage = Math.round((score / totalQuestions) * 100);
+            const now = new Date().toLocaleString('sk-SK');
+            
+            let tableRows = historyLog.map(log => {
+                let resultCell = "";
+                if (log.result) {
+                    // Correct on first try
+                    resultCell = `<span style="color:green; font-weight:bold;">&#10004;</span> ${log.studentSelection}`;
+                } else {
+                    // Wrong on first try - show the wrong answer
+                    resultCell = `<span style="color:red; font-weight:bold;">&#10008;</span> ${log.studentSelection}`;
+                }
+                
+                return `<tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${log.term}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${log.correctTarget}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${resultCell}</td>
+                </tr>`;
+            }).join('');
+
+            const evalHtml = `
+                <html>
+                <head>
+                    <title>Hodnotenie - ${config.testTitle}</title>
+                    <style>
+                        body { font-family: 'Segoe UI', sans-serif; padding: 40px; }
+                        h1 { color: #2c3e50; }
+                        .summary { margin-bottom: 30px; font-size: 1.2em; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th { background: #f2f2f2; text-align: left; padding: 10px; border: 1px solid #ddd; }
+                        td { vertical-align: middle; }
+                        .legend { margin-top: 20px; font-size: 0.9em; color: #666; }
+                        @media print {
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Hodnotenie: ${config.testTitle}</h1>
+                    <div class="summary">
+                        <strong>Meno žiaka:</strong> ${studentName}<br>
+                        <strong>Dátum:</strong> ${now}<br>
+                        <strong>Počet bodov:</strong> ${score} z ${totalQuestions}<br>
+                        <strong>Úspešnosť:</strong> ${percentage}%
+                    </div>
+                    
+                    <h3>Detailný prehľad</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Úloha</th>
+                                <th>Správne riešenie</th>
+                                <th>Tvoja odpoveď</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                    
+                    <div class="legend">
+                        <strong>Vysvetlivky:</strong><br>
+                        <span style="color:green;">&#10004;</span> = Správne na prvý pokus (1 bod)<br>
+                        <span style="color:red;">&#10008;</span> = Nesprávne na prvý pokus (0 bodov) - zobrazená je vaša pôvodná odpoveď
+                    </div>
+                    
+                    <div class="no-print" style="margin-top: 30px;">
+                        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer;">Tlačiť (Ctrl + P)</button>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            const win = window.open('', '_blank');
+            win.document.write(evalHtml);
+            win.document.close();
+        }
+
+        // Utils
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+        
+        function sanitizeId(str) {
+            return str.replace(/[^a-z0-9gi]/, '_');
+        }
+        
+        function darkenHexToHSL(hex, darkenAmount) {
+            let r = 0, g = 0, b = 0;
+            r = "0x" + hex[1] + hex[2]; g = "0x" + hex[3] + hex[4]; b = "0x" + hex[5] + hex[6];
+            r /= 255; g /= 255; b /= 255;
+
+            let cmin = Math.min(r,g,b), cmax = Math.max(r,g,b), delta = cmax - cmin;
+            let h = 0, s = 0, l = 0;
+
+            if (delta == 0) h = 0;
+            else if (cmax == r) h = ((g - b) / delta) % 6;
+            else if (cmax == g) h = (b - r) / delta + 2;
+            else h = (r - g) / delta + 4;
+
+            h = Math.round(h * 60);
+            if (h < 0) h += 360;
+
+            l = (cmax + cmin) / 2;
+            s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+
+            l = Math.max(0, l - darkenAmount);
+
+            return `hsl(${h}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Základné anglické frázy so slovenským prekladom - výber (ozvučené)</title>
+  <style>
+    body { font-family: Courier bold, monospace; padding: 2rem; max-width: 900px; margin: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    td { padding: 0.5rem; border-bottom: 1px solid #ccc; vertical-align: middle; }
+    .bold { font-weight: bold; }
+    .icon { cursor: pointer; margin-right: 0.5rem; color: #0077cc; }
+    .controls { margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Základné anglické frázy so slovenským prekladom - výber (ozvučené)</h1>
+  <div class="controls">
+    <label>Rýchlosť: <input type="range" id="rate" min="0.6" max="1.4" step="0.1" value="1"> <span id="rateVal">1</span></label>
+    <label>Výška: <input type="range" id="pitch" min="0.8" max="1.4" step="0.1" value="1"> <span id="pitchVal">1</span></label>
+  </div>
+  <table id="table">
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('How are you?', 'en-US')">🔊</span>
+          <span class="bold">How are you?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Ako sa máš?', 'sk-SK')">🔊</span>
+          <span class="">Ako sa máš?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('I’m fine, thank you.', 'en-US')">🔊</span>
+          <span class="bold">I’m fine, thank you.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Mám sa dobre, ďakujem.', 'sk-SK')">🔊</span>
+          <span class="">Mám sa dobre, ďakujem.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('What’s your name?', 'en-US')">🔊</span>
+          <span class="bold">What’s your name?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Ako sa voláš?', 'sk-SK')">🔊</span>
+          <span class="">Ako sa voláš?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('My name is…', 'en-US')">🔊</span>
+          <span class="bold">My name is…</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Volám sa…', 'sk-SK')">🔊</span>
+          <span class="">Volám sa…</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Nice to meet you.', 'en-US')">🔊</span>
+          <span class="bold">Nice to meet you.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Teší ma.', 'sk-SK')">🔊</span>
+          <span class="">Teší ma.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Where are you from?', 'en-US')">🔊</span>
+          <span class="bold">Where are you from?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Odkiaľ si?', 'sk-SK')">🔊</span>
+          <span class="">Odkiaľ si?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('I’m from Slovakia.', 'en-US')">🔊</span>
+          <span class="bold">I’m from Slovakia.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Som zo Slovenska.', 'sk-SK')">🔊</span>
+          <span class="">Som zo Slovenska.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('How old are you?', 'en-US')">🔊</span>
+          <span class="bold">How old are you?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Koľko máš rokov?', 'sk-SK')">🔊</span>
+          <span class="">Koľko máš rokov?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('I don’t understand.', 'en-US')">🔊</span>
+          <span class="bold">I don’t understand.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Nerozumiem.', 'sk-SK')">🔊</span>
+          <span class="">Nerozumiem.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Can you repeat that, please?', 'en-US')">🔊</span>
+          <span class="bold">Can you repeat that, please?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Môžeš to zopakovať, prosím?', 'sk-SK')">🔊</span>
+          <span class="">Môžeš to zopakovať, prosím?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('What time is it?', 'en-US')">🔊</span>
+          <span class="bold">What time is it?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Koľko je hodín?', 'sk-SK')">🔊</span>
+          <span class="">Koľko je hodín?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('How much does it cost?', 'en-US')">🔊</span>
+          <span class="bold">How much does it cost?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Koľko to stojí?', 'sk-SK')">🔊</span>
+          <span class="">Koľko to stojí?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Can you help me?', 'en-US')">🔊</span>
+          <span class="bold">Can you help me?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Môžeš mi pomôcť?', 'sk-SK')">🔊</span>
+          <span class="">Môžeš mi pomôcť?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('I’m sorry.', 'en-US')">🔊</span>
+          <span class="bold">I’m sorry.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Prepáč.', 'sk-SK')">🔊</span>
+          <span class="">Prepáč.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Excuse me.', 'en-US')">🔊</span>
+          <span class="bold">Excuse me.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Prepáčte / S dovolením.', 'sk-SK')">🔊</span>
+          <span class="">Prepáčte / S dovolením.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Thank you very much.', 'en-US')">🔊</span>
+          <span class="bold">Thank you very much.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Ďakujem pekne.', 'sk-SK')">🔊</span>
+          <span class="">Ďakujem pekne.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('You’re welcome.', 'en-US')">🔊</span>
+          <span class="bold">You’re welcome.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Nemáš za čo.', 'sk-SK')">🔊</span>
+          <span class="">Nemáš za čo.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('See you later.', 'en-US')">🔊</span>
+          <span class="bold">See you later.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Uvidíme sa neskôr.', 'sk-SK')">🔊</span>
+          <span class="">Uvidíme sa neskôr.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Good luck!', 'en-US')">🔊</span>
+          <span class="bold">Good luck!</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Veľa šťastia!', 'sk-SK')">🔊</span>
+          <span class="">Veľa šťastia!</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Have a nice day.', 'en-US')">🔊</span>
+          <span class="bold">Have a nice day.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Prajem pekný deň.', 'sk-SK')">🔊</span>
+          <span class="">Prajem pekný deň.</span>
+        </td>
+      </tr>
+    
+  </table>
+
+  <br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+
+  <script>
+    document.getElementById('rate').addEventListener('input', e => {
+      document.getElementById('rateVal').textContent = e.target.value;
+    });
+    document.getElementById('pitch').addEventListener('input', e => {
+      document.getElementById('pitchVal').textContent = e.target.value;
+    });
+
+    function speak(text, lang) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = lang;
+      utter.rate = parseFloat(document.getElementById('rate').value);
+      utter.pitch = parseFloat(document.getElementById('pitch').value);
+      speechSynthesis.speak(utter);
+    }
+  </script>
+</body>
+</html>

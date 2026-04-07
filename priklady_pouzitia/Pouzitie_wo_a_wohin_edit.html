@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Použitie wo a wohin</title>
+<style>
+:root{--error:#b00020;--muted:#666}
+body{font-family:Courier bold, monospace;margin:18px;background:#f7f7f7;color:#222}
+.wrap{max-width:900px;margin:0 auto;background:#fff;padding:14px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.06)}
+h1{margin:0 0 8px}
+.controlsTop{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+input[type="text"],input[type="number"],button{padding:8px;border-radius:6px;border:1px solid #ddd;font-size:14px}
+input[type="number"]{width:110px}
+.instructions{background:#fffbe6;border-left:4px solid #ffd27a;padding:8px;border-radius:8px;color:#5a4a00;font-size:18px;margin-top:10px}
+.phrase{margin-top:12px;padding:10px;border-radius:10px;background:#fff;border:1px solid #eee;font-size:30px;text-align:center;white-space:pre-wrap}
+.board{display:flex;gap:10px;margin-top:10px}
+.panel{flex:1;padding:6px 8px;border-radius:10px;display:flex;flex-direction:column;min-height:450px}
+.panel.wo{background:linear-gradient(180deg,#fff4ea,#fff3e8);border:2px solid rgba(255,154,60,.18)}
+.panel.wohin{background:linear-gradient(180deg,#f7fff7,#f1fff1);border:2px solid rgba(155,245,155,.25)}
+.panelHeader{font-weight:800;margin-bottom:6px;text-align:center;font-size:40px}
+.hint{flex:1;display:flex;align-items:center;justify-content:center;color:#666;font-weight:700}
+.movedPhrase{font-size:30px;font-weight:800;padding:4px 6px;margin:2px 0;line-height:1.0;background:rgba(255,255,255,0.6);border-radius:6px;word-break:break-word}
+.movedPhrase.wo{background:rgba(255,200,150,0.45)}
+.movedPhrase.wohin{background:rgba(180,255,180,0.45)}
+.errorBox{color:var(--error);font-weight:900;text-align:center;margin:8px 0;font-size:28px}
+.scoreRow{display:flex;gap:10px;align-items:center;margin-top:8px}
+.footerSmall{font-size:12px;color:#666;margin-top:10px}
+#detailsTable{width:100%;border-collapse:collapse;margin-top:20px;font-size:20px}
+#detailsTable th,#detailsTable td{border:1px solid #ddd;padding:8px;text-align:center}
+#detailsTable th{background:#f0f0f0}
+.symbolExplain{margin-top:10px;font-size:18px;color:#555}
+@media(max-width:720px){.board{flex-direction:column}.phrase{font-size:30px}}
+@media print{
+  body{background:#fff;color:#000}
+  .controlsTop,
+  .instructions,
+  .board,
+  .phrase,
+  #printBtn,
+  #errorBox,
+  #detailsBtn {display:none!important}
+  .wrap{box-shadow:none;border:none}
+  #detailsSection,#final{display:block!important}
+  h1{text-align:center;margin-bottom:20px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Použitie wo a wohin</h1>
+
+  <div class="controlsTop">
+    <label>Meno žiaka <input id="studentName" type="text" placeholder="Zadajte meno"></label>
+    <label>Počet úloh <input id="taskCount" type="number" min="1" value="${data.items.length}" title="Počet úloh, ktoré sa majú zobraziť"></label>
+    <button id="startBtn">Štart</button>
+    <div style="flex:1"></div>
+    <div class="scoreRow"><div class="scoreBox">Priebežné skóre: <span id="liveScore">0</span></div></div>
+  </div>
+
+  <div class="instructions"><strong>Pokyny:<br>
+  Prečítaj si zobrazené slovné spojenie a klikni do správneho stĺpca.<br>
+  Správne priradené slovné spojenia sa zobrazia v príslušnom stĺpci.<br>
+  Ak klikneš nesprávne, zobrazí sa chybové hlásenie červenou farbou (v tom prípade nezískaš bod ani po oprave).</strong></div>
+
+  <div id="phrase" class="phrase">—</div>
+  <div id="errorBox" class="errorBox" style="display:none"></div>
+
+  <div class="board">
+    <div class="panel wo" id="woPanel"><div class="panelHeader">Wo?</div><div class="hint"></div></div>
+    <div class="panel wohin" id="wohinPanel"><div class="panelHeader">Wohin?</div><div class="hint"></div></div>
+  </div>
+
+  <div id="final" class="final" style="display:none;margin-top:10px"></div>
+  <div id="detailsSection" style="display:none"></div>
+
+  <button id="printBtn" style="margin-top:10px">🖨️ Tlačiť / Exportovať do PDF</button>
+</div>
+
+<script>
+const allItems = [{"id":1,"text":"ins Kino","side":"wohin","attemptedWrong":false,"done":false},{"id":2,"text":"im Kino","side":"wo","attemptedWrong":false,"done":false},{"id":3,"text":"in den Keller","side":"wohin","attemptedWrong":false,"done":false},{"id":4,"text":"im Keller","side":"wo","attemptedWrong":false,"done":false},{"id":5,"text":"nach Hause","side":"wohin","attemptedWrong":false,"done":false},{"id":6,"text":"zu Hause","side":"wo","attemptedWrong":false,"done":false},{"id":7,"text":"im Zimmer","side":"wo","attemptedWrong":false,"done":false},{"id":8,"text":"ins Zimmer","side":"wohin","attemptedWrong":false,"done":false},{"id":9,"text":"in der Küche","side":"wo","attemptedWrong":false,"done":false},{"id":10,"text":"in die Küche","side":"wohin","attemptedWrong":false,"done":false}];
+let items=[],order=[],currentId=null,score=0;
+const phraseEl=document.getElementById('phrase');
+const errorEl=document.getElementById('errorBox');
+const liveEl=document.getElementById('liveScore');
+const woPanel=document.getElementById('woPanel');
+const wohinPanel=document.getElementById('wohinPanel');
+const startBtn=document.getElementById('startBtn');
+const taskCountInput=document.getElementById('taskCount');
+const studentNameInput=document.getElementById('studentName');
+const printBtn=document.getElementById('printBtn');
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+}
+function shuffle(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function updateLiveScore(){liveEl.textContent=score;}
+
+function prepareItems(requestCount){
+  const shuffledAll=shuffle(allItems);
+  const count=Math.max(1,Math.min(requestCount||allItems.length,allItems.length));
+  const selected=shuffledAll.slice(0,count).map(it=>({...it,attemptedWrong:false,done:false,userSide:null,firstUserSide:null}));
+  items=shuffle(selected);
+  order=items.map(it=>it.id);
+  score=0;updateLiveScore();
+  clearPanels();
+  errorEl.style.display='none';
+  document.getElementById('final').style.display='none';
+  document.getElementById('detailsSection').style.display='none';
+  next();
+}
+
+function next(){
+  errorEl.style.display='none';
+  while(order.length&&items.find(x=>x.id===order[0]).done)order.shift();
+  if(order.length===0){finish();return;}
+  currentId=order.shift();
+  const it=items.find(x=>x.id===currentId);
+  phraseEl.innerHTML=escapeHtml(it.text);
+}
+
+function appendToPanel(side,html){
+  const container=side==='wo'?woPanel:wohinPanel;
+  const el=document.createElement('div');
+  el.className='movedPhrase '+side;
+  el.innerHTML=html;
+  const hint=container.querySelector('.hint');
+  container.insertBefore(el,hint);
+}
+
+function onPanelClick(side){
+  if(currentId===null)return;
+  const it=items.find(x=>x.id===currentId);
+  if(!it||it.done)return;
+  if(it.firstUserSide===null){it.firstUserSide=side;}
+  it.userSide=side;
+  if(side===it.side){
+    it.done=true;
+    appendToPanel(side,escapeHtml(it.text));
+    if(!it.attemptedWrong)score++;
+    updateLiveScore();
+    setTimeout(next,350);
+  }else{
+    it.attemptedWrong=true;
+    errorEl.textContent='Nesprávne - skús to znova.';
+    errorEl.style.display='block';
+  }
+}
+
+function clearPanels(){[woPanel,wohinPanel].forEach(p=>p.querySelectorAll('.movedPhrase').forEach(n=>n.remove()));}
+
+function finish(){
+  currentId=null;
+  phraseEl.textContent='🎉 Hotovo!';
+  const total=items.length;
+  const percent=Math.round(score/total*100);
+  const st=studentNameInput.value.trim()||'—';
+  const now=new Date().toLocaleString();
+  const final=document.getElementById('final');
+  final.innerHTML='<div><strong>Názov cvičenia:</strong> Použitie wo a wohin</div>'
+   +'<div><strong>Meno žiaka:</strong> '+escapeHtml(st)+'</div>'
+   +'<div><strong>Skóre:</strong> '+score+' / '+total+' ('+percent+' %)</div>'
+   +'<div><strong>Dátum a čas:</strong> '+now+'</div>'
+   +'<div style="margin-top:8px"><button id="detailsBtn">Detailné výsledky</button></div>';
+  final.style.display='block';
+  document.getElementById('detailsBtn').addEventListener('click',showDetails);
+}
+
+function showDetails(){
+  let html='<h2>Detailné výsledky</h2><table id="detailsTable"><tr><th>Slovné spojenie</th><th>Správna odpoveď</th><th>Odpoveď žiaka</th><th>Výsledok</th></tr>';
+  for(const i of items){
+    let sym='❌';
+    if(i.attemptedWrong){sym='❌';}
+    else if(i.userSide===i.side){sym='✅';}
+    html+='<tr><td>'+escapeHtml(i.text)+'</td><td>'+i.side+'</td><td>'+(i.firstUserSide||'—')+'</td><td>'+sym+'</td></tr>';
+  }
+  html+='</table><div class="symbolExplain">✅ = správne na prvý pokus &nbsp;&nbsp; ❌ = nesprávne alebo opravované</div>';
+  const d=document.getElementById('detailsSection');
+  d.innerHTML=html;d.style.display='block';
+}
+
+window.onbeforeprint=()=>{try{showDetails();}catch(e){}};
+woPanel.addEventListener('click',()=>onPanelClick('wo'));
+wohinPanel.addEventListener('click',()=>onPanelClick('wohin'));
+startBtn.addEventListener('click',()=>{const n=parseInt(taskCountInput.value,10)||allItems.length;prepareItems(n);});
+printBtn.addEventListener('click',()=>window.print());
+(function initOnLoad(){const tc=document.getElementById('taskCount');tc.min=1;tc.max=allItems.length;tc.value=allItems.length;prepareItems(allItems.length);})();
+</script>
+<br><br><b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)<br><br>
+</body></html>
