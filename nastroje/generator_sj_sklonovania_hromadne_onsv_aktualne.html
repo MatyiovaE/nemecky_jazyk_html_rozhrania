@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor skloňovania podstatných mien - hromadné zadávanie (oneskorená spätná väzba)</title>
+  <style>
+    body {
+      font-family: Courier bold, monospace;
+      background-color: #f0f4f8;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .bulk-input {
+      max-width: 800px;
+      margin: 0 auto 20px;
+      text-align: left;
+    }
+    .bulk-input label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+    #bulkTextarea {
+      width: 100%;
+      height: 180px;
+      padding: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+      font-family: monospace;
+      white-space: pre;
+      overflow: auto;
+    }
+    .controls {
+      max-width: 800px;
+      margin: 0 auto 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+	  }
+	
+    .controls label {
+      font-weight: bold;
+    }
+    .controls input[type="number"] {
+      width: 60px;
+      padding: 6px;
+      font-size: 16px;
+    }
+    .controls button {
+      padding: 8px 14px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 0 auto 20px;
+      width: 60%;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 2px solid #ccc;
+      text-align: center;
+      padding: 4px;
+      font-size: 16px;
+      user-select: none;
+    }
+    th {
+      background-color: white;
+      font-weight: normal;
+    }
+    .white-cell { background-color: white; color: black; font-size: 15px; }
+    #exerciseTable th:nth-child(1),
+    #exerciseTable td:nth-child(1) { width: 150px; }
+    #exerciseTable th:nth-child(2),
+    #exerciseTable td:nth-child(2) { width: 170px; }
+    #exerciseTable th:nth-child(3),
+    #exerciseTable td:nth-child(3) { width: 170px; }
+    .white       { background-color: white; }
+    .lightgray   { background-color: #d3d3d3; }
+    .lightpurple { background-color: #dda0dd; }
+    .lightorange { background-color: #ffd580; }
+    .darkgreen   { background-color: #3cb371; }
+    .lightbrown  { background-color: #deb887; }
+    .wheat       { background-color: #fdedce; }
+    td[data-answer] { font-size: 20px; cursor: pointer; font-weight: bold; }
+    .bank {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .bank-item {
+      display: inline-block;
+      padding: 6px 12px;
+      font-size: 18px;
+      margin: 4px;
+      background: #eef;
+      border: 1px solid #99c;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .selected  { outline: 2px dashed #333; }
+    .correct   { box-shadow: inset 0 0 0 2px green; }
+    .incorrect { box-shadow: inset 0 0 0 2px red; }
+    .score {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Generátor skloňovania podstatných mien - hromadné zadávanie (oneskorená spätná väzba)</h2>
+
+  <div class="bulk-input">
+    <label for="bulkTextarea">
+      Zadajte skloňované tvary konkrétnych podstatných mien. Každý pád vpisujte podľa poradia na nový riadok.<br>Jednotné číslo uvádzajte vľavo a množné vpravo, oddeľujte ich pomocou [TAB].<br>Skloňovanie každého ďalšieho podstatného mena musí byť oddelené jedným prázdnym riadkom.
+    </label>
+    <textarea id="bulkTextarea" placeholder="napr.:&#10;dieťa[TAB]deti&#10;dieťaťa[TAB]detí&#10;dieťaťu[TAB]deťom&#10;dieťa[TAB]deti&#10;dieťati[TAB]deťoch&#10;dieťaťom[TAB]deťmi&#10;&#10;žena[TAB]ženy&#10;ženy[TAB]žien&#10;žene[TAB]ženám&#10;ženu[TAB]ženy&#10;žene[TAB]ženách&#10;ženou[TAB]ženami"></textarea>
+    <button id="clearInput">Vymazať vstup</button>
+  </div>
+
+  <div class="controls">
+    <label for="numNouns">Počet podstatných mien:</label>
+    <input id="numNouns" type="number" min="1" value="1">
+    <button id="btnGenerate">Generovať cvičenie</button>
+    <button id="btnCheck" disabled>Vyhodnotiť</button>
+    <button id="btnReset" disabled>Reset</button>
+    <button id="btnNext" disabled>Ďalšie slovo</button>
+  </div>
+
+<div style="text-align: center;">
+  <button onclick="saveAsHTML()">Uložiť cvičenie ako HTML</button>
+</div>
+<div style="height: 10px;"></div>
+<div style="text-align:center; margin-bottom: 16px;">
+  <p>Rozmiestni jednotlivé položky do buniek podľa pokynov.<br>
+  Ak chceš svoje rozhodnutie zmeniť, klikni na danú bunku dvakrát a potom pokračuj v priraďovaní.<br>
+  Po ukončení klikni na tlačidlo "Vyhodnotiť".</p>
+  <p><strong>Krok 1:</strong> Klikni na bunku.<br>
+     <strong>Krok 2:</strong> Klikni na položku pod tabuľkou.</p>
+</div>
+  <table id="exerciseTable">
+    <tr>
+      <th>pád</th>
+      <th><strong>singulár</strong></th>
+      <th><strong>plurál</strong></th>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>nominatív</strong><br>Kto? Čo?<br>(... je to?)</td>
+      <td class="white"       data-key="n_sing" data-answer=""></td>
+      <td class="lightgray"   data-key="n_plur" data-answer=""></td>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>genitív</strong><br>Koho? Čoho?<br>(Bez/Od ...?)</td>
+      <td class="lightpurple" data-key="g_sing" data-answer=""></td>
+      <td class="lightpurple" data-key="g_plur" data-answer=""></td>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>datív</strong><br>Komu? Čomu?<br>(... to dám?)</td>
+      <td class="lightorange" data-key="d_sing" data-answer=""></td>
+      <td class="lightorange" data-key="d_plur" data-answer=""></td>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>akuzatív</strong><br>Koho? Čo?<br>(... vidím?)</td>
+      <td class="darkgreen"   data-key="a_sing" data-answer=""></td>
+      <td class="darkgreen"   data-key="a_plur" data-answer=""></td>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>lokál</strong><br>O kom? O čom?<br>(... píšem?)</td>
+      <td class="lightbrown" data-key="l_sing" data-answer=""></td>
+      <td class="lightbrown" data-key="l_plur" data-answer=""></td>
+    </tr>
+    <tr>
+      <td class="white-cell"><strong>inštrumentál</strong><br>S kým? S čím?<br>(... sa hrám?)</td>
+      <td class="wheat" data-key="i_sing" data-answer=""></td>
+      <td class="wheat" data-key="i_plur" data-answer=""></td>
+    </tr>
+  </table>
+
+  <div class="bank" id="bank"></div>
+  <div class="score" id="score"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const bulkTextarea = document.getElementById('bulkTextarea');
+      const numNouns     = document.getElementById('numNouns');
+      const btnGenerate  = document.getElementById('btnGenerate');
+      const btnCheck     = document.getElementById('btnCheck');
+      const btnReset     = document.getElementById('btnReset');
+      const btnNext      = document.getElementById('btnNext');
+      const table        = document.getElementById('exerciseTable');
+      const bank         = document.getElementById('bank');
+      const scoreEl      = document.getElementById('score');
+
+      let nounsData = [];        // všetky načítané mená
+      let sessionList = [];      // vybrané do cvičenia
+      let currentIndex = 0;      // index v sessionList
+      let cumulativeCorrect = 0; // súčet správnych bodov
+      let cumulativeTotal = 0;   // celkový počet bodov
+      let scoredCurrent = false; // či sme už bodovali aktuálne slovo
+
+      // povoliť TAB v textarea
+      bulkTextarea.addEventListener('keydown', e => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const start = bulkTextarea.selectionStart;
+          const end   = bulkTextarea.selectionEnd;
+          bulkTextarea.value = bulkTextarea.value.substring(0, start)
+                              + '\t'
+                              + bulkTextarea.value.substring(end);
+          bulkTextarea.selectionStart = bulkTextarea.selectionEnd = start + 1;
+        }
+      });
+
+      function clearExerciseArea() {
+        bank.innerHTML = '';
+        scoreEl.textContent = '';
+        table.querySelectorAll('td[data-key]').forEach(td => {
+          td.textContent = '';
+          td.classList.remove('correct','incorrect','selected');
+        });
+      }
+
+      function populateBank(formsObj) {
+        const list = [];
+        for (let key in formsObj) list.push(formsObj[key]);
+        list.sort(() => Math.random() - .5);
+        list.forEach(w => {
+          const span = document.createElement('span');
+          span.className = 'bank-item';
+          span.textContent = w;
+          bank.appendChild(span);
+        });
+      }
+
+      function loadNoun(idx) {
+        clearExerciseArea();
+        scoredCurrent = false;
+        btnCheck.disabled = false;
+        const noun = sessionList[idx];
+        table.querySelectorAll('td[data-key]').forEach(td => {
+          td.dataset.answer = noun[td.dataset.key];
+        });
+        populateBank(noun);
+      }
+
+      function parseBulkInput(text) {
+        const blocks = text.split(/\r?\n\s*\r?\n/)
+                           .map(b => b.trim())
+                           .filter(b => b);
+        const keys = [
+          ['n_sing','n_plur'],
+          ['g_sing','g_plur'],
+          ['d_sing','d_plur'],
+          ['a_sing','a_plur'],
+          ['l_sing','l_plur'],
+          ['i_sing','i_plur']
+        ];
+        const out = [];
+        for (let block of blocks) {
+          const lines = block.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+          if (lines.length !== 6) continue;
+          const obj = {};
+          for (let i = 0; i < 6; i++) {
+            const parts = lines[i].split(/\t/);
+            if (parts.length < 2) { obj.invalid = true; break; }
+            obj[keys[i][0]] = parts[0].trim();
+            obj[keys[i][1]] = parts[1].trim();
+          }
+          if (!obj.invalid) out.push(obj);
+        }
+        return out;
+      }
+
+      let selectedCell = null;
+      table.addEventListener('click', e => {
+        if (e.target.tagName === 'TD' && e.target.dataset.key) {
+          table.querySelectorAll('td').forEach(td => td.classList.remove('selected'));
+          selectedCell = e.target;
+          selectedCell.classList.add('selected');
+        }
+      });
+      table.addEventListener('dblclick', e => {
+        if (e.target.tagName==='TD' && e.target.dataset.key && e.target.textContent.trim()) {
+          const word = e.target.textContent;
+          e.target.textContent = '';
+          e.target.classList.remove('correct','incorrect','selected');
+          const span = document.createElement('span');
+          span.className = 'bank-item';
+          span.textContent = word;
+          bank.appendChild(span);
+        }
+      });
+      bank.addEventListener('click', e => {
+        if (e.target.classList.contains('bank-item') &&
+            selectedCell && !selectedCell.textContent.trim()) {
+          selectedCell.textContent = e.target.textContent;
+          e.target.remove();
+          selectedCell.classList.remove('selected');
+          selectedCell = null;
+        }
+      });
+
+      btnGenerate.addEventListener('click', () => {
+        nounsData = parseBulkInput(bulkTextarea.value);
+        if (!nounsData.length) {
+          alert('Neplatný formát vstupu. Skontroluj, či máš 6 riadkov a TAB medzi tvarmi.');
+          return;
+        }
+        const count = Math.min(nounsData.length, Math.max(1, +numNouns.value));
+        nounsData.sort(() => Math.random() - .5);
+        sessionList = nounsData.slice(0, count);
+        currentIndex = 0;
+        cumulativeCorrect = 0;
+        cumulativeTotal = sessionList.length * 12;
+        bulkTextarea.disabled = true;
+        numNouns.disabled     = true;
+        btnGenerate.disabled  = true;
+        loadNoun(0);
+      });
+
+      btnCheck.addEventListener('click', () => {
+        if (!scoredCurrent) {
+          let correct = 0, total = 0;
+          table.querySelectorAll('td[data-key]').forEach(td => {
+            total++;
+            td.classList.remove('correct','incorrect');
+            if (td.textContent.trim() === td.dataset.answer) {
+              td.classList.add('correct');
+              correct++;
+            } else {
+              td.classList.add('incorrect');
+            }
+          });
+          cumulativeCorrect += correct;
+          scoredCurrent = true;
+          btnCheck.disabled = true;
+
+          const pctThis = total ? ((correct/total)*100).toFixed(1) : 0;
+          if (currentIndex + 1 < sessionList.length) {
+            scoreEl.innerHTML =
+              `<div>Skóre tohto slova: <strong>${correct}/${total}</strong> (${pctThis} %)</div>`;
+          } else {
+            const pctAll = cumulativeTotal
+              ? ((cumulativeCorrect / cumulativeTotal)*100).toFixed(1)
+              : 0;
+            scoreEl.innerHTML =
+              `<div>Skóre tohto slova: <strong>${correct}/${total}</strong> (${pctThis} %)</div>
+               <div><strong>Celkové skóre:</strong> ${cumulativeCorrect}/${cumulativeTotal} (${pctAll} %)</div>
+               <div style="margin-top:8px;color:green;"><strong>Hotovo! 🎉</strong></div>`;
+          }
+
+          btnReset.disabled = false;
+          btnNext.disabled  = (currentIndex + 1 >= sessionList.length);
+        }
+      });
+
+      btnReset.addEventListener('click', () => {
+        table.querySelectorAll('td[data-key]').forEach(td => {
+          if (td.textContent.trim()) {
+            const span = document.createElement('span');
+            span.className = 'bank-item';
+            span.textContent = td.textContent;
+            bank.appendChild(span);
+          }
+          td.textContent = '';
+          td.classList.remove('correct','incorrect','selected');
+        });
+        scoreEl.textContent = '';
+        scoredCurrent = false;
+        btnCheck.disabled = false;
+      });
+
+      btnNext.addEventListener('click', () => {
+        currentIndex++;
+        btnNext.disabled = true;
+        btnReset.disabled = true;
+        scoreEl.textContent = '';
+        loadNoun(currentIndex);
+      });
+
+      // --- ULOŽIŤ CVIČENIE AKO HTML ---
+      window.saveAsHTML = function saveAsHTML() {
+        if (!sessionList || !sessionList.length) {
+          alert('Najprv klikni na „Generovať cvičenie“.');
+          return;
+        }
+
+        // Vytiahni všetky <style> definované na stránke
+        const styleTags = Array.from(document.head.querySelectorAll('style'));
+        const allStyles = styleTags.map(s => s.innerHTML).join('\n');
+
+        // Priprav čistú kópiu tabuľky (bez vyplnenia a označení)
+        const originalTable = document.getElementById('exerciseTable');
+        const cleanTable = originalTable.cloneNode(true);
+        cleanTable.querySelectorAll('td[data-key]').forEach(td => {
+          td.textContent = '';
+          td.classList.remove('correct','incorrect','selected');
+          td.dataset.answer = '';
+        });
+
+        const htmlContent = `
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Uložené cvičenie – skloňovanie</title>
+  <style>
+${allStyles}
+  </style>
+</head>
+<body>
+
+  <h2>Cvičenie na skloňovanie podstatných mien</h2>
+<div style="text-align:center; margin-bottom: 16px;">
+  <p>Rozmiestni jednotlivé položky do buniek podľa pokynov.<br>
+  Ak chceš svoje rozhodnutie zmeniť, klikni na danú bunku dvakrát a potom pokračuj v priraďovaní.<br>
+  Po ukončení klikni na tlačidlo "Vyhodnotiť".</p>
+  <p><strong>Krok 1:</strong> Klikni na bunku.<br>
+     <strong>Krok 2:</strong> Klikni na položku pod tabuľkou.</p>
+</div>
+  ${cleanTable.outerHTML}
+  <div class="bank" id="bank"></div>
+  <div class="score" id="score"></div>
+
+  <div style="text-align:center; margin: 12px 0;">
+    <button id="btnCheck">Vyhodnotiť</button>
+    <button id="btnReset">Reset</button>
+    <button id="btnPrev">Predchádzajúce</button>
+    <button id="btnNext">Ďalšie slovo</button>
+  </div>
+
+  <script>
+    const SESSION_LIST = ${JSON.stringify(sessionList)};
+    let currentIndex = 0;
+    let cumulativeCorrect = 0;
+    const cumulativeTotal = SESSION_LIST.length * 12;
+    let scoredCurrent = false;
+
+    const table   = document.getElementById('exerciseTable');
+    const bank    = document.getElementById('bank');
+    const scoreEl = document.getElementById('score');
+
+    const btnCheck = document.getElementById('btnCheck');
+    const btnReset = document.getElementById('btnReset');
+    const btnPrev  = document.getElementById('btnPrev');
+    const btnNext  = document.getElementById('btnNext');
+
+    function clearExerciseArea() {
+      bank.innerHTML = '';
+      scoreEl.textContent = '';
+      table.querySelectorAll('td[data-key]').forEach(td => {
+        td.textContent = '';
+        td.classList.remove('correct','incorrect','selected');
+      });
+    }
+
+    function populateBank(formsObj) {
+      const list = [];
+      for (let key in formsObj) list.push(formsObj[key]);
+      list.sort(() => Math.random() - .5);
+      list.forEach(w => {
+        const span = document.createElement('span');
+        span.className = 'bank-item';
+        span.textContent = w;
+        bank.appendChild(span);
+      });
+    }
+
+    function loadNoun(idx) {
+      clearExerciseArea();
+      scoredCurrent = false;
+      const noun = SESSION_LIST[idx];
+      table.querySelectorAll('td[data-key]').forEach(td => {
+        td.dataset.answer = noun[td.dataset.key];
+      });
+      populateBank(noun);
+      updateNav();
+    }
+
+    function updateNav() {
+      btnPrev.disabled = (currentIndex === 0);
+      btnNext.disabled = (currentIndex + 1 >= SESSION_LIST.length);
+      btnCheck.disabled = false;
+    }
+
+    // Výber bunky + priraďovanie z banky
+    let selectedCell = null;
+    table.addEventListener('click', e => {
+      if (e.target.tagName === 'TD' && e.target.dataset.key) {
+        table.querySelectorAll('td').forEach(td => td.classList.remove('selected'));
+        selectedCell = e.target;
+        selectedCell.classList.add('selected');
+      }
+    });
+
+    table.addEventListener('dblclick', e => {
+      if (e.target.tagName==='TD' && e.target.dataset.key && e.target.textContent.trim()) {
+        const word = e.target.textContent;
+        e.target.textContent = '';
+        e.target.classList.remove('correct','incorrect','selected');
+        const span = document.createElement('span');
+        span.className = 'bank-item';
+        span.textContent = word;
+        bank.appendChild(span);
+      }
+    });
+
+    bank.addEventListener('click', e => {
+      if (e.target.classList.contains('bank-item') &&
+          selectedCell && !selectedCell.textContent.trim()) {
+        selectedCell.textContent = e.target.textContent;
+        e.target.remove();
+        selectedCell.classList.remove('selected');
+        selectedCell = null;
+      }
+    });
+
+    // Vyhodnotenie
+    btnCheck.addEventListener('click', () => {
+      if (scoredCurrent) return;
+      let correct = 0, total = 0;
+      table.querySelectorAll('td[data-key]').forEach(td => {
+        total++;
+        td.classList.remove('correct','incorrect');
+        if (td.textContent.trim() === td.dataset.answer) {
+          td.classList.add('correct');
+          correct++;
+        } else {
+          td.classList.add('incorrect');
+        }
+      });
+      cumulativeCorrect += correct;
+      scoredCurrent = true;
+
+      const pctThis = total ? ((correct/total)*100).toFixed(1) : 0;
+      if (currentIndex + 1 < SESSION_LIST.length) {
+        scoreEl.innerHTML =
+          '<div>Skóre tohto slova: <strong>' + correct + '/' + total + '</strong> (' + pctThis + ' %)</div>';
+      } else {
+        const pctAll = cumulativeTotal ? ((cumulativeCorrect / cumulativeTotal)*100).toFixed(1) : 0;
+        scoreEl.innerHTML =
+          '<div>Skóre tohto slova: <strong>' + correct + '/' + total + '</strong> (' + pctThis + ' %)</div>' +
+          '<div><strong>Celkové skóre:</strong> ' + cumulativeCorrect + '/' + cumulativeTotal + ' (' + pctAll + ' %)</div>' +
+          '<div style="margin-top:8px;color:green;"><strong>Hotovo! 🎉</strong></div>';
+      }
+    });
+
+    // Reset
+    btnReset.addEventListener('click', () => {
+      table.querySelectorAll('td[data-key]').forEach(td => {
+        if (td.textContent.trim()) {
+          const span = document.createElement('span');
+          span.className = 'bank-item';
+          span.textContent = td.textContent;
+          bank.appendChild(span);
+        }
+        td.textContent = '';
+        td.classList.remove('correct','incorrect','selected');
+      });
+      scoreEl.textContent = '';
+      scoredCurrent = false;
+      btnCheck.disabled = false;
+    });
+
+    // Navigácia
+    btnPrev.addEventListener('click', () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        loadNoun(currentIndex);
+      }
+    });
+
+    btnNext.addEventListener('click', () => {
+      if (currentIndex + 1 < SESSION_LIST.length) {
+        currentIndex++;
+        loadNoun(currentIndex);
+      }
+    });
+
+    // Štart
+    loadNoun(0);
+	
+  <\/script>
+  <br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>
+`;
+
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const dt = new Date();
+        const stamp = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}_${String(dt.getHours()).padStart(2,'0')}-${String(dt.getMinutes()).padStart(2,'0')}`;
+        a.download = `ulozene_cvicenie_sklonovanie_${sessionList.length}slov_${stamp}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+      // --- koniec saveAsHTML ---
+    });
+  </script>
+
+  <script>
+  function setupLocalStorageForInput(inputId, clearButtonId = null) {
+    const inputEl = document.getElementById(inputId);
+
+    // Načítanie uloženého vstupu pri načítaní stránky
+    const savedInput = localStorage.getItem('bulkInput');
+    if (savedInput) {
+      inputEl.value = savedInput;
+    }
+
+    // Ukladanie vstupu pri každej zmene
+    inputEl.addEventListener('input', () => {
+      localStorage.setItem('bulkInput', inputEl.value);
+    });
+
+    // Voliteľné: Vymazanie uloženého vstupu
+    if (clearButtonId) {
+      const clearBtn = document.getElementById(clearButtonId);
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          localStorage.removeItem('bulkInput');
+          inputEl.value = '';
+        });
+      }
+    }
+  }
+  setupLocalStorageForInput('bulkTextarea', 'clearInput');
+  </script>
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

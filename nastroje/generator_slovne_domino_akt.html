@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Generátor slovného domina (Rozdielna hrúbka písma)</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #27ae60; --bg: #ecf0f1; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; background: var(--bg); max-width: 900px; margin: 0 auto; color: #333; }
+        h1 { color: var(--primary); text-align: center; margin-bottom: 30px; }
+        
+        .panel { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        
+        textarea { width: 100%; height: 200px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 16px; box-sizing: border-box; resize: vertical; }
+        
+        .btn-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        button { 
+            padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: 600;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        
+        .btn-main { background-color: var(--accent); color: white; flex: 2; font-size: 18px; }
+        .btn-sec { background-color: #3498db; color: white; flex: 1; }
+        .btn-warn { background-color: #e67e22; color: white; flex: 1; }
+        .btn-reload { background-color: #8e44ad; color: white; flex: 1; } 
+        
+        .note { background: #fff3cd; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #ffc107; color: #856404; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+
+    <h1>🖨️ Generátor slovného domina</h1>
+    
+    <div class="panel">
+        <div class="input-group">
+            <label>Názov hry:</label>
+            <input type="text" id="game-title" placeholder="Napr. Zvieratá po nemecky" oninput="saveData()">
+        </div>
+        <div class="input-group">
+            <label>Autor:</label>
+            <input type="text" id="game-author" placeholder="Vaše meno" oninput="saveData()">
+        </div>
+
+        <label>Páry slov (Pojem [TAB] Definícia):</label>
+        <textarea id="input-data" placeholder="Hund	pes&#10;Katze	mačka&#10;Maus	myš" oninput="saveData()"></textarea>
+
+        <div class="btn-row">
+            <button class="btn-sec" onclick="exportData()">💾 Exportovať dáta (Súbor)</button>
+            <button class="btn-warn" onclick="triggerImport()">📂 Importovať dáta (Súbor)</button>
+            <button class="btn-reload" onclick="manualLoad()">🔄 Načítať rozpracované</button>
+            <input type="file" id="file-input" style="display: none;" accept=".json" onchange="importData(this)">
+        </div>
+
+        <div class="btn-row">
+            <button class="btn-main" onclick="downloadGame()">⬇️ STIAHNUŤ HRU (.html)</button>
+        </div>
+		 <div class="footer-credits">
+    <br><br>
+	<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+  </div>
+    </div>
+
+    <script>
+        // --- 1. LOCAL STORAGE & DATA HANDLING ---
+        function getFormData() {
+            return {
+                title: document.getElementById('game-title').value,
+                author: document.getElementById('game-author').value,
+                pairs: document.getElementById('input-data').value
+            };
+        }
+
+        function setFormData(data) {
+            if (!data) return;
+            if (data.title !== undefined) document.getElementById('game-title').value = data.title;
+            if (data.author !== undefined) document.getElementById('game-author').value = data.author;
+            if (data.pairs !== undefined) document.getElementById('input-data').value = data.pairs;
+        }
+
+        function saveData() {
+            try {
+                const data = getFormData();
+                localStorage.setItem('dominoGeneratorData', JSON.stringify(data));
+            } catch (e) {
+                console.warn("Nedá sa uložiť do LocalStorage (zrejme zakázané cookies alebo plná pamäť).");
+            }
+        }
+
+        function loadData(silent = true) {
+            try {
+                const saved = localStorage.getItem('dominoGeneratorData');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    setFormData(parsed);
+                    if (!silent) alert("Dáta boli úspešne načítané z pamäte prehliadača.");
+                } else {
+                    if (!silent) alert("V pamäti sa nenašli žiadne uložené dáta.");
+                    if (silent && document.getElementById('input-data').value === "") {
+                         document.getElementById('input-data').value = "Hund\tpes\nKatze\tmačka\nMaus\tmyš\nKaninchen\tkrálik\nEnte\tkačka\nGans\thus\nHuhn\tkura";
+                    }
+                }
+            } catch (e) {
+                console.error("Chyba pri načítaní:", e);
+                if (!silent) alert("Chyba pri načítaní dát: " + e.message);
+            }
+        }
+        
+        function manualLoad() {
+            loadData(false);
+        }
+
+        // --- 2. IMPORT / EXPORT LOGIC ---
+        function exportData() {
+            const data = getFormData();
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            let filename = "domino_data.json";
+            if (data.title) filename = data.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + "_data.json";
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function triggerImport() {
+            document.getElementById('file-input').value = null;
+            document.getElementById('file-input').click();
+        }
+
+        function importData(inputElement) {
+            const file = inputElement.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (typeof data === 'object') {
+                        setFormData(data);
+                        saveData();
+                        alert("Dáta boli úspešne načítané zo súboru!");
+                    } else throw new Error("Neplatný formát");
+                } catch (err) { alert("Chyba pri importe súboru: " + err.message); }
+            };
+            reader.readAsText(file);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData(true);
+        });
+
+        // --- 3. GAME GENERATION LOGIC ---
+
+        function sanitizeFilename(name) {
+            if (!name || name.trim() === "") return "hra_slovne_domino.html";
+            let s = name.trim().toLowerCase();
+            s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+            s = s.replace(/\s+/g, '_'); 
+            s = s.replace(/[^a-z0-9_]/g, ''); 
+            return s + ".html";
+        }
+
+        function downloadGame() {
+            const input = document.getElementById('input-data').value;
+            const titleRaw = document.getElementById('game-title').value;
+            const title = titleRaw || "Slovné Domino";
+            const author = document.getElementById('game-author').value || "Neznámy autor";
+            
+            const lines = input.split('\n');
+            const validPairs = [];
+
+            lines.forEach(line => {
+                const parts = line.split('\t');
+                if (parts.length >= 2 && parts[0].trim() !== "") {
+                    validPairs.push({ term: parts[0].trim(), def: parts[1].trim() });
+                }
+            });
+
+            if (validPairs.length < 2) {
+                alert("Zadajte aspoň 2 páry slov oddelené tabulátorom.");
+                return;
+            }
+
+            let dominoCards = [];
+            let cardId = 0;
+
+            validPairs.forEach(pair => {
+                dominoCards.push({
+                    sideA: { text: pair.term, type: 'term' },
+                    sideB: { text: pair.def, type: 'def' },
+                    id: cardId++
+                });
+            });
+
+            for (let i = 0; i < validPairs.length; i++) {
+                const currentPair = validPairs[i];
+                const nextPair = validPairs[(i + 1) % validPairs.length];
+                dominoCards.push({
+                    sideA: { text: currentPair.def, type: 'def' },
+                    sideB: { text: nextPair.term, type: 'term' },
+                    id: cardId++
+                });
+            }
+
+            dominoCards.sort(() => Math.random() - 0.5);
+
+            let gameContent = getGameTemplate();
+            gameContent = gameContent.replace('__CARDS_JSON__', JSON.stringify(dominoCards));
+            gameContent = gameContent.replace('__PAIRS_JSON__', JSON.stringify(validPairs));
+            gameContent = gameContent.replace(/__TITLE__/g, title);
+            gameContent = gameContent.replace(/__AUTHOR__/g, author);
+
+            const blob = new Blob([gameContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = sanitizeFilename(titleRaw);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function getGameTemplate() {
+            return `<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<title>__TITLE__</title>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"><\/script>
+<style>
+    :root {
+        /* VEĽKOSŤ KARTY: 120px */
+        --card-size: 120px;
+        --card-w: calc(var(--card-size) * 2);
+        --card-h: var(--card-size);
+        --bg-color: #f0f2f5;
+        --grid-color: #ccc;
+    }
+
+    body { 
+        font-family: 'Segoe UI', sans-serif; 
+        background-color: var(--bg-color); 
+        margin: 0; padding: 0; 
+        display: flex; flex-direction: column;
+        height: 100vh; overflow: hidden; 
+        user-select: none;
+    }
+    
+    #top-bar { 
+        background: white; padding: 5px 20px; border-bottom: 1px solid #ccc; 
+        display: flex; justify-content: space-between; align-items: center; 
+        height: 60px; flex-shrink: 0; z-index: 200; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .game-info h2 { margin: 0; font-size: 1.1rem; color: #333; }
+    .game-info span { font-size: 0.8rem; color: #777; }
+    
+    #controls { display: flex; gap: 15px; align-items: center; }
+    
+    .ctrl-group { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+    .ctrl-group-label { font-size: 10px; color: #888; text-transform: uppercase; font-weight: bold; }
+    .ctrl-row { display: flex; gap: 2px; }
+
+    .btn-ctrl { 
+        background: #e1e4e8; border: 1px solid #ced4da; padding: 2px 8px; border-radius: 3px; 
+        cursor: pointer; font-weight: bold; color: #333; font-size: 11px; min-width: 25px;
+    }
+    .btn-ctrl:hover { background: #d1d4d8; border-color: #adb5bd; }
+    .btn-ctrl.add { background-color: #e8f5e9; color: #1b5e20; }
+    .btn-ctrl.del { background-color: #fbe9e7; color: #b71c1c; }
+    
+    .btn-action {
+        background: #3498db; color: white; border: none; padding: 8px 15px; 
+        border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem;
+    }
+    .btn-action:hover { background: #2980b9; }
+
+    #score-display { padding: 5px 10px; background: #eee; border-radius: 4px; font-weight: bold; color: #2c3e50; }
+
+    #content-wrapper {
+        display: flex; flex: 1; overflow: hidden; position: relative;
+    }
+
+    #container { 
+        flex: 1; overflow: auto; position: relative; background: #e8e8e8;
+    }
+
+    #game-area { 
+        position: relative; 
+        width: 1200px; height: 800px; 
+        background-color: #e3e3e3; 
+        background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+        background-size: var(--card-size) var(--card-size);
+        background-position: -1px -1px;
+        transition: width 0.3s, height 0.3s;
+    }
+
+    .domino {
+        display: flex; 
+        width: var(--card-w); height: var(--card-h);
+        background: white; border: 2px solid #444; border-radius: 6px;
+        position: absolute; 
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        box-sizing: border-box; touch-action: none; z-index: 10;
+        cursor: grab;
+        transition: left 0.1s, top 0.1s, transform 0.2s;
+    }
+    .domino:active { cursor: grabbing; z-index: 1000 !important; transform: scale(1.02); }
+
+    .half {
+        flex: 1; display: flex; align-items: center; justify-content: center;
+        /* Monospace font + väčšie písmo + word-break */
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 18px; 
+        line-height: 1.2;
+        padding: 5px; 
+        text-align: center; 
+        overflow: hidden; 
+        word-break: break-word; 
+    }
+    
+    /* UPRAVENÉ: Sivé pozadie (Pojem) = Tučné písmo */
+    .half[data-type="term"] { 
+        background-color: #d0d0d0; 
+        color: #000; 
+        font-weight: bold; 
+    }
+
+    /* UPRAVENÉ: Biele pozadie (Definícia) = Normálne písmo */
+    .half[data-type="def"]  { 
+        background-color: #fff; 
+        color: #000; 
+        font-weight: normal; 
+    }
+    
+    .domino > .half:first-child { border-right: 1px solid #444; }
+
+    /* Rotácie */
+    .domino[data-rot="0"] { flex-direction: row; width: var(--card-w); height: var(--card-h); }
+    .domino[data-rot="0"] > .half:first-child { border-right: 2px solid #444; border-bottom: none; }
+
+    .domino[data-rot="1"] { flex-direction: column; width: var(--card-h); height: var(--card-w); }
+    .domino[data-rot="1"] > .half:first-child { border-right: none; border-bottom: 2px solid #444; }
+
+    .domino[data-rot="2"] { flex-direction: row-reverse; width: var(--card-w); height: var(--card-h); }
+    .domino[data-rot="2"] > .half:last-child { border-right: 2px solid #444; border-left: none; }
+    .domino[data-rot="2"] > .half:first-child { border: none; }
+
+    .domino[data-rot="3"] { flex-direction: column-reverse; width: var(--card-h); height: var(--card-w); }
+    .domino[data-rot="3"] > .half:last-child { border-bottom: 2px solid #444; border-top: none; }
+    .domino[data-rot="3"] > .half:first-child { border: none; }
+
+    .correct-match { background-color: #d4edda !important; color: #155724 !important; }
+    .domino.connected { border-color: #28a745; box-shadow: 0 0 5px #28a745; }
+
+    /* Sidebar Deck */
+    #deck-container {
+        width: 280px; 
+        background: white; border-left: 4px solid #ddd; 
+        display: flex; flex-direction: column; flex-shrink: 0; z-index: 100;
+        box-shadow: -5px 0 15px rgba(0,0,0,0.05); height: 100%;
+    }
+    #deck-header { padding: 10px 15px; background: #f9f9f9; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; flex-shrink: 0; }
+    #deck { padding: 15px; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; align-items: center; gap: 15px; flex: 1; }
+    #deck .domino { position: relative; left: auto !important; top: auto !important; transform: none !important; flex-shrink: 0; }
+
+    /* Modal */
+    #victory-modal {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 3000;
+        display: none; justify-content: center; align-items: center;
+        flex-direction: column; color: white;
+    }
+    #victory-modal h1 { font-size: 3rem; margin-bottom: 20px; }
+    .modal-btns { display: flex; gap: 20px; }
+    .btn-modal { padding: 15px 30px; font-size: 1.1rem; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
+    .btn-restart { background: #27ae60; color: white; }
+    .btn-check { background: #fff; color: #333; }
+    .btn-photo { background: #3498db; color: white; }
+
+</style>
+</head>
+<body>
+
+<div id="victory-modal">
+    <h1>🎉 Hra je dokončená! 🎉</h1>
+    <p>Všetky karty sú umiestnené a správne prepojené.</p>
+    <div class="modal-btns">
+        <button class="btn-modal btn-restart" onclick="location.reload()">Hrať znova</button>
+        <button class="btn-modal btn-photo" onclick="exportGameArea()">📸 Uložiť ako obrázok</button>
+        <button class="btn-modal btn-check" onclick="closeVictory()">👁️ Skontrolovať plochu</button>
+    </div>
+</div>
+
+<div id="top-bar">
+    <div class="game-info">
+        <h2>__TITLE__</h2>
+        <span>Autor: __AUTHOR__</span>
+    </div>
+    
+    <div id="controls">
+        <button class="btn-action" onclick="exportGameArea()" title="Vyžaduje internet">📸 Uložiť plochu</button>
+        
+        <div class="ctrl-group">
+            <span class="ctrl-group-label">Vodorovne</span>
+            <div class="ctrl-row">
+                <button class="btn-ctrl add" title="Pridať stĺpec vľavo" onclick="modifyGrid('left', 1)">+ ❰</button>
+                <button class="btn-ctrl del" title="Odobrať stĺpec zľava" onclick="modifyGrid('left', -1)">- ❰</button>
+                <span style="border-right:1px solid #ccc; margin:0 2px;"></span>
+                <button class="btn-ctrl del" title="Odobrať stĺpec sprava" onclick="modifyGrid('right', -1)">❱ -</button>
+                <button class="btn-ctrl add" title="Pridať stĺpec vpravo" onclick="modifyGrid('right', 1)">❱ +</button>
+            </div>
+        </div>
+
+        <div class="ctrl-group">
+            <span class="ctrl-group-label">Zvisle</span>
+            <div class="ctrl-row">
+                <button class="btn-ctrl add" title="Pridať riadok hore" onclick="modifyGrid('top', 1)">+ ⟰</button>
+                <button class="btn-ctrl del" title="Odobrať riadok zhora" onclick="modifyGrid('top', -1)">- ⟰</button>
+                <span style="border-right:1px solid #ccc; margin:0 2px;"></span>
+                <button class="btn-ctrl del" title="Odobrať riadok zdola" onclick="modifyGrid('bottom', -1)">⟱ -</button>
+                <button class="btn-ctrl add" title="Pridať riadok dole" onclick="modifyGrid('bottom', 1)">⟱ +</button>
+            </div>
+        </div>
+
+        <span id="score-display">Spojenia: 0</span>
+    </div>
+</div>
+
+<div id="content-wrapper">
+    <div id="container">
+        <div id="game-area"></div>
+    </div>
+
+    <div id="deck-container">
+        <div id="deck-header">
+            <strong>Zásobník</strong>
+            <span id="cards-count">0</span>
+        </div>
+        <div style="padding: 12px; font-size: 0.9rem; color: #333; background: #fffbe6; border-bottom: 1px solid #eee; line-height: 0.9;">
+            Umiestni postupne všetky kartičky na hraciu plochu tak, aby sa vždy jedna strana dotýkala svojho páru. 
+            Po umiestnení na hraciu plochu môžeš kartičky kliknutím otočiť, a to vždy o 90 stupňov.
+        </div>
+        <div id="deck"></div>
+    </div>
+</div>
+
+<script>
+    const cardsData = __CARDS_JSON__;
+    const pairsData = __PAIRS_JSON__;
+    
+    // GRID_SIZE musí sedieť s CSS
+    const GRID_SIZE = 120;
+
+    const gameArea = document.getElementById('game-area');
+    const container = document.getElementById('container');
+    const deck = document.getElementById('deck');
+    const cardsCountEl = document.getElementById('cards-count');
+    const victoryModal = document.getElementById('victory-modal');
+
+    let placedCards = [];
+    let gameFinished = false;
+
+    function init() {
+        cardsData.forEach(data => createCardElement(data));
+        updateDeckStatus();
+    }
+
+    function createCardElement(data) {
+        const el = document.createElement('div');
+        el.className = 'domino';
+        el.id = 'card-' + data.id;
+        el.dataset.rot = 0;
+        el.dataset.id = data.id;
+        
+        const halfA = document.createElement('div');
+        halfA.className = 'half';
+        halfA.dataset.type = data.sideA.type;
+        halfA.innerText = data.sideA.text;
+
+        const halfB = document.createElement('div');
+        halfB.className = 'half';
+        halfB.dataset.type = data.sideB.type;
+        halfB.innerText = data.sideB.text;
+
+        el.appendChild(halfA);
+        el.appendChild(halfB);
+        el.addEventListener('mousedown', startDrag);
+        deck.appendChild(el);
+    }
+
+    function updateDeckStatus() {
+        const count = deck.children.length;
+        cardsCountEl.innerText = count;
+    }
+
+    function closeVictory() {
+        victoryModal.style.display = 'none';
+    }
+    
+    function checkVictoryCondition() {
+        if (gameFinished) return;
+        
+        const deckCount = deck.children.length;
+        if (deckCount > 0) return;
+
+        const allPlacedCards = Array.from(gameArea.children);
+        if (allPlacedCards.length === 0) return;
+
+        const allConnected = allPlacedCards.every(card => card.classList.contains('connected'));
+
+        if (allConnected) {
+             gameFinished = true;
+             setTimeout(() => {
+                 victoryModal.style.display = 'flex';
+             }, 300);
+        }
+    }
+
+    function exportGameArea() {
+        if (typeof html2canvas === 'undefined') {
+            alert("Na uloženie obrázka je potrebné pripojenie na internet (načítanie knižnice).");
+            return;
+        }
+
+        html2canvas(gameArea, {
+            scrollX: 0,
+            scrollY: 0,
+            backgroundColor: '#e3e3e3'
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'moje_domino_vysledok.png';
+            link.href = canvas.toDataURL("image/png");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }).catch(err => {
+            console.error(err);
+            alert("Chyba pri vytváraní obrázka.");
+        });
+    }
+
+    let dragItem = null;
+    let startX, startY, initialLeft, initialTop;
+    let isDragging = false;
+
+    function startDrag(e) {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        
+        dragItem = e.currentTarget;
+        startX = e.clientX;
+        startY = e.clientY;
+        isDragging = false;
+
+        if (dragItem.parentElement !== deck) {
+            initialLeft = parseFloat(dragItem.style.left);
+            initialTop = parseFloat(dragItem.style.top);
+        }
+
+        document.addEventListener('mousemove', onDrag);
+        document.addEventListener('mouseup', endDrag);
+    }
+
+    function onDrag(e) {
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        if (!isDragging && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+            isDragging = true;
+            if (dragItem.parentElement === deck) {
+                const rect = dragItem.getBoundingClientRect();
+                const areaRect = gameArea.getBoundingClientRect();
+                
+                dragItem.style.left = (rect.left - areaRect.left) + 'px';
+                dragItem.style.top = (rect.top - areaRect.top) + 'px';
+                dragItem.style.position = 'absolute';
+                dragItem.style.transform = 'none';
+                
+                gameArea.appendChild(dragItem);
+                placedCards.push(dragItem);
+                
+                initialLeft = parseFloat(dragItem.style.left);
+                initialTop = parseFloat(dragItem.style.top);
+            }
+        }
+
+        if (isDragging) {
+            dragItem.style.left = (initialLeft + dx) + 'px';
+            dragItem.style.top = (initialTop + dy) + 'px';
+        }
+    }
+
+    function endDrag(e) {
+        document.removeEventListener('mousemove', onDrag);
+        document.removeEventListener('mouseup', endDrag);
+
+        if (!isDragging) {
+            if (dragItem.parentElement === gameArea) rotateCard(dragItem);
+        } else {
+            if (dragItem.parentElement === gameArea) {
+                snapToGrid(dragItem);
+                checkAllConnections();
+                checkVictoryCondition();
+            }
+            updateDeckStatus();
+        }
+        dragItem = null;
+    }
+
+    function rotateCard(el) {
+        let currentRot = parseInt(el.dataset.rot);
+        let newRot = (currentRot + 1) % 4;
+        el.dataset.rot = newRot;
+        snapToGrid(el);
+        checkAllConnections();
+        checkVictoryCondition();
+    }
+
+    function snapToGrid(el) {
+        let left = parseFloat(el.style.left);
+        let top = parseFloat(el.style.top);
+        let gridX = Math.round(left / GRID_SIZE);
+        let gridY = Math.round(top / GRID_SIZE);
+        el.style.left = (gridX * GRID_SIZE) + 'px';
+        el.style.top = (gridY * GRID_SIZE) + 'px';
+    }
+
+    function modifyGrid(side, direction) {
+        const style = window.getComputedStyle(gameArea);
+        let currentW = parseInt(style.width);
+        let currentH = parseInt(style.height);
+
+        if (side === 'right') {
+            let newW = currentW + (direction * GRID_SIZE);
+            if (newW >= GRID_SIZE) gameArea.style.width = newW + 'px';
+        }
+        if (side === 'bottom') {
+            let newH = currentH + (direction * GRID_SIZE);
+            if (newH >= GRID_SIZE) gameArea.style.height = newH + 'px';
+        }
+        if (side === 'left') {
+            let newW = currentW + (direction * GRID_SIZE);
+            if (newW >= GRID_SIZE) {
+                gameArea.style.width = newW + 'px';
+                shiftAllCards(direction * GRID_SIZE, 0);
+            }
+        }
+        if (side === 'top') {
+            let newH = currentH + (direction * GRID_SIZE);
+            if (newH >= GRID_SIZE) {
+                gameArea.style.height = newH + 'px';
+                shiftAllCards(0, direction * GRID_SIZE);
+            }
+        }
+    }
+
+    function shiftAllCards(dx, dy) {
+        const cards = document.querySelectorAll('#game-area .domino');
+        cards.forEach(card => {
+            let l = parseFloat(card.style.left);
+            let t = parseFloat(card.style.top);
+            card.style.left = (l + dx) + 'px';
+            card.style.top = (t + dy) + 'px';
+        });
+    }
+
+    function checkAllConnections() {
+        document.querySelectorAll('.half').forEach(h => h.classList.remove('correct-match'));
+        document.querySelectorAll('.domino').forEach(d => d.classList.remove('connected'));
+
+        let connectionsCount = 0;
+        const cards = Array.from(gameArea.children);
+
+        for (let i = 0; i < cards.length; i++) {
+            const cardA = cards[i];
+            const geomA = getCardGeometry(cardA);
+
+            for (let j = i + 1; j < cards.length; j++) {
+                const cardB = cards[j];
+                const geomB = getCardGeometry(cardB);
+
+                const match = checkAdjacency(geomA, geomB);
+                if (match) {
+                    if (isValidPair(match.textA, match.textB) && match.typeA !== match.typeB) {
+                        highlight(match.elA, match.elB);
+                        connectionsCount++;
+                    }
+                }
+            }
+        }
+        document.getElementById('score-display').innerText = "Spojenia: " + connectionsCount;
+    }
+
+    function getCardGeometry(el) {
+        const rot = parseInt(el.dataset.rot);
+        const x = Math.round(parseFloat(el.style.left) / GRID_SIZE);
+        const y = Math.round(parseFloat(el.style.top) / GRID_SIZE);
+        const children = el.children; 
+        const half1 = { el: children[0], text: children[0].innerText, type: children[0].dataset.type };
+        const half2 = { el: children[1], text: children[1].innerText, type: children[1].dataset.type };
+        let p1, p2;
+        if (rot === 0) { p1 = { x: x, y: y, ...half1 }; p2 = { x: x+1, y: y, ...half2 }; }
+        else if (rot === 1) { p1 = { x: x, y: y, ...half1 }; p2 = { x: x, y: y+1, ...half2 }; }
+        else if (rot === 2) { p1 = { x: x+1, y: y, ...half1 }; p2 = { x: x, y: y, ...half2 }; }
+        else if (rot === 3) { p1 = { x: x, y: y+1, ...half1 }; p2 = { x: x, y: y, ...half2 }; }
+        return [p1, p2];
+    }
+
+    function checkAdjacency(geoA, geoB) {
+        for (let pA of geoA) {
+            for (let pB of geoB) {
+                const dist = Math.abs(pA.x - pB.x) + Math.abs(pA.y - pB.y);
+                if (dist === 1) return { textA: pA.text, typeA: pA.type, elA: pA.el, textB: pB.text, typeB: pB.type, elB: pB.el };
+            }
+        }
+        return null;
+    }
+
+    function isValidPair(txt1, txt2) {
+        return pairsData.some(p => (p.term === txt1 && p.def === txt2) || (p.term === txt2 && p.def === txt1));
+    }
+
+    function highlight(el1, el2) {
+        el1.classList.add('correct-match');
+        el2.classList.add('correct-match');
+        el1.parentElement.classList.add('connected');
+        el2.parentElement.classList.add('connected');
+    }
+
+    init();
+
+<\/script>
+</body>
+</html>`;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metóda „Viem - Odhadnem - Neviem“ (generátor)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Monaco', monospace;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 10px;
+            font-family: 'Monaco', monospace;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+        .actions {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        button, .file-upload-label {
+            font-family: 'Monaco', monospace;
+            padding: 12px 18px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            display: inline-block;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+        button:hover, .file-upload-label:hover {
+            background-color: #0056b3;
+        }
+        .btn-success { background-color: #28a745; font-size: 16px;}
+        .btn-success:hover { background-color: #218838; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Metóda „Viem - Odhadnem - Neviem“ (generátor)</h1>
+    
+    <div class="form-group">
+        <label for="autor">Autor:</label>
+        <input type="text" id="autor" placeholder="Napr. Mgr. Ján Novák">
+    </div>
+    <div class="form-group">
+        <label for="rok">Rok:</label>
+        <input type="number" id="rok" placeholder="Napr. 2026">
+    </div>
+    <div class="form-group">
+        <label for="predmet">Predmet:</label>
+        <input type="text" id="predmet" placeholder="Napr. Dejepis">
+    </div>
+    <div class="form-group">
+        <label for="trieda">Trieda:</label>
+        <input type="text" id="trieda" placeholder="Napr. 8.A">
+    </div>
+    <div class="form-group">
+        <label for="tema">Téma:</label>
+        <input type="text" id="tema" placeholder="Napr. Priemyselná revolúcia">
+    </div>
+    <div class="form-group">
+        <label for="pojmy">Pojmy / Tvrdenia (každé na nový riadok):</label>
+        <textarea id="pojmy" placeholder="Zadajte pojmy sem..."></textarea>
+    </div>
+
+    <div class="actions">
+        <div>
+            <button class="btn-secondary" onclick="exportJSON()">Exportovať nastavenia (.json)</button>
+            <label class="file-upload-label btn-secondary">
+                Importovať nastavenia (.json)
+                <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importJSON(event)">
+            </label>
+        </div>
+        <button class="btn-success" onclick="generateStudentFile()">Vygenerovať súbor pre žiakov (.html)</button>
+    </div>
+	<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+<br><br>
+</div>
+
+<script>
+    // JSON Export
+    function exportJSON() {
+        const config = {
+            autor: document.getElementById('autor').value,
+            rok: document.getElementById('rok').value,
+            predmet: document.getElementById('predmet').value,
+            trieda: document.getElementById('trieda').value,
+            tema: document.getElementById('tema').value,
+            pojmy: document.getElementById('pojmy').value
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "nastavenia_viem_neviem.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    // JSON Import
+    function importJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const config = JSON.parse(e.target.result);
+                document.getElementById('autor').value = config.autor || '';
+                document.getElementById('rok').value = config.rok || '';
+                document.getElementById('predmet').value = config.predmet || '';
+                document.getElementById('trieda').value = config.trieda || '';
+                document.getElementById('tema').value = config.tema || '';
+                document.getElementById('pojmy').value = config.pojmy || '';
+                alert('Nastavenia boli úspešne načítané.');
+            } catch (err) {
+                alert('Chyba pri čítaní súboru. Uistite sa, že ide o platný JSON.');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = "";
+    }
+
+    // Generovanie HTML pre žiakov
+    function generateStudentFile() {
+        const metadata = {
+            autor: document.getElementById('autor').value,
+            rok: document.getElementById('rok').value,
+            predmet: document.getElementById('predmet').value,
+            trieda: document.getElementById('trieda').value,
+            tema: document.getElementById('tema').value
+        };
+        
+        const pojmyText = document.getElementById('pojmy').value;
+        const termsArray = pojmyText.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+
+        if (termsArray.length === 0) {
+            alert('Prosím, zadajte aspoň jeden pojem alebo tvrdenie pred vygenerovaním súboru.');
+            return;
+        }
+
+        // Tvorba obsahu stiahnutého súboru ako textový reťazec
+        // Používame bežné spájanie reťazcov pre vnútorné premenné, aby sme sa vyhli chybám v JS syntaxi
+        const htmlContent = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metóda „Viem - Odhadnem - Neviem“</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Monaco', monospace; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .instructions { background-color: #e9ecef; padding: 15px; border-left: 4px solid #007bff; margin-bottom: 20px; line-height: 1.5; font-size: 15px; }
+        #bank { min-height: 80px; border: 2px dashed #aaa; padding: 15px; margin-bottom: 20px; border-radius: 4px; background: #fafafa; }
+        .term-btn { font-family: 'Monaco', monospace; display: inline-block; margin: 8px; padding: 15px 25px; border: 2px solid #666; background: #fff; cursor: pointer; user-select: none; border-radius: 4px; font-size: 20px; font-weight: bold; transition: all 0.2s; }
+        .term-btn:hover { background: #f0f0f0; }
+        .term-btn.selected { border: 2px solid #000; background: #e2eefd; box-shadow: 0 0 5px rgba(0,123,255,0.5); transform: scale(1.05); }
+        .columns { display: flex; gap: 15px; margin-bottom: 20px; }
+        .col { flex: 1; padding: 15px; border: 1px solid #ccc; border-radius: 5px; min-height: 300px; display: flex; flex-direction: column; cursor: crosshair; }
+        .col h3 { margin-top: 0; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 10px; text-align: center; }
+        .col-viem { background-color: #d4edda; }
+        .col-odhadnem { background-color: #ffe8cc; }
+        .col-neviem { background-color: #f8d7da; }
+        #action-buttons { text-align: center; display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #ccc; }
+        button { font-family: 'Monaco', monospace; padding: 10px 20px; margin: 5px; cursor: pointer; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; }
+        .btn-warning { background-color: #ffc107; color: #000; }
+        .btn-warning:hover { background-color: #e0a800; }
+        .btn-success { background-color: #28a745; color: #fff; }
+        .btn-success:hover { background-color: #218838; }
+		.header-info { margin-bottom: 20px; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+		.header-info h1 { margin: 0 0 10px 0; color: #007bff; text-align: center; }
+		.header-info p { margin: 5px 0; font-size: 14px; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+	<div class="header-info">
+    <h1>Metóda „Viem - Odhadnem - Neviem“</h1>
+    <p>
+        <span><strong>Autor:</strong> <span id="hdr-autor"></span></span>
+        <span><strong>Rok:</strong> <span id="hdr-rok"></span></span>
+        <span><strong>Predmet:</strong> <span id="hdr-predmet"></span></span>
+        <span><strong>Trieda:</strong> <span id="hdr-trieda"></span></span>
+        <span><strong>Téma:</strong> <span id="hdr-tema"></span></span>
+    </p>
+</div>
+        <div class="instructions">
+            <strong>Pokyny pre žiaka:</strong><br>
+            Klikni na pojem (tvrdenie) a následne na stĺpec, kam ho chceš priradiť. Neexistuje správne alebo nesprávne priradenie.<br>
+            Ak si rozmyslíš svoje rozhodnutie, klikni na umiestnenú položku dvakrát a vrátiš ju na miesto.
+        </div>
+
+        <div id="bank"></div>
+
+        <div class="columns">
+            <div class="col col-viem" id="col-viem" onclick="placeTerm(this, 'viem')">
+                <h3>Viem</h3>
+            </div>
+            <div class="col col-odhadnem" id="col-odhadnem" onclick="placeTerm(this, 'odhadnem')">
+                <h3>Odhadnem</h3>
+            </div>
+            <div class="col col-neviem" id="col-neviem" onclick="placeTerm(this, 'neviem')">
+                <h3>Neviem</h3>
+            </div>
+        </div>
+
+        <div id="action-buttons">
+            <button class="btn-warning" onclick="nextStudent()">Ďalší žiak</button>
+            <button class="btn-success" onclick="evaluateResults()">Vyhodnotiť</button>
+        </div>
+    </div>
+
+    <script>
+        const metadata = ${JSON.stringify(metadata)};
+        const termsList = ${JSON.stringify(termsArray)};
+        let studentResults = [];
+        let activeTerm = null;
+
+        window.onload = function() {
+		
+    // Naplnenie hlavičky údajmi
+    document.getElementById('hdr-autor').textContent = metadata.autor || '-';
+    document.getElementById('hdr-rok').textContent = metadata.rok || '-';
+    document.getElementById('hdr-predmet').textContent = metadata.predmet || '-';
+    document.getElementById('hdr-trieda').textContent = metadata.trieda || '-';
+    document.getElementById('hdr-tema').textContent = metadata.tema || '-';
+    
+    resetBoard();
+};
+
+        function resetBoard() {
+            const bank = document.getElementById('bank');
+            bank.innerHTML = '';
+            
+            document.getElementById('col-viem').querySelectorAll('.term-btn').forEach(e => e.remove());
+            document.getElementById('col-odhadnem').querySelectorAll('.term-btn').forEach(e => e.remove());
+            document.getElementById('col-neviem').querySelectorAll('.term-btn').forEach(e => e.remove());
+
+            termsList.forEach(term => {
+                const btn = document.createElement('div');
+                btn.className = 'term-btn';
+                btn.textContent = term;
+                btn.dataset.term = term;
+                
+                btn.onclick = function(e) {
+                    e.stopPropagation();
+                    if (this.parentElement.id === 'bank') {
+                        document.querySelectorAll('.term-btn').forEach(b => b.classList.remove('selected'));
+                        this.classList.add('selected');
+                        activeTerm = this;
+                    }
+                };
+
+                btn.ondblclick = function(e) {
+                    e.stopPropagation();
+                    if (this.parentElement.id !== 'bank') {
+                        this.classList.remove('selected');
+                        activeTerm = null;
+                        document.getElementById('bank').appendChild(this);
+                        checkCompletion();
+                    }
+                };
+
+                bank.appendChild(btn);
+            });
+
+            activeTerm = null;
+            checkCompletion();
+        }
+
+        function placeTerm(colElement, category) {
+            if (activeTerm) {
+                activeTerm.classList.remove('selected');
+                activeTerm.dataset.category = category;
+                colElement.appendChild(activeTerm);
+                activeTerm = null;
+                checkCompletion();
+            }
+        }
+
+        function checkCompletion() {
+            const bank = document.getElementById('bank');
+            const actions = document.getElementById('action-buttons');
+            if (bank.children.length === 0 && termsList.length > 0) {
+                actions.style.display = 'block';
+            } else {
+                actions.style.display = 'none';
+            }
+        }
+
+        function saveCurrentStudent() {
+            const bank = document.getElementById('bank');
+            if (bank.children.length === 0) {
+                let currentStudent = {};
+                document.querySelectorAll('.columns .term-btn').forEach(btn => {
+                    currentStudent[btn.dataset.term] = btn.dataset.category;
+                });
+                if (Object.keys(currentStudent).length > 0) {
+                    studentResults.push(currentStudent);
+                }
+            }
+        }
+
+        function nextStudent() {
+            saveCurrentStudent();
+            resetBoard();
+        }
+
+        function evaluateResults() {
+            const bank = document.getElementById('bank');
+            if (bank.children.length === 0) {
+                saveCurrentStudent();
+                resetBoard();
+            }
+
+            const totalStudents = studentResults.length;
+            if (totalStudents === 0) {
+                alert('Žiadne dáta na vyhodnotenie. Žiaci musia najskôr priradiť všetky pojmy.');
+                return;
+            }
+
+            let stats = {};
+            termsList.forEach(t => {
+                stats[t] = { viem: 0, odhadnem: 0, neviem: 0 };
+            });
+
+            studentResults.forEach(res => {
+                for (let term in res) {
+                    if (stats[term] && stats[term][res[term]] !== undefined) {
+                        stats[term][res[term]]++;
+                    }
+                }
+            });
+
+            const d = new Date();
+            const dateStr = d.getDate() + '. ' + (d.getMonth() + 1) + '. ' + d.getFullYear() + ', ' + d.getHours() + ':' + d.getMinutes().toString().padStart(2, '0');
+
+            let html = '<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8">';
+            html += '<title>Vyhodnotenie: Viem - Odhadnem - Neviem</title>';
+            html += '<style>body { font-family: "Monaco", monospace; margin: 40px; color: #000; } ';
+            html += '.meta-info { margin-bottom: 20px; } .meta-info span { display: inline-block; margin-right: 20px; margin-bottom: 10px; } ';
+            html += 'table { border-collapse: collapse; width: 100%; margin-top: 20px; } ';
+            html += 'th, td { border: 1px solid #000; padding: 10px; text-align: center; } ';
+            html += 'td:first-child, th:first-child { text-align: left; } th { background-color: #f0f0f0; } ';
+            html += '.date-footer { margin-top: 40px; font-size: 14px; text-align: right; } ';
+            html += '.print-btn { display: block; margin-bottom: 20px; padding: 10px 15px; font-family: "Monaco", monospace; background: #007bff; color: #fff; border: none; cursor: pointer; border-radius: 4px; } ';
+            html += '@media print { .print-btn { display: none; } body { margin: 0; } } </style></head><body>';
+            
+            html += '<button class="print-btn" onclick="window.print()">Vytlačiť / Uložiť ako PDF (CTRL+P)</button>';
+            html += '<h2>Prehľad vyhodnotenia (Metóda „Viem - Odhadnem - Neviem“)</h2>';
+            
+            html += '<div class="meta-info">';
+            html += '<span><strong>Autor:</strong> ' + (metadata.autor || '-') + '</span>';
+            html += '<span><strong>Rok:</strong> ' + (metadata.rok || '-') + '</span>';
+            html += '<span><strong>Predmet:</strong> ' + (metadata.predmet || '-') + '</span>';
+            html += '<span><strong>Trieda:</strong> ' + (metadata.trieda || '-') + '</span>';
+            html += '<span><strong>Téma:</strong> ' + (metadata.tema || '-') + '</span><br>';
+            html += '<span><strong>Počet vyhodnotených žiakov:</strong> ' + totalStudents + '</span>';
+            html += '</div>';
+
+            html += '<table><thead><tr>';
+            html += '<th>Pojem (tvrdenie)</th><th>Viem (%)</th><th>Odhadnem (%)</th><th>Neviem (%)</th>';
+            html += '</tr></thead><tbody>';
+
+            termsList.forEach(t => {
+                let v = ((stats[t].viem / totalStudents) * 100).toFixed(2);
+                let o = ((stats[t].odhadnem / totalStudents) * 100).toFixed(2);
+                let n = ((stats[t].neviem / totalStudents) * 100).toFixed(2);
+                
+                v = v.endsWith('.00') ? v.slice(0, -3) : v;
+                o = o.endsWith('.00') ? o.slice(0, -3) : o;
+                n = n.endsWith('.00') ? n.slice(0, -3) : n;
+
+                html += '<tr>';
+                html += '<td>' + t + '</td><td>' + v + '%</td><td>' + o + '%</td><td>' + n + '%</td>';
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            html += '<div class="date-footer">' + dateStr + '</div>';
+            html += '</body></html>';
+
+            const win = window.open('', '_blank');
+            win.document.open();
+            win.document.write(html);
+            win.document.close();
+        }
+    <\/script>
+</body>
+</html>`;
+
+        // Vytvorenie a stiahnutie súboru
+        const blob = new Blob([htmlContent], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Vytvorenie pekného názvu súboru pre žiakov na základe témy
+        let fileName = "viem_neviem_ziaci.html";
+        if (metadata.tema) {
+            fileName = "viem_neviem_" + metadata.tema.toLowerCase().replace(/[^a-z0-9]+/g, '_') + ".html";
+        }
+        
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Upratanie po stiahnutí
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+</body>
+</html>

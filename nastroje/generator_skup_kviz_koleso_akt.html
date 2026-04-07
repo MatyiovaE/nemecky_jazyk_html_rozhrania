@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor skupinového kvízu s kolesom</title>
+    <style>
+        body {
+            font-family: 'Monaco', monospace;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #2c3e50; }
+        .form-group { margin-bottom: 20px; }
+        .form-group.small-gap { margin-bottom: 8px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%; padding: 10px; border: 1px solid #ccc;
+            border-radius: 4px; box-sizing: border-box; font-family: 'Monaco', monospace; font-size: 100%;
+        }
+        textarea { resize: vertical; min-height: 120px; }
+        button {
+            padding: 10px 15px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 16px; font-family: 'Monaco', monospace;
+            margin-right: 10px; margin-bottom: 10px;
+        }
+        .btn-green {
+            background-color: #27ae60; color: white; display: block;
+            width: 100%; font-weight: bold; font-size: 18px; padding: 15px; margin-top: 30px;
+        }
+        .btn-green:hover { background-color: #2ecc71; }
+        .btn-blue { background-color: #2980b9; color: white; margin-top: 5px; }
+        .btn-red { background-color: #e74c3c; color: white; padding: 6px 10px; font-size: 14px; margin-top: 10px; }
+        .btn-red:hover { background-color: #c0392b; }
+        
+        #questions-container { margin-top: 20px; }
+        .question-block {
+            background: #fff; border: 2px solid #bdc3c7; border-radius: 8px;
+            padding: 15px; margin-bottom: 20px; position: relative;
+        }
+        .question-block h3 { margin-top: 0; font-size: 1.1em; color: #2980b9; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .option-row { display: flex; align-items: center; margin-bottom: 8px; }
+        .option-row input[type="radio"] { margin-right: 10px; transform: scale(1.3); cursor: pointer; }
+        .img-preview { max-height: 150px; display: block; margin-top: 10px; border-radius: 4px; border: 1px solid #ccc; display: none; }
+        .hint { font-size: 0.85em; color: #666; margin-top: -5px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor kvízu pre skupiny + koleso bodov</h1>
+
+    <div class="form-group small-gap">
+        <label for="author">Meno autora:</label>
+        <input type="text" id="author" placeholder="Zadajte meno autora">
+    </div>
+    <div class="form-group small-gap">
+        <label for="year">Rok:</label>
+        <input type="number" id="year" placeholder="2026">
+    </div>
+    
+    <div class="form-group small-gap" style="margin-top: 20px;">
+        <label for="title">Názov kvízu:</label>
+        <input type="text" id="title" placeholder="Zadajte názov kvízu">
+    </div>
+
+    <div class="form-group small-gap" style="margin-top: 20px;">
+        <label for="points">Hodnoty bodov na koleso:</label>
+        <p class="hint">Každý počet bodov zadajte na zvláštny riadok. Hodnoty sa môžu opakovať (napr. zadajte trikrát 100, dvakrát 200).<br>Môžete pridať aj farbu: &lt;span style="color:red"&gt;500&lt;/span&gt;</p>
+        <textarea id="points" placeholder="100&#10;100&#10;200&#10;500&#10;<span style=&quot;color:blue&quot;>1000</span>"></textarea>
+    </div>
+
+    <div class="form-group" style="margin-top: 30px;">
+        <label>Otázky (s výberom odpovede):</label>
+        <p class="hint">Každá otázka musí mať 2 až 4 možnosti. Nezabudnite označiť správnu odpoveď prepínačom (krúžkom) vľavo. Text otázky môže obsahovať HTML formátovanie (napr. &lt;b&gt;tučne&lt;/b&gt;).</p>
+        <div id="questions-container"></div>
+        <button class="btn-blue" onclick="addQuestionBlock()">+ Pridať novú otázku</button>
+    </div>
+
+    <button class="btn-green" onclick="generateAndDownload()">Stiahnuť vygenerovaný kvíz (.html)</button>
+
+    <div style="margin-top: 30px; padding: 15px; background: #e8f4f8; border-radius: 5px;">
+        <p style="margin-top:0;"><b>Zálohovanie:</b> Uložte si zadané údaje do .json súboru, aby ste v budúcnosti mohli kvíz jednoducho upraviť.</p>
+        <button class="btn-blue" style="background:#34495e;" onclick="exportJSON()">Exportovať nastavenia (.json)</button>
+        <button class="btn-blue" style="background:#34495e;" onclick="document.getElementById('importFile').click()">Importovať nastavenia (.json)</button>
+        <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importJSON(event)">
+    </div>
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+<br><br>
+    <script>
+        let questionCounter = 0;
+
+        function addQuestionBlock(data = null) {
+            questionCounter++;
+            const id = questionCounter;
+            
+            const div = document.createElement('div');
+            div.className = 'question-block';
+            div.id = `qb_${id}`;
+            
+            div.innerHTML = `
+                <h3>Otázka č. <span class="q-number"></span></h3>
+                <textarea class="q-text" placeholder="Znenie otázky...">${data ? data.text : ''}</textarea>
+                
+                <div style="margin-top: 10px; margin-bottom: 10px;">
+                    <label style="font-size: 0.9em; font-weight: normal;">Obrázok k otázke (nepovinné):</label>
+                    <input type="file" accept="image/*" onchange="handleImageUpload(event, ${id})">
+                    <img class="img-preview" id="preview_${id}">
+                    <input type="hidden" class="q-image" id="b64_${id}">
+                </div>
+
+                <div class="option-row">
+                    <input type="radio" name="correct_${id}" value="0" ${(!data || data.correct == 0) ? 'checked' : ''}>
+                    <input type="text" class="opt-input" placeholder="Možnosť A (povinná)" value="${data && data.options[0] ? data.options[0] : ''}">
+                </div>
+                <div class="option-row">
+                    <input type="radio" name="correct_${id}" value="1" ${data && data.correct == 1 ? 'checked' : ''}>
+                    <input type="text" class="opt-input" placeholder="Možnosť B (povinná)" value="${data && data.options[1] ? data.options[1] : ''}">
+                </div>
+                <div class="option-row">
+                    <input type="radio" name="correct_${id}" value="2" ${data && data.correct == 2 ? 'checked' : ''}>
+                    <input type="text" class="opt-input" placeholder="Možnosť C (voliteľná)" value="${data && data.options[2] ? data.options[2] : ''}">
+                </div>
+                <div class="option-row">
+                    <input type="radio" name="correct_${id}" value="3" ${data && data.correct == 3 ? 'checked' : ''}>
+                    <input type="text" class="opt-input" placeholder="Možnosť D (voliteľná)" value="${data && data.options[3] ? data.options[3] : ''}">
+                </div>
+                
+                <button class="btn-red" onclick="this.parentElement.remove(); updateQuestionNumbers();">Zmazať otázku</button>
+            `;
+            
+            document.getElementById('questions-container').appendChild(div);
+            
+            if (data && data.image) {
+                document.getElementById(`b64_${id}`).value = data.image;
+                const preview = document.getElementById(`preview_${id}`);
+                preview.src = data.image;
+                preview.style.display = 'block';
+            }
+            
+            updateQuestionNumbers();
+        }
+
+        function updateQuestionNumbers() {
+            const blocks = document.querySelectorAll('.question-block');
+            blocks.forEach((block, index) => {
+                block.querySelector('.q-number').innerText = index + 1;
+            });
+        }
+
+        function handleImageUpload(event, id) {
+            const file = event.target.files[0];
+            if (!file) {
+                document.getElementById(`b64_${id}`).value = '';
+                document.getElementById(`preview_${id}`).style.display = 'none';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    } else {
+                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                    }
+                    
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const base64Data = canvas.toDataURL('image/jpeg', 0.85);
+
+                    document.getElementById(`b64_${id}`).value = base64Data;
+                    const preview = document.getElementById(`preview_${id}`);
+                    preview.src = base64Data;
+                    preview.style.display = 'block';
+                }
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        window.onload = () => {
+            if (document.querySelectorAll('.question-block').length === 0) {
+                addQuestionBlock();
+            }
+        };
+
+        function collectData() {
+            const questions = [];
+            const blocks = document.querySelectorAll('.question-block');
+            
+            for (let block of blocks) {
+                const text = block.querySelector('.q-text').value.trim();
+                const image = block.querySelector('.q-image').value;
+                const optInputs = block.querySelectorAll('.opt-input');
+                const radios = block.querySelectorAll('input[type="radio"]');
+                
+                let options = [];
+                let correctIdx = -1;
+                let actualOptIndex = 0;
+                
+                for (let i = 0; i < optInputs.length; i++) {
+                    const val = optInputs[i].value.trim();
+                    if (val !== '') {
+                        options.push(val);
+                        if (radios[i].checked) correctIdx = actualOptIndex;
+                        actualOptIndex++;
+                    } else if (radios[i].checked) {
+                         correctIdx = -1;
+                    }
+                }
+                
+                if (text !== '' || options.length >= 2) {
+                    questions.push({
+                        text: text,
+                        image: image,
+                        options: options,
+                        correct: correctIdx
+                    });
+                }
+            }
+
+            return {
+                author: document.getElementById('author').value,
+                year: document.getElementById('year').value,
+                title: document.getElementById('title').value || "Kvíz",
+                points: document.getElementById('points').value.split('\n').map(s => s.trim()).filter(s => s !== ""),
+                questions: questions
+            };
+        }
+
+        function exportJSON() {
+            const data = collectData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'nastavenia_kvizu.json';
+            a.click();
+        }
+
+        function importJSON(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    document.getElementById('author').value = data.author || '';
+                    document.getElementById('year').value = data.year || '';
+                    document.getElementById('title').value = data.title || '';
+                    document.getElementById('points').value = (data.points || []).join('\n');
+                    
+                    document.getElementById('questions-container').innerHTML = '';
+                    if (data.questions && data.questions.length > 0) {
+                        data.questions.forEach(q => addQuestionBlock(q));
+                    } else {
+                        addQuestionBlock();
+                    }
+                } catch (err) {
+                    alert("Chyba pri čítaní súboru JSON.");
+                }
+                e.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function sanitizeFilename(name) {
+            if (!name) return "kviz.html";
+            return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9\s]/g, "").trim().replace(/\s+/g, "_") + ".html";
+        }
+
+        function generateAndDownload() {
+            const data = collectData();
+            
+            if (data.points.length === 0) { alert("Zadajte aspoň nejaké body na koleso!"); return; }
+            if (data.questions.length === 0) { alert("Pridajte aspoň jednu platnú otázku!"); return; }
+            for (let i = 0; i < data.questions.length; i++) {
+                const q = data.questions[i];
+                if (q.options.length < 2) { alert(`Otázka č. ${i+1} musí mať aspoň 2 vyplnené možnosti!`); return; }
+                if (q.correct === -1) { alert(`Pri otázke č. ${i+1} nie je označená správna odpoveď na vyplnenej možnosti!`); return; }
+                if (q.text === '' && q.image === '') { alert(`Otázka č. ${i+1} musí obsahovať text alebo obrázok!`); return; }
+            }
+
+            let template = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>{{TITLE}}</title>
+    <style>
+        body { font-family: 'Comic Sans MS', 'Arial', sans-serif; margin: 0; padding: 0; background: #fdfbfb; display: flex; height: 100vh; overflow: hidden; }
+        .setup-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; flex-direction: column; color: white; }
+        .setup-box { background: white; color: #333; padding: 40px; border-radius: 12px; text-align: center; width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .setup-box input { width: 90%; padding: 10px; margin: 10px 0; font-size: 1.1em; text-align: center; }
+        .btn-start { background: #27ae60; color: white; font-size: 1.5em; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px; width: 100%; font-weight: bold; }
+        .btn-start:hover { background: #2ecc71; }
+        
+        #sidebar { width: 280px; background: #2c3e50; color: white; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 3px 0 15px rgba(0,0,0,0.2); z-index: 10; }
+        #sidebar h2 { margin-top: 0; text-align: center; border-bottom: 2px solid #34495e; padding-bottom: 15px; font-size: 1.8em; }
+        .team-score { font-size: 1.5em; margin: 15px 0; background: #34495e; padding: 10px 15px; border-radius: 8px; display: flex; justify-content: space-between; border-left: 5px solid #3498db; }
+        .active-team { border-left-color: #f1c40f; background: #3d566e; font-weight: bold; }
+
+        #main { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; overflow-y: auto; }
+        #turn-header { width: 100%; background: #ecf0f1; padding: 15px 0; text-align: center; font-size: 2.5em; font-weight: bold; color: #2c3e50; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        
+        #wheel-area { display: flex; flex-direction: column; align-items: center; margin-top: 20px; flex: 1; justify-content: center; }
+        .wheel-box { position: relative; display: flex; align-items: center; justify-content: center; }
+        .arrow {
+            width: 0; height: 0; border-top: 25px solid transparent; border-bottom: 25px solid transparent;
+            border-left: 50px solid #e74c3c; margin-right: -10px; z-index: 5; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));
+        }
+
+        #question-area { display: none; flex-direction: row; justify-content: space-between; align-items: stretch; width: 95%; max-width: 1300px; margin-top: 30px; padding-bottom: 50px; }
+        
+        #qa-left { flex: 1; display: flex; flex-direction: column; align-items: center; padding-right: 40px; }
+        #q-text { font-size: 2.2em; text-align: center; margin-bottom: 20px; line-height: 1.4; color: #2c3e50; }
+        #q-img { max-width: 100%; max-height: 35vh; margin-bottom: 25px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); cursor: zoom-in; transition: transform 0.2s; display: none; }
+        #q-img:hover { transform: scale(1.02); }
+        
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; margin-bottom: 30px; }
+        .option-btn { background: #3498db; color: white; padding: 20px; font-size: 1.5em; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: inherit; }
+        .option-btn:hover { background: #2980b9; transform: translateY(-2px); }
+        .option-btn.selected { border: 4px solid #f1c40f; transform: scale(1.02); }
+        .option-btn.correct { background: #27ae60 !important; color: white !important; }
+        .option-btn.wrong { background: #e74c3c !important; color: white !important; opacity: 0.8; }
+        
+        /* Zúžený pravý panel a zmenšené tlačidlá */
+        #qa-right { width: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; border-left: 2px dashed #bdc3c7; padding-left: 20px; }
+        .btn-action { width: 100%; padding: 12px 10px; font-size: 1.2em; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: inherit; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: background 0.2s; }
+        
+        #btn-answer { background: #27ae60; color: white; }
+        #btn-answer:disabled { background: #95a5a6; cursor: not-allowed; }
+        #btn-answer:not(:disabled):hover { background: #2ecc71; }
+        #btn-close { background: #e67e22; color: white; display: none; }
+        #btn-close:hover { background: #d35400; }
+        
+        #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; cursor: zoom-out; }
+        #modal-img { max-width: 90%; max-height: 90%; border-radius: 10px; box-shadow: 0 5px 25px rgba(0,0,0,0.5); }
+
+        #end-screen { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.95); z-index: 50; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; overflow-y: auto; padding: 60px 20px 40px 20px; box-sizing: border-box; }
+        .end-title { font-size: 3.5em; color: #27ae60; font-weight: bold; margin-bottom: 10px; z-index: 51; }
+        .end-class { font-size: 2em; color: #2c3e50; margin-bottom: 40px; z-index: 51; }
+        .end-winner { font-size: 3em; color: #d35400; font-weight: bold; background: #fdebd0; padding: 20px 40px; border-radius: 15px; border: 4px dashed #e67e22; margin-bottom: 20px; z-index: 51; }
+        .end-others { font-size: 1.8em; color: #34495e; margin: 10px 0; z-index: 51; }
+        .end-footer { font-size: 2em; color: #8e44ad; font-weight: bold; margin-top: 40px; margin-bottom: 20px; z-index: 51; }
+        .end-meta { font-size: 1em; color: #7f8c8d; margin-top: 10px; z-index: 51;}
+        #fireworks { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+
+        @media print {
+            body { display: block; overflow: visible !important; height: auto !important; background: white; margin: 0; padding: 0; }
+            #sidebar, .setup-overlay, #turn-header, #wheel-area, #question-area, #btn-end-close, #fireworks, .no-print, #image-modal { display: none !important; }
+            #end-screen { position: static; display: flex !important; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: auto; text-align: center; padding: 0; margin: 0 auto; }
+            .end-title { font-size: 2.2em !important; margin-top: 20px; }
+            .end-class { font-size: 1.5em !important; margin-bottom: 20px; }
+            .end-winner { border: 2px solid #000; background: transparent; font-size: 2em !important; padding: 10px 20px; }
+            .end-others { font-size: 1.4em !important; }
+            @page { margin: 2cm; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup" class="setup-overlay">
+        <h1 style="font-size:3em; margin-bottom: 5px;">{{TITLE}}</h1>
+        <p style="color:#bdc3c7; margin-bottom: 40px;">{{AUTHOR}} ({{YEAR}})</p>
+        <div class="setup-box">
+            <h2>Nastavenie hry</h2>
+            <input type="text" id="setup-class" placeholder="Názov triedy (napr. 8.A)">
+            <input type="number" id="setup-groups" placeholder="Počet skupín" min="2" max="10" value="2">
+            <button class="btn-start" onclick="initGame()">Spustiť kvíz</button>
+        </div>
+    </div>
+
+    <div id="sidebar" class="no-print">
+        <h2>Počet bodov</h2>
+        <div id="teams-container"></div>
+    </div>
+
+    <div id="main" class="no-print">
+        <div id="turn-header">Príprava hry...</div>
+        
+        <div id="wheel-area">
+            <div class="wheel-box">
+                <div class="arrow"></div>
+                <canvas id="canvas" width="600" height="600"></canvas>
+            </div>
+        </div>
+
+        <div id="question-area">
+            <div id="qa-left">
+                <div id="q-points" style="font-size: 1.5em; color: #e74c3c; font-weight: bold; margin-bottom: 10px;"></div>
+                <div id="q-text"></div>
+                <img id="q-img" src="">
+                <div class="options-grid" id="q-options"></div>
+            </div>
+            
+            <div id="qa-right">
+                <button id="btn-answer" class="btn-action" onclick="checkAnswer()" disabled>Odpovedať</button>
+                <button id="btn-close" class="btn-action" onclick="nextTurn()">Zatvoriť</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="image-modal" onclick="this.style.display='none'">
+        <img id="modal-img" src="">
+    </div>
+
+    <div id="end-screen">
+        <canvas id="fireworks"></canvas>
+        <div class="end-title">Názov kvízu: {{TITLE}}</div>
+        <div class="end-class" id="end-class-text">Pekná hra, trieda !</div>
+        <div id="winners-container" style="z-index: 51; width:100%; display:flex; flex-direction:column; align-items:center;"></div>
+        <div class="end-footer">Všetci ste boli super!</div>
+        <div class="end-meta" id="end-date"></div>
+        <button id="btn-end-close" class="btn-action no-print" style="background:#34495e; color:white; margin-top:30px; width: auto; padding: 15px 30px;" onclick="window.print()">Vytlačiť PDF (CTRL+P)</button>
+    </div>
+
+    <script>
+        let rawPoints = {{POINTS_JSON}};
+        let allQuestions = {{QUESTIONS_JSON}};
+        
+        let className = "";
+        let numGroups = 2;
+        let teams = [];
+        let currentTeamIdx = 0;
+        
+        let activePoints = [];
+        let activeQuestions = [];
+        let totalTurns = 0;
+        let turnsPlayed = 0;
+        
+        let spunValue = 0;
+        let selectedBtnEl = null;
+
+        let colors = [];
+        let angle = 0;
+        let spinning = false;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const CENTER = 300;
+        const RADIUS = 280;
+        const BTN_RADIUS = 50;
+
+        function parseHtmlText(htmlStr) {
+            const spanRegex = /<span[^>]*style=["'](?:[^"']*;)?\\s*color:\\s*([^;"'>]+)[^>]*>(.*?)<\\/span>/i;
+            const match = htmlStr.match(spanRegex);
+            if (match) return { color: match[1].trim(), text: match[2].trim() };
+            const cleanText = htmlStr.replace(/<[^>]*>?/gm, '');
+            return { color: "#2c3e50", text: cleanText.trim() };
+        }
+
+        function initGame() {
+            className = document.getElementById('setup-class').value || "Neznáma";
+            numGroups = parseInt(document.getElementById('setup-groups').value) || 2;
+            if (numGroups < 2) numGroups = 2;
+
+            for(let i=1; i<=numGroups; i++) {
+                teams.push({ name: "Skupina " + i, score: 0 });
+            }
+
+            let maxPossible = Math.min(rawPoints.length, allQuestions.length);
+            totalTurns = Math.floor(maxPossible / numGroups) * numGroups;
+            
+            if (totalTurns === 0) {
+                alert("Nedostatok otázok alebo bodov pre zadaný počet skupín!");
+                return;
+            }
+
+            activePoints = rawPoints.sort(() => Math.random() - 0.5).slice(0, totalTurns);
+            activeQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, totalTurns);
+
+            document.getElementById('setup').style.display = 'none';
+            updateSidebar();
+            startTurnPhase1();
+        }
+
+        function updateSidebar() {
+            const container = document.getElementById('teams-container');
+            container.innerHTML = "";
+            teams.forEach((t, i) => {
+                const div = document.createElement('div');
+                div.className = 'team-score' + (i === currentTeamIdx ? ' active-team' : '');
+                div.innerHTML = \`<span>\${t.name}:</span> <b>\${t.score}</b>\`;
+                container.appendChild(div);
+            });
+        }
+
+        function startTurnPhase1() {
+            document.getElementById('question-area').style.display = 'none';
+            document.getElementById('wheel-area').style.display = 'flex';
+            document.getElementById('turn-header').innerText = \`Na ťahu: \${teams[currentTeamIdx].name}\`;
+            updateSidebar();
+            
+            generateColors();
+            drawWheel();
+        }
+
+        function generateColors() {
+            colors = [];
+            for(let i=0; i<activePoints.length; i++) {
+                let h = (i * (360 / activePoints.length) + (Math.random()*15)) % 360;
+                colors.push('hsl(' + h + ', 75%, 85%)');
+            }
+        }
+
+        function drawWheel() {
+            const n = activePoints.length;
+            if (n===0) return;
+            const arc = (Math.PI * 2) / n;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            activePoints.forEach((itemHtml, i) => {
+                const parsed = parseHtmlText(String(itemHtml));
+                const start = angle + i * arc;
+                
+                ctx.fillStyle = colors[i];
+                ctx.beginPath();
+                ctx.moveTo(CENTER, CENTER);
+                ctx.arc(CENTER, CENTER, RADIUS, start, start + arc);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 2; ctx.stroke();
+
+                ctx.save();
+                ctx.translate(CENTER, CENTER);
+                ctx.rotate(start + arc / 2 + Math.PI); 
+                
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle"; 
+                ctx.fillStyle = parsed.color;
+                
+                let fontSize = Math.min(40, (RADIUS * 2 * arc) / (Math.max(1, parsed.text.length) * 0.6));
+                if(fontSize < 16) fontSize = 16;
+                ctx.font = "bold " + fontSize + "px 'Comic Sans MS'";
+                
+                ctx.fillText(parsed.text, -260, 2);
+                ctx.restore();
+            });
+
+            let g = ctx.createRadialGradient(CENTER, CENTER, RADIUS/2, CENTER, CENTER, RADIUS);
+            g.addColorStop(0, 'rgba(255,255,255,0)');
+            g.addColorStop(1, 'rgba(0,0,0,0.08)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(CENTER, CENTER, RADIUS, 0, Math.PI*2); ctx.fill();
+
+            ctx.beginPath(); ctx.arc(CENTER, CENTER, BTN_RADIUS, 0, Math.PI*2);
+            ctx.fillStyle = "#f1c40f"; ctx.fill();
+            ctx.strokeStyle = "#f39c12"; ctx.lineWidth = 4; ctx.stroke();
+            ctx.fillStyle = "#2c3e50"; ctx.font = "bold 22px 'Comic Sans MS'";
+            ctx.textAlign = "center"; ctx.fillText("TOČ", CENTER, CENTER + 7);
+        }
+
+        canvas.onclick = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left - CENTER;
+            const y = e.clientY - rect.top - CENTER;
+            if(Math.sqrt(x*x + y*y) < BTN_RADIUS && !spinning && activePoints.length > 0) spinWheel();
+        };
+
+        function spinWheel() {
+            spinning = true;
+            let speed = 0.4 + Math.random() * 0.15;
+            function animate() {
+                angle += speed;
+                speed *= 0.985;
+                drawWheel();
+                if(speed > 0.002) requestAnimationFrame(animate);
+                else {
+                    spinning = false;
+                    const arc = (Math.PI * 2) / activePoints.length;
+                    let norm = (Math.PI - (angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                    let winnerIdx = Math.floor(norm / arc);
+                    
+                    let parsed = parseHtmlText(String(activePoints[winnerIdx]));
+                    spunValue = parseInt(parsed.text) || 0;
+                    
+                    activePoints.splice(winnerIdx, 1);
+                    colors.splice(winnerIdx, 1);
+                    
+                    setTimeout(showQuestion, 800);
+                }
+            }
+            animate();
+        }
+
+        function showQuestion() {
+            document.getElementById('wheel-area').style.display = 'none';
+            const qa = document.getElementById('question-area');
+            qa.style.display = 'flex';
+            
+            document.getElementById('q-points').innerText = \`Hrá sa o \${spunValue} bodov\`;
+            
+            let currentQuestion = activeQuestions.pop();
+            selectedBtnEl = null;
+            
+            let qText = currentQuestion.text.replace(/\\n/g, '<br>');
+            document.getElementById('q-text').innerHTML = qText;
+            
+            const imgEl = document.getElementById('q-img');
+            if (currentQuestion.image) {
+                imgEl.src = currentQuestion.image;
+                imgEl.style.display = 'block';
+                imgEl.onclick = () => {
+                    document.getElementById('modal-img').src = currentQuestion.image;
+                    document.getElementById('image-modal').style.display = 'flex';
+                };
+            } else {
+                imgEl.style.display = 'none';
+            }
+
+            const grid = document.getElementById('q-options');
+            grid.innerHTML = '';
+            
+            if (currentQuestion.options.length === 2) grid.style.gridTemplateColumns = '1fr';
+            else grid.style.gridTemplateColumns = '1fr 1fr';
+
+            let mappedOptions = currentQuestion.options.map((opt, idx) => ({ text: opt, isCorrect: idx === currentQuestion.correct }));
+            for (let i = mappedOptions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [mappedOptions[i], mappedOptions[j]] = [mappedOptions[j], mappedOptions[i]];
+            }
+
+            mappedOptions.forEach((optData) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerHTML = optData.text.replace(/\\n/g, '<br>');
+                btn.dataset.correct = optData.isCorrect;
+                btn.onclick = () => selectOption(btn);
+                grid.appendChild(btn);
+            });
+
+            document.getElementById('btn-answer').style.display = 'block';
+            document.getElementById('btn-answer').disabled = true;
+            document.getElementById('btn-close').style.display = 'none';
+        }
+
+        function selectOption(btnEl) {
+            selectedBtnEl = btnEl;
+            document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+            btnEl.classList.add('selected');
+            document.getElementById('btn-answer').disabled = false;
+        }
+
+        function checkAnswer() {
+            document.getElementById('btn-answer').style.display = 'none';
+            const btns = document.querySelectorAll('.option-btn');
+            btns.forEach(b => b.onclick = null); 
+
+            const isCorrect = (selectedBtnEl.dataset.correct === 'true');
+            
+            if (isCorrect) {
+                selectedBtnEl.classList.add('correct');
+                teams[currentTeamIdx].score += spunValue;
+            } else {
+                selectedBtnEl.classList.add('wrong');
+                btns.forEach(b => {
+                    if (b.dataset.correct === 'true') b.classList.add('correct');
+                });
+                teams[currentTeamIdx].score -= spunValue;
+            }
+
+            updateSidebar();
+            document.getElementById('btn-close').style.display = 'block';
+            turnsPlayed++;
+        }
+
+        function nextTurn() {
+            if (turnsPlayed >= totalTurns) {
+                endGame();
+            } else {
+                currentTeamIdx = (currentTeamIdx + 1) % numGroups;
+                startTurnPhase1();
+            }
+        }
+
+        function endGame() {
+            document.getElementById('main').style.display = 'none';
+            document.getElementById('sidebar').style.display = 'none';
+            const endScreen = document.getElementById('end-screen');
+            endScreen.style.display = 'flex';
+
+            document.getElementById('end-class-text').innerText = \`Pekná hra, trieda \${className}!\`;
+            document.getElementById('end-date').innerText = "Kvíz ukončený: " + new Date().toLocaleString('sk-SK');
+
+            let sortedTeams = [...teams].sort((a, b) => b.score - a.score);
+            
+            const cont = document.getElementById('winners-container');
+            sortedTeams.forEach((t, i) => {
+                const d = document.createElement('div');
+                if (i === 0) {
+                    d.className = 'end-winner';
+                    d.innerHTML = \`Víťazom je: \${t.name} (\${t.score} b)\`;
+                } else {
+                    d.className = 'end-others';
+                    d.innerHTML = \`\${i+1}. miesto získala: \${t.name} (\${t.score} b)\`;
+                }
+                cont.appendChild(d);
+            });
+
+            startFireworks();
+        }
+
+        function startFireworks() {
+            const fwCanvas = document.getElementById('fireworks');
+            const fwCtx = fwCanvas.getContext('2d');
+            fwCanvas.width = window.innerWidth;
+            fwCanvas.height = window.innerHeight;
+
+            let particles = [];
+            const colors = ['#ff0043', '#14fc56', '#1e7fff', '#e60aff', '#ffbf00'];
+
+            function createExplosion(x, y) {
+                let count = 40 + Math.random() * 20;
+                for (let i = 0; i < count; i++) {
+                    let angle = Math.random() * Math.PI * 2;
+                    let speed = Math.random() * 8 + 2;
+                    particles.push({
+                        x: x, y: y,
+                        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                        life: 1.0, decay: Math.random() * 0.015 + 0.015,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        size: Math.random() * 4 + 3
+                    });
+                }
+            }
+
+            function loop() {
+                fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+                if(Math.random() < 0.05) {
+                    createExplosion(Math.random() * fwCanvas.width, Math.random() * (fwCanvas.height/2));
+                }
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let p = particles[i];
+                    p.vy += 0.05;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= p.decay;
+
+                    fwCtx.globalAlpha = p.life;
+                    fwCtx.fillStyle = p.color;
+                    fwCtx.beginPath();
+                    fwCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    fwCtx.fill();
+
+                    if (p.life <= 0) particles.splice(i, 1);
+                }
+                fwCtx.globalAlpha = 1.0;
+                requestAnimationFrame(loop);
+            }
+            loop();
+        }
+    <\/script>
+</body>
+</html>`;
+
+            template = template.replace(/{{TITLE}}/g, data.title)
+                               .replace(/{{AUTHOR}}/g, data.author)
+                               .replace(/{{YEAR}}/g, data.year)
+                               .replace(/{{POINTS_JSON}}/g, JSON.stringify(data.points))
+                               .replace(/{{QUESTIONS_JSON}}/g, JSON.stringify(data.questions));
+            
+            const blob = new Blob([template], {type: 'text/html'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = sanitizeFilename(data.title);
+            a.click();
+        }
+    </script>
+</body>
+</html>

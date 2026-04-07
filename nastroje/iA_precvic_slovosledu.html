@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Generator: alternatívne slovosledy → export HTML</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 20px; max-width: 900px; margin: auto; }
+  textarea { width: 100%; height: 180px; font-family: monospace; }
+  .exercise { border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 6px; }
+  .shuffled { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+  .word { background:#f0f0f0; padding:6px 10px; border-radius:4px; cursor:pointer; user-select:none; }
+  .slot { min-width:40px; min-height:28px; border:1px dashed #bbb; padding:4px 8px; border-radius:4px; display:inline-block; margin:4px; vertical-align:middle; }
+  .controls { margin:10px 0; display:flex; gap:8px; flex-wrap:wrap; }
+  #exportArea { width:100%; height:120px; font-family:monospace; }
+  .feedback { margin-top:8px; }
+  button { padding:8px 12px; border-radius:6px; border:1px solid #bbb; background:white; cursor:pointer; }
+  button.primary { background:#0067c5; color:white; border-color:#005bb5; }
+  code { background:#f6f8fa; padding:2px 6px; border-radius:4px; }
+</style>
+</head>
+<body>
+
+<h3>Editor cvičení (alternatívne slovosledy)</h3>
+<p>Formát: jedna úloha oddelená prázdnym riadkom alebo <code>---</code>. V rámci úlohy môžeš zadať viacero variantov vetnej zostavy oddelených riadkom obsahujúcim len <code>//</code>. Varianty môžu byť zapísané po riadkoch (jedno slovo na riadok) alebo jedným riadkom.</p>
+
+<textarea id="inputArea" placeholder="Príklad:
+Ich
+bin
+13
+Jahre
+alt
+.
+
+//
+// alternatíva v jednom riadku
+Ich bin 13 Jahre alt .
+---
+Ja
+heiße
+Anna
+."></textarea>
+
+<div class="controls">
+  <button id="parseBtn" class="primary">Načítať úlohy</button>
+  <button id="shuffleBtn">Zamiešať slová</button>
+  <button id="exportJSONBtn">Exportovať JSON</button>
+  <button id="exportHTMLBtn">Exportovať HTML</button>
+  <button id="clearBtn">Vymazať</button>
+</div>
+
+<div id="exercisesContainer"></div>
+
+<h3>Export (JSON)</h3>
+<textarea id="exportArea" readonly placeholder="Sem sa uloží exportovaný JSON po kliknutí na Exportovať JSON"></textarea>
+
+<script>
+/* Interná štruktúra:
+   exercises: [
+     { originals: [ ["Ich","bin","13","..."], ["Ich","13","bin",...], ... ],
+       shuffled: [...], userOrder: [...], score: 0 }
+   ]
+*/
+let exercises = [];
+
+function normalizeTextToWords(text) {
+  if (!text) return [];
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l !== "");
+  if (lines.length === 1) {
+    return lines[0].split(/\s+/);
+  }
+  return lines;
+}
+
+function parseInput(raw) {
+  const blocks = raw.split(/\r?\n\s*(?:---)\s*\r?\n|(?:\r?\n){2,}/).map(b => b.trim()).filter(b => b.length > 0);
+  const parsed = blocks.map(block => {
+    const parts = block.split(/\r?\n/);
+    let current = [];
+    const variants = [];
+    for (let i = 0; i < parts.length; i++) {
+      const line = parts[i].trim();
+      if (line === "//") {
+        if (current.length) {
+          variants.push(current.join("\n"));
+          current = [];
+        }
+      } else {
+        current.push(line);
+      }
+    }
+    if (current.length) variants.push(current.join("\n"));
+    const originals = variants.map(v => normalizeTextToWords(v));
+    return { originals };
+  });
+  return parsed;
+}
+
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildExercisesFromParsed(parsed) {
+  exercises = parsed.map(p => {
+    const base = p.originals[0] || [];
+    const shuffled = shuffleArray(base);
+    return {
+      originals: p.originals,
+      shuffled,
+      userOrder: Array(base.length).fill(null),
+      score: 0
+    };
+  });
+  renderAll();
+}
+
+function renderAll() {
+  const container = document.getElementById("exercisesContainer");
+  container.innerHTML = "";
+  exercises.forEach((ex, idx) => {
+    const div = document.createElement("div");
+    div.className = "exercise";
+    div.id = `ex-${idx}`;
+
+    const header = document.createElement("div");
+    header.innerHTML = `<strong>Úloha ${idx+1}</strong> — slová: ${ex.shuffled.length}; varianty: ${ex.originals.length}`;
+    div.appendChild(header);
+
+    const slotsWrap = document.createElement("div");
+    slotsWrap.className = "slots";
+    ex.userOrder = ex.userOrder.slice(0, ex.shuffled.length);
+    ex.userOrder.forEach((w, i) => {
+      const s = document.createElement("span");
+      s.className = "slot";
+      s.dataset.slotIndex = i;
+      s.id = `ex-${idx}-slot-${i}`;
+      s.textContent = w || "\u00A0";
+      s.addEventListener("click", () => {
+        const word = ex.userOrder[i];
+        if (word) {
+          ex.shuffled.push(word);
+          ex.userOrder[i] = null;
+          renderAll();
+        }
+      });
+      slotsWrap.appendChild(s);
+    });
+    div.appendChild(slotsWrap);
+
+    const pool = document.createElement("div");
+    pool.className = "shuffled";
+    ex.shuffled.forEach((w, wi) => {
+      const sp = document.createElement("div");
+      sp.className = "word";
+      sp.textContent = w;
+      sp.dataset.wordIndex = wi;
+      sp.addEventListener("click", () => {
+        const freeIndex = ex.userOrder.indexOf(null);
+        if (freeIndex === -1) return;
+        ex.userOrder[freeIndex] = w;
+        ex.shuffled.splice(wi, 1);
+        renderAll();
+      });
+      pool.appendChild(sp);
+    });
+    div.appendChild(pool);
+
+    const controls = document.createElement("div");
+    controls.style.marginTop = "8px";
+
+    const checkBtn = document.createElement("button");
+    checkBtn.textContent = "Overiť";
+    checkBtn.addEventListener("click", () => checkSentence(idx));
+    controls.appendChild(checkBtn);
+
+    const revealBtn = document.createElement("button");
+    revealBtn.style.marginLeft = "8px";
+    revealBtn.textContent = "Zobraziť správne varianty";
+    revealBtn.addEventListener("click", () => showCorrectVariants(idx));
+    controls.appendChild(revealBtn);
+
+    div.appendChild(controls);
+
+    const feedback = document.createElement("div");
+    feedback.className = "feedback";
+    feedback.id = `feedback-${idx}`;
+    div.appendChild(feedback);
+
+    container.appendChild(div);
+  });
+}
+
+function showCorrectVariants(index) {
+  const ex = exercises[index];
+  const fb = document.getElementById(`feedback-${index}`);
+  const variants = ex.originals.map(v => v.join(" ").replace(/\s+([.?!,:;])/g, "$1").trim());
+  fb.innerHTML = `<div><strong>Varianty:</strong><br>${variants.join("<br>")}</div>`;
+}
+
+function checkSentence(index) {
+  const ex = exercises[index];
+  const fb = document.getElementById(`feedback-${index}`);
+  const userWords = ex.userOrder.map(w => w || "").filter(Boolean);
+  const user = userWords.join(" ").replace(/\s+([.?!,:;])/g, "$1").trim();
+  const correctVariants = ex.originals.map(v => v.join(" ").replace(/\s+([.?!,:;])/g, "$1").trim());
+  const norm = s => s.replace(/\s+/g, " ").trim().toLowerCase();
+  const matched = correctVariants.some(cv => norm(cv) === norm(user));
+  if (matched) {
+    ex.score = 1;
+    fb.innerHTML = `<div style="color:green;"><strong>✅ Správne</strong></div>`;
+  } else {
+    ex.score = 0;
+    fb.innerHTML = `<div style="color:red;"><strong>❌ Nesprávne</strong></div><div style="margin-top:6px;"><strong>Správne varianty:</strong><br>${correctVariants.join("<br>")}</div>`;
+  }
+}
+
+document.getElementById("parseBtn").addEventListener("click", () => {
+  const raw = document.getElementById("inputArea").value;
+  const parsed = parseInput(raw);
+  buildExercisesFromParsed(parsed);
+});
+
+document.getElementById("shuffleBtn").addEventListener("click", () => {
+  exercises.forEach(ex => {
+    const base = ex.originals[0] || [];
+    ex.shuffled = shuffleArray(base);
+    ex.userOrder = Array(base.length).fill(null);
+  });
+  renderAll();
+});
+
+document.getElementById("exportJSONBtn").addEventListener("click", () => {
+  const exportData = exercises.map(ex => {
+    return {
+      originals: ex.originals,
+      shuffled: ex.shuffled,
+      userOrder: ex.userOrder,
+      score: ex.score
+    };
+  });
+  document.getElementById("exportArea").value = JSON.stringify(exportData, null, 2);
+});
+
+document.getElementById("exportHTMLBtn").addEventListener("click", () => {
+  downloadHTML();
+});
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+  exercises = [];
+  document.getElementById("exercisesContainer").innerHTML = "";
+  document.getElementById("exportArea").value = "";
+});
+
+/* ------------------------------------------------------------------
+   EXPORT HTML (opravené vloženie dát pomocou encodeURIComponent)
+   ------------------------------------------------------------------ */
+function downloadHTML() {
+  const cleanExercises = exercises.map(ex => ({
+    originals: ex.originals,
+    shuffled: ex.shuffled,
+    userOrder: Array(ex.originals[0] ? ex.originals[0].length : 0).fill(null),
+    score: 0
+  }));
+
+  // bezpečne vložíme JSON do exportu cez encodeURIComponent
+  const payload = encodeURIComponent(JSON.stringify(cleanExercises));
+
+  const html = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Úprava slovosledu - cvičenie</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    button { margin: 2px; padding: 4px 8px; }
+    .word-block { display: inline-block; margin: 5px; text-align: center; border: 1px solid #ddd; padding:6px; border-radius:6px; }
+    .sentence-word { margin-right: 10px; display: inline-block; text-align: center; border-bottom:1px dashed #ccc; padding:4px 6px; min-width:40px; }
+    .highlight { background-color: lightblue; font-weight: bold; }
+    .slot-placeholder { color: #999; }
+  </style>
+</head>
+<body>
+
+<h2>🧪 Cvičenie na úpravu slovosledu</h2>
+<label><b>Meno žiaka:</b> <input id="studentName" type="text"></label>
+<br><br>
+<b>Vytvor vety so správnym slovosledom.<br> 
+V každej vete klikni nad jednotlivými položkami na správne poradové číslo.<br>
+Potom klikni na tlačidlo: <u>Je to správne?</u></b>
+
+<div id="exercisesRoot"></div>
+
+<button onclick="evaluateAll()">Vyhodnotiť</button>
+<div id="finalResult"></div>
+
+<script>
+  // načítanie dát bezpečne (dekódujeme payload)
+  const exercises = JSON.parse(decodeURIComponent("${payload}"));
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function escapeJs(str) {
+    return String(str).replace(/\\\\/g,'\\\\\\\\').replace(/'/g,"\\\\'").replace(/"/g,'\\"');
+  }
+
+  function renderAll() {
+    const root = document.getElementById('exercisesRoot');
+    root.innerHTML = '';
+    exercises.forEach((ex, i) => {
+      const container = document.createElement('div');
+      container.style.marginBottom = '30px';
+      const header = document.createElement('h4');
+      header.style.color = 'blue';
+      header.textContent = 'Veta ' + (i + 1);
+      container.appendChild(header);
+
+      // word blocks
+      const blocksWrap = document.createElement('div');
+      ex.shuffled.forEach((word, wi) => {
+        const div = document.createElement('div');
+        div.className = 'word-block';
+        div.id = 'wordblock-' + i + '-' + wi;
+        // tlačidlá podľa počtu pozícií (berieme dĺžku prvého variantu)
+        const buttonsHtml = ex.originals[0].map((_, pi) => '<button onclick="assignPosition('+i+', \\'_'+escapeJs(word)+'\\','+pi+')">' + (pi+1) + '</button>').join('');
+        div.innerHTML = buttonsHtml + '<br><strong>' + escapeHtml(word) + '</strong>';
+        blocksWrap.appendChild(div);
+      });
+      container.appendChild(blocksWrap);
+
+      // sentence div, button, feedback
+      const sentenceDiv = document.createElement('div');
+      sentenceDiv.id = 'sentence-' + i;
+      sentenceDiv.style.marginTop = '10px';
+      container.appendChild(sentenceDiv);
+
+      const checkBtn = document.createElement('button');
+      checkBtn.textContent = 'Je to správne?';
+      checkBtn.onclick = function() { checkSentence(i); };
+      container.appendChild(checkBtn);
+
+      const feedback = document.createElement('div');
+      feedback.id = 'feedback-' + i;
+      container.appendChild(feedback);
+
+      root.appendChild(container);
+    });
+
+    // inicialne vykreslieme sentence/btn stavy
+    exercises.forEach((_, i) => { renderSentence(i); updateButtons(i); });
+  }
+
+  // pomocné: používame prefix '_'+word pri prenose cez onclick aby sa vyhli problémom s úvodzovkami
+  function findWordFromMarker(marker) {
+    return marker.startsWith('_') ? marker.slice(1) : marker;
+  }
+
+  function assignPosition(exIndex, wordMarker, position) {
+    const word = findWordFromMarker(wordMarker);
+    const ex = exercises[exIndex];
+    ex.userOrder = ex.userOrder.map(w => w === word ? null : w);
+    ex.userOrder[position] = word;
+    renderSentence(exIndex);
+    updateButtons(exIndex);
+  }
+
+  function renderSentence(exIndex) {
+    const ex = exercises[exIndex];
+    const sentenceDiv = document.getElementById('sentence-' + exIndex);
+    const html = ex.userOrder.map((w, i) => {
+      if (!w) return '<span class="sentence-word slot-placeholder">[ ]</span>';
+      return '<span class="sentence-word">' + escapeHtml(w) + '<br><small>' + (i+1) + '</small> <button onclick="removeWord(' + exIndex + ',' + i + ')">X</button></span>';
+    }).join('');
+    sentenceDiv.innerHTML = html;
+  }
+
+  function removeWord(exIndex, pos) {
+    exercises[exIndex].userOrder[pos] = null;
+    renderSentence(exIndex);
+    updateButtons(exIndex);
+  }
+
+  function renderWordButtons(exIndex, word) {
+    const ex = exercises[exIndex];
+    return ex.originals[0].map((_, pi) => {
+      const isUsed = ex.userOrder[pi] === word;
+      const cls = isUsed ? 'highlight' : '';
+      return '<button class="'+cls+'" onclick="assignPosition('+exIndex+', \\'_'+escapeJs(word)+'\\','+pi+')">' + (pi+1) + '</button>';
+    }).join('');
+  }
+
+  function updateButtons(exIndex) {
+    const ex = exercises[exIndex];
+    ex.shuffled.forEach((word, wi) => {
+      const block = document.getElementById('wordblock-' + exIndex + '-' + wi);
+      if (!block) return;
+      block.innerHTML = renderWordButtons(exIndex, word) + '<br><strong>' + escapeHtml(word) + '</strong>';
+    });
+  }
+
+  function normalize(s) {
+    return s.replace(/\\s+/g, ' ').trim().toLowerCase();
+  }
+
+  function checkSentence(exIndex) {
+    const ex = exercises[exIndex];
+    const userWords = ex.userOrder.map(w => w || '').filter(Boolean);
+    const user = userWords.join(' ').replace(/\\s+([.?!,:;])/g, '$1').trim();
+    const correctVariants = ex.originals.map(v => v.join(' ').replace(/\\s+([.?!,:;])/g, '$1').trim());
+    const matched = correctVariants.some(cv => normalize(cv) === normalize(user));
+    const feedback = document.getElementById('feedback-' + exIndex);
+    if (matched) {
+      ex.score = 1;
+      feedback.innerHTML = '<p style="color:green;">✅ Správne! +1 bod</p>';
+    } else {
+      ex.score = 0;
+      feedback.innerHTML = '<p style="color:red;">❌ Nesprávne. Správne varianty: <br><span style="color:green;">' + correctVariants.map(escapeHtml).join('<br>') + '</span></p>';
+    }
+  }
+
+  function evaluateAll() {
+    const name = document.getElementById('studentName').value || 'Neznáme meno';
+    const total = exercises.reduce((sum, ex) => sum + (ex.score || 0), 0);
+    const percent = Math.round((total / exercises.length) * 100);
+    const now = new Date().toLocaleString();
+    document.getElementById('finalResult').innerHTML =
+      '<h3>📊 Výsledky</h3>' +
+      '<p>Meno žiaka: <strong>' + escapeHtml(name) + '</strong></p>' +
+      '<p>Dátum a čas: ' + escapeHtml(now) + '</p>' +
+      '<p>Počet bodov: ' + total + ' / ' + exercises.length + '</p>' +
+      '<p>Úspešnosť: ' + percent + '%</p>';
+  }
+
+  // inicializácia: zabezpečme, že každé ex má userOrder ak chýba (pri exporte sa uložilo)
+  exercises.forEach(ex => {
+    if (!Array.isArray(ex.userOrder)) ex.userOrder = Array(ex.originals[0] ? ex.originals[0].length : 0).fill(null);
+    if (typeof ex.score !== 'number') ex.score = 0;
+  });
+
+  // vykresli všetko
+  renderAll();
+<\/script>
+
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "cvicenie_slovosled.html";
+  link.click();
+}
+</script>
+
+</body>
+</html>

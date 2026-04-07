@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor zoznamu na čítanie podľa jazyka (nemecko-slovenský)</title>
+  <style>
+    body { font-family: Courier bold, monospace; padding: 2rem; max-width: 800px; margin: auto; }
+    textarea { width: 100%; height: 200px; font-family: monospace; margin-bottom: 1rem; }
+    label { display: block; margin-top: 1rem; }
+    select, button, input { margin-top: 0.5rem; padding: 0.4rem; }
+    .btn-group { margin-top: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    hr { margin: 2rem 0; border: 0; border-top: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>🗣️ Generátor zoznamu na čítanie (nemecko-slovenský)</h1>
+  <p>Vložte dvojstĺpcový text oddelený tabulátorom (napr. <code>Guten Tag![TAB]Dobrý deň!</code>)</p>
+  <textarea id="inputText" placeholder="Hund[TAB]pes&#10;Wie geht es dir?[TAB]Ako sa máš?&#10;Danke![TAB]Ďakujem!"></textarea>
+
+  <label>
+    Jazyk stĺpca 1:
+    <select id="lang1">
+      <option value="de-DE">Nemčina (Nemecko - de-DE)</option>
+      <option value="de-AT">Nemčina (Rakúsko - de-AT)</option>
+      <option value="sk-SK">Slovenčina (sk-SK)</option>
+    </select>
+  </label>
+
+  <label>
+    Jazyk stĺpca 2:
+    <select id="lang2">
+      <option value="sk-SK">Slovenčina (sk-SK)</option>
+      <option value="de-DE">Nemčina (Nemecko - de-DE)</option>
+      <option value="de-AT">Nemčina (Rakúsko - de-AT)</option>
+    </select>
+  </label>
+
+  <label>
+    Zvýrazni hrubým písmom:
+    <select id="boldColumn">
+      <option value="1">Stĺpec 1</option>
+      <option value="2">Stĺpec 2</option>
+    </select>
+  </label>
+
+  <label>
+    Nadpis zoznamu:
+    <input type="text" id="titleInput" placeholder="Napr. Nemecké frázy" style="width: 100%;">
+  </label>
+
+  <label>
+    Autor:
+    <input type="text" id="authorInput" placeholder="Meno autora" style="width: 100%;">
+  </label>
+
+  <label>
+    Rok:
+    <input type="number" id="yearInput" placeholder="2025" style="width: 100%;">
+  </label>
+
+  <div class="btn-group">
+    <button onclick="generate()">Generovať zoznam na čítanie</button>
+    <button onclick="downloadHTML()">Uložiť ako súbor HTML</button>
+  </div>
+  
+  <hr>
+
+  <div class="btn-group">
+    <button onclick="exportJSON()">💾 Exportovať nastavenia (.json)</button>
+    <button onclick="document.getElementById('importFile').click()">📂 Importovať nastavenia (.json)</button>
+    <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(event)">
+  </div>
+
+<script>
+/* --- Uloženie a načítanie vstupov z localStorage --- */
+function saveInputs() {
+  try {
+    localStorage.setItem("inputText", document.getElementById("inputText").value);
+    localStorage.setItem("lang1", document.getElementById("lang1").value);
+    localStorage.setItem("lang2", document.getElementById("lang2").value);
+    localStorage.setItem("boldColumn", document.getElementById("boldColumn").value);
+    localStorage.setItem("titleInput", document.getElementById("titleInput").value);
+    localStorage.setItem("authorInput", document.getElementById("authorInput").value);
+    localStorage.setItem("yearInput", document.getElementById("yearInput").value);
+  } catch (e) {
+    // Tiché zlyhanie - žiadne chybové hlášky
+  }
+}
+
+function loadInputs() {
+  try {
+    if(localStorage.getItem("inputText")) document.getElementById("inputText").value = localStorage.getItem("inputText");
+    if(localStorage.getItem("lang1")) document.getElementById("lang1").value = localStorage.getItem("lang1");
+    if(localStorage.getItem("lang2")) document.getElementById("lang2").value = localStorage.getItem("lang2");
+    if(localStorage.getItem("boldColumn")) document.getElementById("boldColumn").value = localStorage.getItem("boldColumn");
+    if(localStorage.getItem("titleInput")) document.getElementById("titleInput").value = localStorage.getItem("titleInput");
+    if(localStorage.getItem("authorInput")) document.getElementById("authorInput").value = localStorage.getItem("authorInput");
+    if(localStorage.getItem("yearInput")) document.getElementById("yearInput").value = localStorage.getItem("yearInput");
+  } catch (e) {
+    // Tiché zlyhanie - žiadne chybové hlášky
+  }
+}
+
+window.addEventListener("load", loadInputs);
+document.querySelectorAll("#inputText, #lang1, #lang2, #boldColumn, #titleInput, #authorInput, #yearInput")
+  .forEach(el => el.addEventListener("input", saveInputs));
+
+/* --- Export a Import do/z JSON --- */
+function exportJSON() {
+  const data = {
+    inputText: document.getElementById("inputText").value,
+    lang1: document.getElementById("lang1").value,
+    lang2: document.getElementById("lang2").value,
+    boldColumn: document.getElementById("boldColumn").value,
+    titleInput: document.getElementById("titleInput").value,
+    authorInput: document.getElementById("authorInput").value,
+    yearInput: document.getElementById("yearInput").value
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'nastavenia_generatora.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.inputText !== undefined) document.getElementById("inputText").value = data.inputText;
+      if (data.lang1 !== undefined) document.getElementById("lang1").value = data.lang1;
+      if (data.lang2 !== undefined) document.getElementById("lang2").value = data.lang2;
+      if (data.boldColumn !== undefined) document.getElementById("boldColumn").value = data.boldColumn;
+      if (data.titleInput !== undefined) document.getElementById("titleInput").value = data.titleInput;
+      if (data.authorInput !== undefined) document.getElementById("authorInput").value = data.authorInput;
+      if (data.yearInput !== undefined) document.getElementById("yearInput").value = data.yearInput;
+      
+      saveInputs(); // Uloží importované dáta do localStorage
+    } catch (error) {
+      // Zabezpečené tiché načítanie - pri poškodenom súbore sa neukáže chybová hláška
+    }
+    // Reset hodnoty inputu, aby bolo možné znova nahrať ten istý súbor
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* --- Generovanie výstupu --- */
+function generate() {
+  const title = document.getElementById('titleInput').value.trim() || 'Čítací zoznam';
+  const author = document.getElementById('authorInput').value.trim() || 'Neznámy autor';
+  const year = document.getElementById('yearInput').value.trim() || new Date().getFullYear();
+  const text = document.getElementById('inputText').value.trim();
+  const lang1 = document.getElementById('lang1').value;
+  const lang2 = document.getElementById('lang2').value;
+  const boldCol = document.getElementById('boldColumn').value;
+
+  const rate = 1.0;
+  const pitch = 1.0;
+
+  const lines = text.split('\n').map(line => line.split('\t'));
+
+  const newWindow = window.open('', '_blank');
+  newWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="sk">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="author" content="${author}">
+      <meta name="year" content="${year}">
+      <title>${title}</title>
+      <style>
+        body { font-family: sans-serif; padding: 2rem; max-width: 900px; margin: auto; }
+        header { border-bottom: 2px solid #333; padding-bottom: 1rem; margin-bottom: 2rem; }
+        .meta-info { color: #555; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        td { padding: 0.5rem; border-bottom: 1px solid #ccc; vertical-align: middle; }
+        .bold { font-weight: bold; }
+        .icon { cursor: pointer; margin-right: 0.5rem; color: #0077cc; }
+        .controls { margin-top: 1rem; background: #f9f9f9; padding: 1rem; border-radius: 5px; }
+      </style>
+    </head>
+    <body>
+      <header>
+        <h1>${title}</h1>
+        <div class="meta-info"><b>Autor:</b> ${author} | <b>Rok:</b> ${year}</div>
+      </header>
+
+      <div class="controls">
+        <label>Rýchlosť: <input type="range" id="rate" min="0.6" max="1.4" step="0.1" value="${rate}"> <span id="rateVal">${rate}</span></label>
+        &nbsp;&nbsp;&nbsp;
+        <label>Výška: <input type="range" id="pitch" min="0.8" max="1.4" step="0.1" value="${pitch}"> <span id="pitchVal">${pitch}</span></label>
+      </div>
+
+      <table id="table">
+        ${lines.map(([col1, col2]) => `
+          <tr>
+            <td>
+              <span class="icon" onclick="speak('${col1 || ''}', '${lang1}')">🔊</span>
+              <span class="${boldCol === '1' ? 'bold' : ''}">${col1 || ''}</span>
+            </td>
+            <td>
+              <span class="icon" onclick="speak('${col2 || ''}', '${lang2}')">🔊</span>
+              <span class="${boldCol === '2' ? 'bold' : ''}">${col2 || ''}</span>
+            </td>
+          </tr>
+        `).join('')}
+      </table>
+
+      <script>
+        document.getElementById('rate').addEventListener('input', e => {
+          document.getElementById('rateVal').textContent = e.target.value;
+        });
+        document.getElementById('pitch').addEventListener('input', e => {
+          document.getElementById('pitchVal').textContent = e.target.value;
+        });
+
+        function speak(text, lang) {
+  if (!text) return;
+  
+  // Zastavíme prebiehajúcu reč, aby sa príkazy nemiešali
+  speechSynthesis.cancel();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = lang;
+  
+  // Pokus o výber kvalitnejšieho hlasu pre daný jazyk
+  const voices = speechSynthesis.getVoices();
+  const selectedVoice = voices.find(v => v.lang === lang || v.lang.replace('_', '-') === lang);
+  
+  if (selectedVoice) {
+    utter.voice = selectedVoice;
+  }
+
+  utter.rate = parseFloat(document.getElementById('rate').value);
+  utter.pitch = parseFloat(document.getElementById('pitch').value);
+  
+  speechSynthesis.speak(utter);
+}
+      <\/script>
+    </body>
+    </html>
+  `);
+  newWindow.document.close();
+}
+</script>
+
+<script>
+/* Tabulátor v textarea */
+const textarea = document.getElementById('inputText');
+textarea.addEventListener('keydown', function(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const start = this.selectionStart;
+    const end = this.selectionEnd;
+    this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+    this.selectionStart = this.selectionEnd = start + 1;
+  }
+});
+</script>
+
+<script>
+function downloadHTML() {
+  const title = document.getElementById('titleInput').value.trim() || 'Čítací zoznam';
+  const author = document.getElementById('authorInput').value.trim() || 'Neznámy autor';
+  const year = document.getElementById('yearInput').value.trim() || new Date().getFullYear();
+  const text = document.getElementById('inputText').value.trim();
+  const lang1 = document.getElementById('lang1').value;
+  const lang2 = document.getElementById('lang2').value;
+  const boldCol = document.getElementById('boldColumn').value;
+
+  const rate = 1.0;
+  const pitch = 1.0;
+
+  const lines = text.split('\n').map(line => line.split('\t'));
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="author" content="${author}">
+  <meta name="year" content="${year}">
+  <title>${title}</title>
+  <style>
+    body { font-family: Courier bold, monospace; padding: 2rem; max-width: 900px; margin: auto; }
+    header { border-bottom: 2px solid #333; padding-bottom: 1rem; margin-bottom: 2rem; }
+    .meta-info { color: #555; font-size: 0.9rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    td { padding: 0.5rem; border-bottom: 1px solid #ccc; vertical-align: middle; }
+    .bold { font-weight: bold; }
+    .icon { cursor: pointer; margin-right: 0.5rem; color: #0077cc; }
+    .controls { margin-top: 1rem; background: #f9f9f9; padding: 1rem; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>${title}</h1>
+    <div class="meta-info"><b>Autor:</b> ${author} | <b>Rok:</b> ${year}</div>
+  </header>
+
+  <div class="controls">
+    <label>Rýchlosť: <input type="range" id="rate" min="0.6" max="1.4" step="0.1" value="${rate}"> <span id="rateVal">${rate}</span></label>
+    &nbsp;&nbsp;&nbsp;
+    <label>Výška: <input type="range" id="pitch" min="0.8" max="1.4" step="0.1" value="${pitch}"> <span id="pitchVal">${pitch}</span></label>
+  </div>
+  
+  <table id="table">
+    ${lines.map(([col1, col2]) => `
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('${col1 || ''}', '${lang1}')">🔊</span>
+          <span class="${boldCol === '1' ? 'bold' : ''}">${col1 || ''}</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('${col2 || ''}', '${lang2}')">🔊</span>
+          <span class="${boldCol === '2' ? 'bold' : ''}">${col2 || ''}</span>
+        </td>
+      </tr>
+    `).join('')}
+  </table>
+
+  <script>
+    document.getElementById('rate').addEventListener('input', e => {
+      document.getElementById('rateVal').textContent = e.target.value;
+    });
+    document.getElementById('pitch').addEventListener('input', e => {
+      document.getElementById('pitchVal').textContent = e.target.value;
+    });
+
+    function speak(text, lang) {
+      if (!text) return;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = lang;
+      utter.rate = parseFloat(document.getElementById('rate').value);
+      utter.pitch = parseFloat(document.getElementById('pitch').value);
+      speechSynthesis.speak(utter);
+    }
+  <\/script>
+</body>
+</html>
+`;
+
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${title.replace(/\s+/g, '_') || 'zoznam'}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová
+<br><br>
+</body>
+</html>

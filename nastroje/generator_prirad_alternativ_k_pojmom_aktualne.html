@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor HTML cvičení - Priradenie z alternatív</title>
+    <style>
+        body {
+            font-family: Courier bold, monospace;
+            line-height: 1.6;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #000000;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 25px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        h1, h2 {
+            color: #0056b3;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        h1 {
+            font-size: 2em;
+        }
+        h2 {
+            font-size: 1.5em;
+            margin-top: 30px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            color: #000000;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box; /* Zabezpečí, že padding neovplyvní šírku */
+            font-family: Consolas, "Courier bold", monospace;
+            font-size: 1em;
+            line-height: 1.5;
+        }
+        textarea {
+            height: 300px;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .info {
+            background-color: #e6f7ff;
+            border: 1px solid #b3e0ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 0.95em;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: Consolas, "Courier bold", monospace;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Generátor HTML cvičení - Priradenie z alternatív</h1>
+        <p>Tento nástroj vám umožní vygenerovať samostatnú HTML stránku s interaktívnym cvičením na priraďovanie pojmov.</p>
+
+        <div class="info">
+            <strong>Návod:</strong><br>
+			Zadajte údaje v tvare: <code>slovo/slovné spojenie[TAB]správne priradenie:nesprávne priradenie</code><br>Každú úlohu uveďte na nový riadok.
+        </div>
+
+        <label for="dataInput"><span style="font-size: 120%;">Vstupné údaje (použite klávesu [TAB]):</span></label>
+        <textarea id="dataInput" placeholder="napr.:
+ein Modell[TAB]zeichnen:lesen
+eine E-Mail[TAB]schreiben:basteln
+eine Skizze[TAB]machen:lösen
+per Post[TAB]schicken:schreiben
+ein Schiff[TAB]fotografieren:fragen:gehen:trinken
+per E-Mail[TAB]fragen:zeichnen:essen"></textarea>
+
+        <label for="titleInput" style="display: inline-block; font-size: 120%; margin-right: 10px;">Názov cvičenia:</label>
+		<input type="text" id="titleInput" style="width: 800px;" placeholder="Zadajte názov cvičenia.">
+
+        <button id="generateBtn">Vygenerovať HTML stránku</button>
+    </div>
+
+    <script>
+        const dataInput = document.getElementById('dataInput');
+        const titleInput = document.getElementById('titleInput');
+        const generateBtn = document.getElementById('generateBtn');
+
+        // Kľúče pre localStorage
+        const localStorageKeyData = 'htmlGeneratorData';
+        const localStorageKeyTitle = 'htmlGeneratorTitle';
+
+        // --- Funkčnosť LocalStorage ---
+        // Načítať dáta pri štarte
+        if (localStorage.getItem(localStorageKeyData)) {
+            dataInput.value = localStorage.getItem(localStorageKeyData);
+        }
+        if (localStorage.getItem(localStorageKeyTitle)) {
+            titleInput.value = localStorage.getItem(localStorageKeyTitle);
+        }
+
+        // Uložiť dáta pri zmene
+        dataInput.addEventListener('input', () => {
+            localStorage.setItem(localStorageKeyData, dataInput.value);
+        });
+        titleInput.addEventListener('input', () => {
+            localStorage.setItem(localStorageKeyTitle, titleInput.value);
+        });
+
+        // --- Funkčnosť klávesy TAB ---
+        dataInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault(); 
+                var start = this.selectionStart;
+                var end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '\t' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+            }
+        });
+
+        // --- Generovanie HTML ---
+        generateBtn.addEventListener('click', () => {
+            const rawData = dataInput.value;
+            const title = titleInput.value || 'Nové cvičenie'; // Predvolený názov
+            
+            if (rawData.trim() === '') {
+                alert('Vstupné pole s údajmi je prázdne!');
+                return;
+            }
+
+            // 1. Spracovanie dát
+            const parsedData = [];
+            const lines = rawData.split('\n').filter(line => line.trim() !== '');
+
+            try {
+                lines.forEach((line, index) => {
+                    const parts = line.split('\t');
+                    if (parts.length !== 2) {
+                        throw new Error(`Chyba na riadku ${index + 1}: Chýba oddeľovač [TAB].`);
+                    }
+
+                    const term = parts[0].trim();
+                    const options = parts[1].split(':').map(opt => opt.trim()).filter(opt => opt !== '');
+
+                    if (term === '' || options.length < 2) {
+                        throw new Error(`Chyba na riadku ${index + 1}: Chýba výraz alebo sú nedostatočné možnosti (min. 1 správna a 1 nesprávna).`);
+                    }
+
+                    const correct = options[0];
+                    const incorrects = options.slice(1);
+
+                    parsedData.push({
+                        term: term,
+                        correct: correct,
+                        options: [correct, ...incorrects]
+                    });
+                });
+            } catch (error) {
+                alert(`Chyba pri spracovaní dát: ${error.message}`);
+                return;
+            }
+            
+            // 2. Vytvorenie HTML šablóny
+            const htmlContent = createHtmlTemplate(title, parsedData);
+
+            // 3. Stiahnutie súboru
+const blob = new Blob([htmlContent], { type: 'text/html' });
+const a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+
+// Funkcia na odstránenie diakritiky
+function removeDiacritics(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Vytvorí bezpečný názov súboru
+const fileName = removeDiacritics(title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '') || 'cvicenie';
+
+a.download = `${fileName}.html`;
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(a.href);
+});
+
+
+        // --- Funkcia na vytvorenie HTML šablóny ---
+        function createHtmlTemplate(title, data) {
+            const dataAsJson = JSON.stringify(data);
+            const escapedTitle = title.replace(/'/g, "\\'").replace(/"/g, '\\"');
+
+            return `
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapedTitle}</title>
+    <style>
+        body {
+            font-family: Courier bold, monospace;
+			font-size: 105%;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+            color: #212529;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 25px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        h1 {
+            color: #0056b3;
+            font-size: 2.2em;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        h2 {
+            color: #0056b3;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        .student-name {
+            margin-bottom: 25px;
+        }
+        label {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-right: 10px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+            width: 300px;
+        }
+        .exercise-item {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .term {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-right: 20px;
+            color: #333;
+			background-color: #ffff8a;
+			padding: 10px;
+			border-radius: 5px;
+            min-width: 150px;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .option-label {
+            display: inline-block;
+            padding: 10px 18px;
+            background-color: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .option-label:hover {
+            background-color: #e0e0e0;
+            border-color: #bbb;
+        }
+        /* Skryje pôvodný radio button */
+        .option-radio {
+            display: none;
+        }
+        /* Štýl pre vybranú možnosť */
+        .option-radio:checked + .option-label {
+            background-color: #007bff;
+            color: white;
+            border-color: #0056b3;
+        }
+        
+        /* Štýly pre vyhodnotenie */
+        .correct-answer .option-label.selected {
+             background-color: #28a745;
+             color: white;
+             border-color: #1e7e34;
+        }
+        .wrong-answer .option-label.selected {
+            background-color: #dc3545;
+            color: white;
+            border-color: #a71d2a;
+        }
+        .wrong-answer .option-label.correct {
+            /* Zvýrazní správnu odpoveď, ak bola vybraná nesprávna odpoveď */
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #28a745;
+        }
+
+        .action-button {
+            background-color: #28a745;
+            color: white;
+            padding: 14px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+            display: block;
+            min-width: 200px;
+            text-align: center;
+        }
+        .action-button:hover {
+            background-color: #218838;
+        }
+        .action-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #results-summary {
+            background-color: #e6f7ff;
+            border: 1px solid #b3e0ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        #results-summary p {
+            font-size: 1.1em;
+            margin: 8px 0;
+        }
+        #detailsBtn {
+            background-color: #17a2b8;
+        }
+        #detailsBtn:hover {
+            background-color: #117a8b;
+        }
+
+        /* --- Štýly pre detailné výsledky a tlač --- */
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .details-table th, .details-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .details-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .details-table td:nth-child(3) {
+            font-weight: bold;
+        }
+        .symbol-correct {
+            color: #28a745;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .symbol-wrong {
+            color: #dc3545;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .legend {
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+
+        @media print {
+            body {
+                background-color: #fff;
+                padding: 0;
+                font-size: 12pt;
+            }
+            .container, #results-summary {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+            }
+            h1 { font-size: 20pt; }
+            h2 { font-size: 16pt; }
+            .action-button, .student-name, #evaluateBtn, #detailsBtn {
+                display: none !important; /* Skryje tlačidlá pri tlači */
+            }
+            .exercise-item {
+                border-bottom: 1px solid #ccc;
+            }
+            .option-label {
+                border: 1px solid #999;
+                padding: 5px 10px;
+            }
+            .option-radio:checked + .option-label {
+                background-color: #ddd !important; /* Zjednodušenie pre tlač */
+                color: #000 !important;
+                border-color: #555 !important;
+            }
+            /* Štýly pre detailnú tlač */
+            .details-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .details-table th, .details-table td {
+                border: 1px solid #000;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>${escapedTitle}</h1>
+
+        <div class="student-name">
+            <label for="studentName">Meno žiaka:</label>
+            <input type="text" id="studentName" placeholder="Zadajte meno žiaka.">
+        </div>
+		<p style="background-color: yellow; padding: 8px; border-radius: 5px;"><strong>Klikni na tlačidlo, ktoré podľa teba zobrazuje správny text.<br>V každom riadku je správna len jedna odpoveď.<br>Po označení všetkých odpovedí klikni na tlačidlo "Vyhodnotiť".</strong></p>
+        <div id="exercise-container">
+            </div>
+
+        <button id="evaluateBtn" class="action-button">Vyhodnotiť</button>
+
+        <div id="results-summary" style="display: none;">
+            <h2>Výsledky</h2>
+            <p><strong>Názov cvičenia:</strong> <span id="summary-title"></span></p>
+            <p><strong>Meno žiaka:</strong> <span id="summary-name"></span></p>
+            <p><strong>Hodnotenie:</strong> <span id="summary-score"></span></p>
+            <p><strong>Dátum a čas:</strong> <span id="summary-datetime"></span></p>
+        </div>
+        
+        <button id="detailsBtn" class="action-button" style="display: none;">Detailné výsledky</button>
+    </div>
+
+    <script>
+        // --- Globálne premenné ---
+        const quizData = ${dataAsJson};
+        const exerciseContainer = document.getElementById('exercise-container');
+        const evaluateBtn = document.getElementById('evaluateBtn');
+        const studentNameInput = document.getElementById('studentName');
+        const resultsSummary = document.getElementById('results-summary');
+        const detailsBtn = document.getElementById('detailsBtn');
+
+        let detailedResults = []; // Na uloženie detailov pre nové okno
+        let finalScore = 0;
+        let totalQuestions = 0;
+        let percentage = 0;
+        let studentName = '';
+        let evaluationTime = '';
+
+        // --- Pomocná funkcia na zamiešanie poľa (Fisher-Yates) ---
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // --- Funkcia na vykreslenie cvičenia ---
+        function renderExercise() {
+            const shuffledData = shuffle([...quizData]); // Vytvorí kópiu a zamieša
+            totalQuestions = shuffledData.length;
+            exerciseContainer.innerHTML = ''; // Vyčistí kontajner
+
+            shuffledData.forEach((item, index) => {
+                const questionId = \`q-\${index}\`;
+                
+                // Vytvorí kontajner pre položku
+                const itemElement = document.createElement('div');
+                itemElement.className = 'exercise-item';
+                // Uloží správnu odpoveď priamo do elementu pre ľahké vyhodnotenie
+                itemElement.dataset.correct = item.correct;
+                itemElement.dataset.term = item.term;
+
+                // Vytvorí text položky
+                const termElement = document.createElement('div');
+                termElement.className = 'term';
+                termElement.textContent = item.term;
+                itemElement.appendChild(termElement);
+
+                // Vytvorí kontajner pre možnosti
+                const optionsElement = document.createElement('div');
+                optionsElement.className = 'options';
+
+                const shuffledOptions = shuffle([...item.options]); // Zamieša možnosti
+                
+                shuffledOptions.forEach((option, optIndex) => {
+                    const optionId = \`\${questionId}-opt-\${optIndex}\`;
+
+                    // Vytvorí radio button
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.id = optionId;
+                    radio.name = questionId; // Zoskupí radio buttony pre jednu otázku
+                    radio.value = option;
+                    radio.className = 'option-radio';
+                    
+                    // Vytvorí label (tlačidlo)
+                    const label = document.createElement('label');
+                    label.htmlFor = optionId;
+                    label.className = 'option-label';
+                    label.textContent = option;
+                    
+                    // Pridá funkcionalitu na vizuálne označenie výberu
+                    radio.addEventListener('change', () => {
+                        // Odstráni 'selected' triedu zo všetkých labelov v tejto skupine
+                        document.querySelectorAll(\`input[name="\${questionId}"] + label\`).forEach(lbl => {
+                            lbl.classList.remove('selected');
+                        });
+                        // Pridá 'selected' triedu len kliknutému
+                        if (radio.checked) {
+                            label.classList.add('selected');
+                        }
+                    });
+
+                    optionsElement.appendChild(radio);
+                    optionsElement.appendChild(label);
+                });
+
+                itemElement.appendChild(optionsElement);
+                exerciseContainer.appendChild(itemElement);
+            });
+        }
+
+        // --- Funkcia na vyhodnotenie ---
+        function evaluateTest() {
+            studentName = studentNameInput.value.trim() || 'Anonym';
+            evaluationTime = new Date().toLocaleString('sk-SK');
+            detailedResults = []; // Resetuje výsledky
+            let score = 0;
+
+            const allQuestions = document.querySelectorAll('.exercise-item');
+            let allAnswered = true;
+
+            allQuestions.forEach(itemElement => {
+                const questionName = itemElement.querySelector('input[type="radio"]').name;
+                const selectedRadio = document.querySelector(\`input[name="\${questionName}"]:checked\`);
+
+                if (!selectedRadio) {
+                    allAnswered = false;
+                    return; // Preskočí, ak nie je vybraná žiadna odpoveď
+                }
+
+                const term = itemElement.dataset.term;
+                const correctAnswer = itemElement.dataset.correct;
+                const studentAnswer = selectedRadio.value;
+                const isCorrect = (studentAnswer === correctAnswer);
+
+                if (isCorrect) {
+                    score++;
+                    itemElement.classList.add('correct-answer');
+                } else {
+                    itemElement.classList.add('wrong-answer');
+                    // Nájde a označí správnu odpoveď pre vizuálnu spätnú väzbu
+                    const correctRadio = itemElement.querySelector(\`input[value="\${CSS.escape(correctAnswer)}"]\`);
+                    if(correctRadio) {
+                        correctRadio.nextElementSibling.classList.add('correct');
+                    }
+                }
+
+                // Uloží pre detailný report
+                detailedResults.push({
+                    term: term,
+                    correct: correctAnswer,
+                    student: studentAnswer,
+                    isCorrect: isCorrect
+                });
+            });
+
+            if (!allAnswered) {
+                alert('Prosím, odpovedajte na všetky otázky pred vyhodnotením.');
+                return;
+            }
+
+            // Znefunkční tlačidlá a inputy
+            evaluateBtn.disabled = true;
+            studentNameInput.disabled = true;
+            document.querySelectorAll('.option-radio').forEach(radio => radio.disabled = true);
+            document.querySelectorAll('.option-label').forEach(label => label.style.cursor = 'not-allowed');
+
+            // Vypočíta a uloží finálne skóre
+            finalScore = score;
+            percentage = (totalQuestions > 0) ? ((score / totalQuestions) * 100).toFixed(1) : 0;
+
+            // Zobrazí súhrn
+            document.getElementById('summary-title').textContent = '${escapedTitle}';
+            document.getElementById('summary-name').textContent = studentName;
+            document.getElementById('summary-score').textContent = \`\${score} z \${totalQuestions} bodov (\${percentage} %)\`;
+            document.getElementById('summary-datetime').textContent = evaluationTime;
+            
+            resultsSummary.style.display = 'block';
+            detailsBtn.style.display = 'block';
+        }
+
+        // --- Funkcia na zobrazenie detailov v novom okne ---
+        function showDetails() {
+            const detailsWindow = window.open('', '_blank');
+            if (!detailsWindow) {
+                alert('Prosím, povoľte vyskakovacie okná pre túto stránku, aby sa mohli zobraziť detailné výsledky.');
+                return;
+            }
+
+            let tableRows = '';
+            detailedResults.forEach(res => {
+                const symbol = res.isCorrect 
+                    ? '<span class="symbol-correct">✓</span>' 
+                    : '<span class="symbol-wrong">✗</span>';
+                
+                tableRows += \`
+                    <tr>
+                        <td>\${res.term}</td>
+                        <td>\${res.correct}</td>
+                        <td>\${res.student} \${symbol}</td>
+                    </tr>
+                \`;
+            });
+
+            const detailsHtml = \`
+                <!DOCTYPE html>
+                <html lang="sk">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Detailné výsledky - ${escapedTitle}</title>
+                    <style>
+                        body { 
+                            font-family: Courier bold, monospace; 
+                            line-height: 1.5; padding: 25px; 
+                        }
+                        h1 { color: #0056b3; }
+                        h2 { border-bottom: 2px solid #eee; padding-bottom: 5px; }
+                        p { font-size: 1.1em; }
+                        .details-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 20px;
+                        }
+                        .details-table th, .details-table td {
+                            border: 1px solid #ddd;
+                            padding: 12px;
+                            text-align: left;
+                        }
+                        .details-table th {
+                            background-color: #f2f2f2;
+                            font-weight: bold;
+                        }
+                        .details-table td:nth-child(3) {
+                            font-weight: bold;
+                        }
+                        .symbol-correct { color: #28a745; font-size: 1.5em; font-weight: bold; }
+                        .symbol-wrong { color: #dc3545; font-size: 1.5em; font-weight: bold; }
+                        .legend { margin-top: 20px; font-size: 1.1em; }
+
+                        @media print {
+                            body { padding: 0; font-size: 12pt; }
+                            h1 { font-size: 20pt; }
+                            h2 { font-size: 16pt; }
+                            .details-table th, .details-table td { border: 1px solid #000; padding: 8px; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>${escapedTitle}</h1>
+                    <p><strong>Meno žiaka:</strong> \${studentName}</p>
+                    <p><strong>Hodnotenie:</strong> \${finalScore} z \${totalQuestions} bodov (\${percentage} %)</p>
+                    <p><strong>Dátum a čas:</strong> \${evaluationTime}</p>
+                    
+                    <h2>Detailný prehľad</h2>
+                    <table class="details-table">
+                        <thead>
+                            <tr>
+                                <th>Zadaná úloha</th>
+                                <th>Správna alternatíva</th>
+                                <th>Odpoveď žiaka</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            \${tableRows}
+                        </tbody>
+                    </table>
+
+                    <div class="legend">
+                        <p><span class="symbol-correct">✓</span> = Správna odpoveď</p>
+                        <p><span class="symbol-wrong">✗</span> = Nesprávna odpoveď</p>
+                    </div>
+                </body>
+                </html>
+            \`;
+
+            detailsWindow.document.open();
+            detailsWindow.document.write(detailsHtml);
+            detailsWindow.document.close();
+            detailsWindow.focus(); // Pre istotu
+        }
+
+        // --- Inicializácia a priradenie udalostí ---
+        document.addEventListener('DOMContentLoaded', renderExercise);
+        evaluateBtn.addEventListener('click', evaluateTest);
+        detailsBtn.addEventListener('click', showDetails);
+    <\/script>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>
+`;
+        }
+
+    </script>
+	
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

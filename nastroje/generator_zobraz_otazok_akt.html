@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor zobrazovača zadaní/otázok</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: inline-block;
+            width: 80px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"] {
+            width: calc(100% - 100px);
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 8px;
+            font-family: monospace;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        .toolbar {
+            margin-bottom: 15px;
+        }
+        .toolbar button {
+            padding: 5px 10px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            background-color: #e0e0e0;
+            border: 1px solid #aaa;
+            border-radius: 3px;
+        }
+        .toolbar button:hover {
+            background-color: #d0d0d0;
+        }
+        .actions, .main-action {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ccc;
+        }
+        .actions button, .main-action button {
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            border: none;
+            color: white;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        #btn-export { background-color: #3498db; }
+        #btn-import-trigger { background-color: #f39c12; }
+        #btn-generate { background-color: #2ecc71; font-weight: bold; font-size: 16px; width: 100%; }
+        
+        button:hover { opacity: 0.9; }
+        .help-text { font-size: 12px; color: #666; margin-bottom: 5px; display: block; }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor zobrazovača zadaní/otázok</h1>
+
+    <div class="form-group">
+        <label for="autor">Autor:</label>
+        <input type="text" id="autor" placeholder="Zadaj meno autora">
+    </div>
+    <div class="form-group">
+        <label for="rok">Rok:</label>
+        <input type="number" id="rok" placeholder="Napr. 2026">
+    </div>
+    <div class="form-group">
+        <label for="predmet">Predmet:</label>
+        <input type="text" id="predmet" placeholder="Napr. Matematika">
+    </div>
+    <div class="form-group">
+        <label for="tema">Téma:</label>
+        <input type="text" id="tema" placeholder="Napr. Sčítanie a odčítanie">
+    </div>
+
+    <div class="form-group">
+        <span class="help-text">Dáta zadávaj vo formáte: <b>typ[TAB]text</b><br> (napr. <i>otázka&emsp;Koľko mesiacov má rok?</i>). Kláves TAB je podporovaný.</span>
+        <textarea id="dataInput" placeholder="otázka&#9;Koľko mesiacov má rok?&#10;zadanie&#9;Vypočítaj príklad 8 + 10 ="></textarea>
+    </div>
+
+    <div class="toolbar">
+        <button onclick="insertTag('<b>', '</b>')">&lt;b&gt;</button>
+        <button onclick="insertTag('<i>', '</i>')">&lt;i&gt;</button>
+        <button onclick="insertTag('<u>', '</u>')">&lt;u&gt;</button>
+        <button onclick="insertTag('<p>', '</p>')">&lt;p&gt;</button>
+        <button onclick="insertTag('<h>', '</h>')">&lt;h&gt;</button>
+        <button onclick="insertTag('<span>', '</span>')">&lt;span&gt;</button>
+        <button onclick="insertTag('<br>', '')">&lt;br&gt;</button>
+    </div>
+
+    <div class="actions">
+        <button id="btn-export">Exportovať nastavenia (.json)</button>
+        <button id="btn-import-trigger">Importovať nastavenia (.json)</button>
+        <input type="file" id="file-import" accept=".json" style="display: none;">
+    </div>
+
+    <div class="main-action">
+        <button id="btn-generate">Stiahnuť zobrazovač zadaní/otázok ako súbor .html</button>
+    </div>
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+<br><br>
+    <script>
+        // Podpora pre TAB v textovom poli
+        document.getElementById('dataInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+            }
+        });
+
+        // Funkcia pre vkladanie HTML tagov
+        function insertTag(startTag, endTag) {
+            const textarea = document.getElementById('dataInput');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            const replacement = startTag + selectedText + endTag;
+            
+            textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+            textarea.focus();
+            
+            if (selectedText.length === 0) {
+                textarea.selectionStart = textarea.selectionEnd = start + startTag.length;
+            } else {
+                textarea.selectionStart = start;
+                textarea.selectionEnd = start + replacement.length;
+            }
+        }
+
+        // Export do JSON
+        document.getElementById('btn-export').addEventListener('click', () => {
+            const data = {
+                autor: document.getElementById('autor').value,
+                rok: document.getElementById('rok').value,
+                predmet: document.getElementById('predmet').value,
+                tema: document.getElementById('tema').value,
+                obsah: document.getElementById('dataInput').value
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "nastavenia_generatora.json";
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Import z JSON
+        document.getElementById('btn-import-trigger').addEventListener('click', () => {
+            document.getElementById('file-import').click();
+        });
+
+        document.getElementById('file-import').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.autor !== undefined) document.getElementById('autor').value = data.autor;
+                    if(data.rok !== undefined) document.getElementById('rok').value = data.rok;
+                    if(data.predmet !== undefined) document.getElementById('predmet').value = data.predmet;
+                    if(data.tema !== undefined) document.getElementById('tema').value = data.tema;
+                    if(data.obsah !== undefined) document.getElementById('dataInput').value = data.obsah;
+                } catch (err) {
+                    alert('Chyba pri čítaní súboru. Uistite sa, že ide o platný .json formát.');
+                }
+            };
+            reader.readAsText(file);
+            this.value = ''; // Reset inputu
+        });
+
+        // Generovanie HTML Zobrazovača
+        document.getElementById('btn-generate').addEventListener('click', () => {
+            const autor = document.getElementById('autor').value || 'Neznámy autor';
+            const rok = document.getElementById('rok').value || new Date().getFullYear();
+            const predmet = document.getElementById('predmet').value;
+            const tema = document.getElementById('tema').value;
+            const lines = document.getElementById('dataInput').value.split('\n');
+
+            let poleZadani = [];
+            lines.forEach(line => {
+                if(line.trim() === '') return;
+                const parts = line.split('\t');
+                if (parts.length >= 2) {
+                    poleZadani.push({ type: parts[0].trim(), text: parts.slice(1).join('\t').trim() });
+                } else {
+                    poleZadani.push({ type: 'Zadanie/Otázka', text: line.trim() });
+                }
+            });
+
+            if(poleZadani.length === 0) {
+                alert('Zadajte aspoň jedno zadanie alebo otázku do textového poľa!');
+                return;
+            }
+
+            const viewerHTML = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zobrazovač zadaní/otázok</title>
+    <style>
+        body {
+            font-family: 'Monaco', monospace;
+            color: darkgreen;
+            font-weight: bold;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+        }
+        h1, h2 { text-align: center; }
+        .meta-info {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        #setup-screen {
+            text-align: center;
+            margin-top: 50px;
+            padding: 30px;
+            border: 2px dashed darkgreen;
+        }
+        #setup-screen input {
+            font-family: 'Monaco', monospace;
+            font-weight: bold;
+            font-size: 1.2em;
+            width: 80px;
+            text-align: center;
+            color: darkgreen;
+        }
+        button {
+            font-family: 'Monaco', monospace;
+            font-weight: bold;
+            font-size: 1.5em;
+            color: darkgreen;
+            background-color: #e8f5e9;
+            border: 2px solid darkgreen;
+            padding: 10px 30px;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #c8e6c9;
+        }
+        #quiz-screen { display: none; }
+        
+        .counter-text {
+            font-size: 1.2em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .active-item {
+            font-size: 4em; /* Veľmi veľké písmo */
+			text-align: center;
+            line-height: 1.3;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 3px solid darkgreen;
+            background-color: #f1f8e9;
+        }
+        .upcoming-item {
+            font-size: 2em; /* Polovičné písmo (4em / 2 = 2em) */
+			text-align: center;
+            opacity: 0.6;
+            margin-top: 20px;
+            padding: 10px;
+            border-bottom: 1px dotted darkgreen;
+        }
+        footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid darkgreen;
+            text-align: center;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 style="font-size: 2.5em;">Zobrazovač zadaní/otázok</h1>
+    <div class="meta-info">Autor: ${autor} | Rok: ${rok}</div>
+
+    <div id="setup-screen">
+        <label style="font-size: 1.5em;">Zadajte počet zadaní/otázok, ktoré sa majú zobraziť: 
+            <input type="number" id="q-count" min="1" max="${poleZadani.length}" value="${poleZadani.length}">
+        </label><br>
+        <button id="start-btn">Štart</button>
+    </div>
+
+    <div id="quiz-screen">
+        <div id="active-container"></div>
+        <button id="next-btn" style="display:block; margin: 30px auto;">Ďalej</button>
+        <div id="upcoming-container"></div>
+    </div>
+
+    <footer>
+        <p>Autor: ${autor} | Rok: ${rok} ${predmet ? '| Predmet: ' + predmet : ''} ${tema ? '| Téma: ' + tema : ''}</p>
+    </footer>
+
+    <script>
+        const rawItems = ${JSON.stringify(poleZadani)};
+        let activeItems = [];
+        let currentIndex = 0;
+
+        // Funkcia na pomiešanie (Fisher-Yates shuffle)
+        function shuffle(array) {
+            let arr = array.slice();
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        window.onload = () => {
+            // Pomiešanie ihneď pri načítaní stránky
+            rawItemsShuffled = shuffle(rawItems);
+        };
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            let count = parseInt(document.getElementById('q-count').value, 10);
+            if(isNaN(count) || count < 1) count = 1;
+            if(count > rawItemsShuffled.length) count = rawItemsShuffled.length;
+            
+            // Vyberieme zadaný počet z už pomiešaného poľa
+            activeItems = rawItemsShuffled.slice(0, count);
+            
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            render();
+        });
+
+        document.getElementById('next-btn').addEventListener('click', () => {
+            currentIndex++;
+            render();
+        });
+
+        function render() {
+            const activeContainer = document.getElementById('active-container');
+            const upcomingContainer = document.getElementById('upcoming-container');
+            const nextBtn = document.getElementById('next-btn');
+
+            if (currentIndex >= activeItems.length) {
+                activeContainer.innerHTML = '<div class="active-item" style="text-align:center;">Všetky zadania boli dokončené!</div>';
+                upcomingContainer.innerHTML = '';
+                nextBtn.style.display = 'none';
+                return;
+            }
+
+            const current = activeItems[currentIndex];
+            let typeCapitalized = current.type.charAt(0).toUpperCase() + current.type.slice(1);
+
+            // Vykreslenie aktuálneho (veľkého)
+            activeContainer.innerHTML = \`
+                <div class="counter-text">\${typeCapitalized} číslo \${currentIndex + 1} z celkového počtu \${activeItems.length}</div>
+                <div class="active-item">\${current.text}</div>
+            \`;
+
+            // Skrytie tlačidla Ďalej, ak ide o posledný prvok
+            if (currentIndex === activeItems.length - 1) {
+                nextBtn.style.display = 'none';
+            } else {
+                nextBtn.style.display = 'block';
+            }
+
+            // Vykreslenie budúcich (polovičných)
+            let upcomingHTML = '';
+            for (let i = currentIndex + 1; i < activeItems.length; i++) {
+                let uType = activeItems[i].type.charAt(0).toUpperCase() + activeItems[i].type.slice(1);
+                upcomingHTML += \`
+                    <div class="upcoming-item">
+                        <span style="font-size: 0.6em; color: #555;">\${uType} číslo \${i + 1}</span><br>
+                        \${activeItems[i].text}
+                    </div>
+                \`;
+            }
+            upcomingContainer.innerHTML = upcomingHTML;
+        }
+    <\/script>
+</body>
+</html>`;
+
+            const blob = new Blob([viewerHTML], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "zobrazovac_zadani.html";
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>

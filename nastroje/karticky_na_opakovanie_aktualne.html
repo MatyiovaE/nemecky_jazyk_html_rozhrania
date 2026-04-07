@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Kartičky na opakovanie slovíčok</title>
+  <style>
+    body {
+      font-family: Courier bold, monospace;
+      margin: 30px;
+      background-color: #f4f4f4;
+    }
+    textarea, select, button, input[type="checkbox"] {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+    }
+    .card {
+      margin: 20px auto;
+      width: 61%;
+      height: 200px;
+      background-color: white;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 60px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      text-align: center;
+    }
+    .card:hover {
+      background-color: #eef;
+    }
+    .card .secondary {
+      margin-top: 10px;
+      font-size: 60px;
+      background-color: #f9f9f9;
+      padding: 10px;
+      border-radius: 6px;
+      width: 100%;
+    }
+    .card-container {
+      margin: 20px auto;
+      width: 61%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card-box {
+      position: relative;
+      width: 61%;
+      aspect-ratio: 2 / 1;
+      background-color: white;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 60px;
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 20px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .card-box:hover {
+      background-color: #eef;
+    }
+    .card-box.secondary {
+      background-color: #f9f9f9;
+      font-weight: normal;
+    }
+    .card-box.primary {
+      font-weight: bold;
+    }
+    .controls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .stats {
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    .hidden {
+      display: none;
+    }
+    .options {
+      margin-top: 10px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    /* Tmavý režim */
+    body.dark-mode {
+      background-color: #1a2d06;
+      color: #ffffff;
+    }
+    body.dark-mode textarea,
+    body.dark-mode select,
+    body.dark-mode button,
+    body.dark-mode input[type="checkbox"] {
+      background-color: #263c10;
+      color: #ffffff;
+      border: 1px solid #444;
+    }
+    body.dark-mode .card,
+    body.dark-mode .card-box {
+      background-color: #17290A;
+      border: 2px solid #333;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+      color: #ffffff;
+    }
+    body.dark-mode .card:hover,
+    body.dark-mode .card-box:hover {
+      background-color: #20390E;
+    }
+    body.dark-mode .card .secondary,
+    body.dark-mode .card-box.secondary {
+      background-color: #1D2D0B;
+      color: #ffffff;
+    }
+    body.dark-mode .stats,
+    body.dark-mode label {
+      color: #ffffff;
+    }
+    /* ikonka reproduktora */
+    .speaker {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+      font-size: 0.6em;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+    .speaker:hover {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Generátor kartičiek</h1>
+  <textarea id="inputArea" rows="10" placeholder="Zadajte slovné páry vo formáte:
+pojem[TAB]definícia"></textarea>
+
+  <label for="boldSide">Zvýrazni hrubým písmom:</label>
+  <select id="boldSide">
+    <option value="term">Pojem</option>
+    <option value="definition">Definícia</option>
+  </select>
+
+  <label for="displayMode">Zobraziť:</label>
+  <select id="displayMode">
+    <option value="both">Obe strany kartičky</option>
+    <option value="term">Len pojem</option>
+    <option value="definition">Len definícia</option>
+  </select>
+
+  <label for="termLang">Jazyk pojmu:</label>
+  <select id="termLang">
+    <option value="sk">sk</option>
+    <option value="en">en</option>
+    <option value="de">de</option>
+    <option value="fr">fr</option>
+  </select>
+
+  <label for="defLang">Jazyk definície:</label>
+  <select id="defLang">
+    <option value="sk">sk</option>
+    <option value="en">en</option>
+    <option value="de">de</option>
+    <option value="fr">fr</option>
+  </select>
+
+  <div class="options">
+    <label><input type="checkbox" id="shuffleCards"> Náhodné poradie kartičiek</label>
+    <label><input type="checkbox" id="autoPlay"> Automatické prehrávanie (každé 3 sekundy)</label>
+  </div>
+
+  <button id="toggle-theme">Prepni režim</button>
+  <button onclick="startReview()">Spustiť prehľad kartičiek</button>
+  <button onclick="saveFlashcardsAsHTML()">Uložiť kartičky ako HTML</button>
+
+  <div id="reviewSection" class="hidden">
+    <div class="card" id="cardDisplay"></div>
+    <div class="controls">
+      <button onclick="prevCard()">⬅️ Predchádzajúca</button>
+      <button onclick="nextCard()">➡️ Ďalšia</button>
+      <button onclick="toggleAutoPlay()">⏯️ Prehrať/Pozastaviť</button>
+    </div>
+    <div class="stats" id="cardStats"></div>
+  </div>
+
+  <button id="restartBtn" style="display:none;" onclick="restartCards()">Znova</button>
+
+  <script>
+    let cards = [];
+    let currentIndex = 0;
+    let autoPlayInterval = null;
+    let flipped = false;
+
+    document.getElementById('inputArea').addEventListener('keydown', e => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const ta = e.target;
+        const start = ta.selectionStart, end = ta.selectionEnd;
+        ta.value = ta.value.slice(0,start) + '\t' + ta.value.slice(end);
+        ta.selectionStart = ta.selectionEnd = start + 1;
+      }
+    });
+
+    function shuffleArray(a) {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+    }
+
+    function createSpeakerIcon(text, lang) {
+      const s = document.createElement('span');
+      s.className = 'speaker';
+      s.textContent = '🔊';
+      s.onclick = () => {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = lang;
+        speechSynthesis.speak(u);
+      };
+      return s;
+    }
+
+    function startReview() {
+      const input = document.getElementById('inputArea').value.trim();
+      cards = input.split('\n')
+        .map(l => l.split('\t'))
+        .filter(p => p[0] && p[1])
+        .map(p => ({term:p[0].trim(), definition:p[1].trim()}));
+      if (document.getElementById('shuffleCards').checked) shuffleArray(cards);
+      currentIndex = 0; flipped = false;
+      document.getElementById('reviewSection').classList.remove('hidden');
+      showCard();
+      if (document.getElementById('autoPlay').checked) startAutoPlay();
+    }
+
+    function showCard() {
+      const card = cards[currentIndex];
+      const bs = document.getElementById('boldSide').value;
+      const dm = document.getElementById('displayMode').value;
+      const tL = document.getElementById('termLang').value;
+      const dL = document.getElementById('defLang').value;
+      const cd = document.getElementById('cardDisplay');
+      cd.innerHTML = '';
+      const tb = document.createElement('div');
+      const db = document.createElement('div');
+      tb.className = 'card-box';
+      db.className = 'card-box';
+      if (bs==='term') { tb.classList.add('primary'); db.classList.add('secondary'); }
+      else             { tb.classList.add('secondary'); db.classList.add('primary'); }
+      tb.textContent = card.term;
+      tb.appendChild(createSpeakerIcon(card.term, tL));
+      db.textContent = card.definition;
+      db.appendChild(createSpeakerIcon(card.definition, dL));
+      if (dm==='both') {
+        cd.className = 'card-container';
+        cd.append(tb, db);
+      } else {
+        const sb = document.createElement('div');
+        sb.className = 'card-box';
+        sb.textContent = flipped
+          ? (dm==='term'? card.definition: card.term)
+          : (dm==='term'? card.term: card.definition);
+        const isPrimary = 
+          (bs==='term' && !flipped && dm==='term') ||
+          (bs==='definition' && !flipped && dm==='definition') ||
+          (bs==='term' && flipped && dm==='definition') ||
+          (bs==='definition' && flipped && dm==='term');
+        sb.classList.add(isPrimary ? 'primary':'secondary');
+        cd.className = 'card-container';
+        cd.append(sb);
+        sb.onclick = toggleFlip;
+      }
+      document.getElementById('cardStats').textContent =
+        `Kartička ${currentIndex+1} z ${cards.length}`;
+      saveState();
+    }
+    function toggleFlip() { flipped = !flipped; showCard(); }
+    function nextCard(){
+      if (currentIndex<cards.length-1) { currentIndex++; flipped=false; showCard(); }
+      else {
+        document.getElementById('cardDisplay').innerHTML = '<p>Prehľad ukončený 🎉</p>';
+        document.getElementById('cardStats').textContent='';
+        document.getElementById('restartBtn').style.display='inline-block';
+      }
+    }
+    function prevCard(){
+      if (currentIndex>0) { currentIndex--; flipped=false; showCard(); }
+    }
+    function startAutoPlay(){
+      stopAutoPlay();
+      autoPlayInterval = setInterval(nextCard,3000);
+    }
+    function stopAutoPlay(){
+      clearInterval(autoPlayInterval);
+      autoPlayInterval = null;
+    }
+    function toggleAutoPlay(){
+      autoPlayInterval ? stopAutoPlay() : startAutoPlay();
+    }
+    document.addEventListener('keydown', e=>{
+      if (!document.getElementById('reviewSection').classList.contains('hidden')){
+        if (e.key==='ArrowRight') nextCard();
+        if (e.key==='ArrowLeft')  prevCard();
+      }
+    });
+    function restartCards(){
+      currentIndex=0; flipped=false;
+      localStorage.removeItem('flashcardState');
+      document.getElementById('restartBtn').style.display='none';
+      showCard();
+    }
+    function saveState(){
+      const st = {
+        currentIndex, flipped, cards,
+        settings:{
+          boldSide:document.getElementById('boldSide').value,
+          displayMode:document.getElementById('displayMode').value,
+          termLang:document.getElementById('termLang').value,
+          defLang:document.getElementById('defLang').value,
+          shuffle:document.getElementById('shuffleCards').checked,
+          autoPlay:document.getElementById('autoPlay').checked,
+          dark:document.body.classList.contains('dark-mode')
+        }
+      };
+      localStorage.setItem('flashcardState',JSON.stringify(st));
+    }
+    function loadState(){
+      const s = JSON.parse(localStorage.getItem('flashcardState')||'null');
+      if (!s) return;
+      cards=s.cards||[]; currentIndex=s.currentIndex; flipped=s.flipped;
+      const u=s.settings;
+      document.getElementById('boldSide').value=u.boldSide;
+      document.getElementById('displayMode').value=u.displayMode;
+      document.getElementById('termLang').value=u.termLang;
+      document.getElementById('defLang').value=u.defLang;
+      document.getElementById('shuffleCards').checked=u.shuffle;
+      document.getElementById('autoPlay').checked=u.autoPlay;
+      document.body.classList.toggle('dark-mode',u.dark);
+      document.getElementById('reviewSection').classList.remove('hidden');
+      showCard();
+      if(u.autoPlay) startAutoPlay();
+    }
+    const toggleButton = document.getElementById('toggle-theme');
+    window.addEventListener('load',()=>{
+      document.body.classList.toggle('dark-mode',
+        localStorage.getItem('darkMode')==='true'
+      );
+      toggleButton.textContent =
+        document.body.classList.contains('dark-mode')
+          ? 'Svetlý režim' : 'Tmavý režim';
+      loadState();
+    });
+    toggleButton.addEventListener('click',()=>{
+      const d = !document.body.classList.contains('dark-mode');
+      document.body.classList.toggle('dark-mode',d);
+      localStorage.setItem('darkMode',d);
+      toggleButton.textContent = d ? 'Svetlý režim':'Tmavý režim';
+    });
+
+    function saveFlashcardsAsHTML() {
+      const html = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Kartičky na opakovanie</title>
+  <style>
+    body {
+      font-family: Courier bold, monospace;
+      margin: 30px;
+      background-color: #f4f4f4;
+    }
+    select, button, input[type="checkbox"] {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+    }
+    .card-container {
+      margin: 20px auto;
+      width: 61%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card-box {
+      position: relative;
+      width: 61%;
+      aspect-ratio: 2 / 1;
+      background-color: white;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 60px;
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 20px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .card-box:hover {
+      background-color: #eef;
+    }
+    .card-box.primary { font-weight: bold; }
+    .card-box.secondary {
+      background-color: #f9f9f9;
+      font-weight: normal;
+    }
+    .controls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .stats {
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    .speaker {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+      font-size: 0.6em;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+    .speaker:hover { opacity: 1; }
+    body.dark-mode {
+      background-color: #1a2d06;
+      color: #ffffff;
+    }
+    body.dark-mode select,
+    body.dark-mode button,
+    body.dark-mode input[type="checkbox"] {
+      background-color: #263c10;
+      color: #ffffff;
+      border: 1px solid #444;
+    }
+    body.dark-mode .card-box {
+      background-color: #17290A;
+      border: 2px solid #333;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+      color: #ffffff;
+    }
+    body.dark-mode .card-box.secondary {
+      background-color: #1D2D0B;
+      color: #ffffff;
+    }
+    body.dark-mode .stats,
+    body.dark-mode label {
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Kartičky na opakovanie</h1>
+  <label for="boldSide">Zvýrazni hrubým písmom:</label>
+  <select id="boldSide">
+    <option value="term">${document.getElementById('boldSide').value==='term'?'✔️ ':''}Pojem</option>
+    <option value="definition">${document.getElementById('boldSide').value==='definition'?'✔️ ':''}Definícia</option>
+  </select>
+
+  <label for="displayMode">Zobraziť:</label>
+  <select id="displayMode">
+    <option value="both">${document.getElementById('displayMode').value==='both'?'✔️ ':''}Obe strany</option>
+    <option value="term">${document.getElementById('displayMode').value==='term'?'✔️ ':''}Len pojem</option>
+    <option value="definition">${document.getElementById('displayMode').value==='definition'?'✔️ ':''}Len definícia</option>
+  </select>
+
+  <label for="termLang">Jazyk pojmu:</label>
+  <select id="termLang">
+    <option value="sk"${document.getElementById('termLang').value==='sk'?' selected':''}>sk</option>
+    <option value="en"${document.getElementById('termLang').value==='en'?' selected':''}>en</option>
+    <option value="de"${document.getElementById('termLang').value==='de'?' selected':''}>de</option>
+    <option value="fr"${document.getElementById('termLang').value==='fr'?' selected':''}>fr</option>
+  </select>
+
+  <label for="defLang">Jazyk definície:</label>
+  <select id="defLang">
+    <option value="sk"${document.getElementById('defLang').value==='sk'?' selected':''}>sk</option>
+    <option value="en"${document.getElementById('defLang').value==='en'?' selected':''}>en</option>
+    <option value="de"${document.getElementById('defLang').value==='de'?' selected':''}>de</option>
+    <option value="fr"${document.getElementById('defLang').value==='fr'?' selected':''}>fr</option>
+  </select>
+
+  <div class="options">
+    <label><input type="checkbox" id="shuffleCards"${document.getElementById('shuffleCards').checked?' checked':''}> Náhodné poradie</label>
+    <label><input type="checkbox" id="autoPlay"${document.getElementById('autoPlay').checked?' checked':''}> Automatické prehrávanie</label>
+    <label><input type="checkbox" id="darkModeToggle"${document.body.classList.contains('dark-mode')?' checked':''}> Tmavý režim</label>
+  </div>
+
+  <div id="cardDisplay" class="card-container"></div>
+
+  <div class="controls">
+    <button onclick="prevCard()">⬅️ Predchádzajúca</button>
+    <button onclick="nextCard()">➡️ Ďalšia</button>
+    <button onclick="toggleAutoPlay()">⏯️ Prehrať/Pozastaviť</button>
+    <button onclick="restartCards()">🔄 Znova</button>
+  </div>
+
+  <div class="stats" id="cardStats"></div>
+
+  <script>
+    const cards = ${JSON.stringify(cards)};
+    let currentIndex = 0;
+    let flipped = false;
+    let autoPlayInterval = null;
+
+    function shuffleArray(a) {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+    }
+    function createSpeakerIcon(text,lang){
+      const s=document.createElement('span');
+      s.className='speaker';
+      s.textContent='🔊';
+      s.onclick=()=>{const u=new SpeechSynthesisUtterance(text);u.lang=lang;speechSynthesis.speak(u)};
+      return s;
+    }
+    function showCard(){
+      const card=cards[currentIndex];
+      const bs=document.getElementById('boldSide').value;
+      const dm=document.getElementById('displayMode').value;
+      const tL=document.getElementById('termLang').value;
+      const dL=document.getElementById('defLang').value;
+      const cd=document.getElementById('cardDisplay');
+      cd.innerHTML='';
+      const tb=document.createElement('div');
+      const db=document.createElement('div');
+      tb.className='card-box '+(bs==='term'?'primary':'secondary');
+      db.className='card-box '+(bs==='definition'?'primary':'secondary');
+      tb.textContent=card.term;
+      tb.appendChild(createSpeakerIcon(card.term,tL));
+      db.textContent=card.definition;
+      db.appendChild(createSpeakerIcon(card.definition,dL));
+      if(dm==='both'){cd.append(tb,db)} 
+      else {
+        const sb=document.createElement('div');
+        sb.className='card-box '+(((bs==='term'&&!flipped&&dm==='term')||(bs==='definition'&&!flipped&&dm==='definition')||(bs==='term'&&flipped&&dm==='definition')||(bs==='definition'&&flipped&&dm==='term'))?'primary':'secondary');
+        sb.textContent=flipped?(dm==='term'?card.definition:card.term):(dm==='term'?card.term:card.definition);
+        sb.onclick=()=>{flipped=!flipped;showCard()};
+        cd.append(sb);
+      }
+      document.getElementById('cardStats').textContent=\`Kartička \${currentIndex+1} z \${cards.length}\`;
+    }
+    function nextCard(){
+      if(currentIndex<cards.length-1){currentIndex++;flipped=false;showCard()} 
+      else {document.getElementById('cardDisplay').innerHTML='<p>Prehľad ukončený 🎉</p>';document.getElementById('cardStats').textContent=''}
+    }
+    function prevCard(){if(currentIndex>0){currentIndex--;flipped=false;showCard()}}
+    function restartCards(){currentIndex=0;flipped=false;showCard()}
+    function startAutoPlay(){stopAutoPlay();autoPlayInterval=setInterval(nextCard,3000)}
+    function stopAutoPlay(){clearInterval(autoPlayInterval);autoPlayInterval=null}
+    function toggleAutoPlay(){autoPlayInterval?stopAutoPlay():startAutoPlay()}
+    document.getElementById('shuffleCards').addEventListener('change',()=>{
+      if(document.getElementById('shuffleCards').checked)shuffleArray(cards);
+      restartCards();
+    });
+    document.getElementById('autoPlay').addEventListener('change',e=>{
+      e.target.checked?startAutoPlay():stopAutoPlay();
+    });
+    document.getElementById('darkModeToggle').addEventListener('change',e=>{
+      document.body.classList.toggle('dark-mode',e.target.checked);
+    });
+    document.getElementById('boldSide').addEventListener('change',showCard);
+    document.getElementById('displayMode').addEventListener('change',showCard);
+
+    window.addEventListener('load',()=>{
+      if(document.getElementById('shuffleCards').checked) shuffleArray(cards);
+      document.getElementById('darkModeToggle').addEventListener('click',null);
+      showCard();
+      if(document.getElementById('autoPlay').checked) startAutoPlay();
+    });
+  <\/script>
+</body>
+</html>`;
+      const blob = new Blob([html], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'karticky.html';
+      a.click();
+    }
+  </script>
+
+  <br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>

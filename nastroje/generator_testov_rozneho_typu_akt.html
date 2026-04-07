@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor interaktívneho testu</title>
+    <style>
+        :root { --primary: #2c3e50; --secondary: #3498db; --accent: #27ae60; --light: #ecf0f1; --danger: #e74c3c; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1, h2 { text-align: center; color: var(--primary); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-family: inherit; font-size: 110%; }
+        textarea { resize: vertical; }
+        button { cursor: pointer; padding: 10px 20px; border: none; border-radius: 4px; font-size: 14px; transition: 0.3s; }
+        .btn-primary { background: var(--secondary); color: white; }
+        .btn-success { background: var(--accent); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        .btn-primary:hover, .btn-success:hover, .btn-danger:hover { opacity: 0.9; }
+        
+        .task-card { background: #f9f9f9; border-left: 5px solid var(--secondary); padding: 20px; margin-bottom: 20px; position: relative; border-radius: 4px; }
+        .remove-task { position: absolute; top: 10px; right: 10px; background: var(--danger); color: white; padding: 5px 10px; border-radius: 3px; font-size: 12px; }
+        .options-container { margin-top: 10px; padding: 10px; background: #fff; border: 1px dashed #ccc; }
+        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+        .preview-img { max-width: 100px; max-height: 100px; margin-top: 5px; display: block; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+
+        /* Styles for formatting toolbar */
+        .format-toolbar { margin-bottom: 5px; display: flex; gap: 5px; }
+        .format-btn { padding: 4px 10px; font-size: 12px; background: #e0e0e0; color: #333; border: 1px solid #ccc; font-family: monospace; font-weight: bold; }
+        .format-btn:hover { background: #d0d0d0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Generátor interaktívneho testu - rôzne typy úloh</h1>
+    
+    <div class="toolbar">
+        <button onclick="importJSON()" class="btn-outline">Importovať JSON</button>
+        <button onclick="exportJSON()" class="btn-outline">Exportovať JSON</button>
+        <button onclick="loadFromStorage()" class="btn-outline">Načítať uložené</button>
+        <button onclick="saveToStorage()" class="btn-outline">Uložiť do pamäte</button>
+        <input type="file" id="importFile" style="display:none" onchange="processImport(this)">
+    </div>
+
+    <div class="form-group">
+        <label>Názov testu:</label>
+        <input type="text" id="testTitle" placeholder="Napr. Matematika 5. ročník">
+    </div>
+    <div class="form-group">
+        <label>Autor:</label>
+        <input type="text" id="testAuthor" placeholder="Meno Priezvisko">
+    </div>
+
+    <hr>
+    <h2>Úlohy</h2>
+    <div id="tasksContainer"></div>
+
+    <div style="text-align: center; margin-top: 20px;">
+        <button onclick="addTask()" class="btn-primary">+ Pridať novú úlohu</button>
+    </div>
+
+    <hr>
+    <div style="text-align: center;">
+        <button onclick="generateHTML()" class="btn-success" style="font-size: 18px; padding: 15px 30px;">Uložiť test ako HTML</button>
+    </div>
+	<br><br>
+	<b>Spracované pomocou UI:</b> Mgr. Erika Matyiová (2026)
+</div>
+
+<script>
+    let tasks = [];
+
+    // Definícia predvolených textov pre jednotlivé typy
+    const DEFAULT_INSTRUCTIONS = {
+        short: "Napíš správnu odpoveď. Rozlišuj malé a veľké písmená",
+        choice: "Zvoľ správnu odpoveď.",
+        bool: "Rozhodni sa, či je dané tvrdenie pravdivé alebo nepravdivé."
+    };
+
+    function addTask(data = null) {
+        const id = Date.now();
+        const task = data || {
+            id: id,
+            type: 'short',
+            // Tu nastavíme predvolený text pre 'short'
+            instruction: DEFAULT_INSTRUCTIONS.short,
+            question: '',
+            image: null,
+            answer: '',
+            settings: { caseSensitive: false, distractors: [] }
+        };
+
+        if (!data) tasks.push(task);
+        renderTasks();
+    }
+
+    function removeTask(id) {
+        tasks = tasks.filter(t => t.id !== id);
+        renderTasks();
+    }
+
+    function updateTask(id, field, value, forceRender = false) {
+        const task = tasks.find(t => t.id === id);
+        if (task) {
+            if (field.includes('.')) {
+                const parts = field.split('.');
+                task[parts[0]][parts[1]] = value;
+            } else {
+                task[field] = value;
+            }
+            
+            // --- LOGIKA PRE ZMENU TEXTU PODĽA TYPU ---
+            if (field === 'type') {
+                if (DEFAULT_INSTRUCTIONS[value]) {
+                    task.instruction = DEFAULT_INSTRUCTIONS[value];
+                }
+            }
+            // -----------------------------------------
+
+            if (field === 'type' || forceRender) {
+                renderTasks();
+            }
+        }
+    }
+
+    // Funkcia na vkladanie HTML značiek
+    function insertTag(id, field, tag) {
+        const elId = field + '_' + id;
+        const el = document.getElementById(elId);
+        if (!el) return;
+
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const text = el.value;
+        const before = text.substring(0, start);
+        const selected = text.substring(start, end);
+        const after = text.substring(end);
+
+        let insert = "";
+        if (tag === 'br') {
+            insert = "<br>";
+        } else if (tag === 'span') {
+             insert = `<span>${selected}</span>`;
+        } else {
+            insert = `<${tag}>${selected}</${tag}>`;
+        }
+
+        const newValue = before + insert + after;
+        
+        updateTask(id, field, newValue, false);
+        el.value = newValue;
+    }
+
+    function handleImageUpload(id, input) {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                updateTask(id, 'image', e.target.result, true);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function renderTasks() {
+        const container = document.getElementById('tasksContainer');
+        container.innerHTML = '';
+
+        tasks.forEach((task, index) => {
+            let optionsHTML = '';
+
+            // OPRAVA PRE BOOL
+            if (task.type === 'bool') {
+                if (task.answer !== 'true' && task.answer !== 'false') {
+                    task.answer = 'true';
+                }
+            }
+
+            if (task.type === 'short') {
+                optionsHTML = `
+                    <div class="form-group">
+                        <label>Správna odpoveď (krátka):</label>
+                        <input type="text" value="${task.answer}" oninput="updateTask(${task.id}, 'answer', this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" ${task.settings.caseSensitive ? 'checked' : ''} onchange="updateTask(${task.id}, 'settings.caseSensitive', this.checked)"> Rozlišovať malé a veľké písmená</label>
+                    </div>
+                `;
+            } else if (task.type === 'bool') {
+                optionsHTML = `
+                    <div class="form-group">
+                        <label>Správna odpoveď:</label>
+                        <select onchange="updateTask(${task.id}, 'answer', this.value)">
+                            <option value="true" ${task.answer === 'true' ? 'selected' : ''}>Pravda</option>
+                            <option value="false" ${task.answer === 'false' ? 'selected' : ''}>Nepravda</option>
+                        </select>
+                    </div>
+                `;
+            } else if (task.type === 'choice') {
+                const distCount = task.settings.distractors.length || 1;
+                let distractorsInputs = '';
+                for(let i=0; i < distCount; i++) {
+                    distractorsInputs += `<input type="text" placeholder="Nesprávna odpoveď ${i+1}" style="margin-top:5px" value="${task.settings.distractors[i] || ''}" oninput="updateDistractor(${task.id}, ${i}, this.value)">`;
+                }
+
+                optionsHTML = `
+                    <div class="form-group">
+                        <label>Správna odpoveď:</label>
+                        <input type="text" value="${task.answer}" oninput="updateTask(${task.id}, 'answer', this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Počet nesprávnych možností (1-3):</label>
+                        <input type="number" min="1" max="3" value="${distCount}" onchange="changeDistractorCount(${task.id}, this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Nesprávne možnosti (Distraktory):</label>
+                        ${distractorsInputs}
+                    </div>
+                `;
+            }
+
+            // HTML pre tlačidlá na formátovanie
+            const createToolbar = (field) => `
+                <div class="format-toolbar">
+                    <button class="format-btn" onclick="insertTag(${task.id}, '${field}', 'b')" title="Tučné písmo">&lt;b&gt;</button>
+                    <button class="format-btn" onclick="insertTag(${task.id}, '${field}', 'i')" title="Kurzíva">&lt;i&gt;</button>
+                    <button class="format-btn" onclick="insertTag(${task.id}, '${field}', 'u')" title="Podčiarknuté">&lt;u&gt;</button>
+                    <button class="format-btn" onclick="insertTag(${task.id}, '${field}', 'br')" title="Nový riadok">&lt;br&gt;</button>
+                    <button class="format-btn" onclick="insertTag(${task.id}, '${field}', 'span')" title="Span">&lt;span&gt;</button>
+                </div>
+            `;
+
+            const html = `
+                <div class="task-card">
+                    <button class="remove-task" onclick="removeTask(${task.id})">X</button>
+                    <h3>Úloha ${index + 1}</h3>
+                    
+                    <div class="form-group">
+                        <label>Typ úlohy:</label>
+                        <select onchange="updateTask(${task.id}, 'type', this.value)">
+                            <option value="short" ${task.type === 'short' ? 'selected' : ''}>Krátka odpoveď</option>
+                            <option value="choice" ${task.type === 'choice' ? 'selected' : ''}>Výber odpovede</option>
+                            <option value="bool" ${task.type === 'bool' ? 'selected' : ''}>Pravda / Nepravda</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sprievodný text (inštrukcia):</label>
+                        ${createToolbar('instruction')}
+                        <textarea id="instruction_${task.id}" rows="2" oninput="updateTask(${task.id}, 'instruction', this.value)">${task.instruction}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Znenie otázky / úlohy:</label>
+                        ${createToolbar('question')}
+                        <textarea id="question_${task.id}" rows="2" oninput="updateTask(${task.id}, 'question', this.value)">${task.question}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Obrázok (nepovinné):</label>
+                        <input type="file" accept="image/*" onchange="handleImageUpload(${task.id}, this)">
+                        ${task.image ? `<img src="${task.image}" class="preview-img"><button onclick="updateTask(${task.id}, 'image', null, true)" style="font-size:10px; margin-top:5px">Odstrániť obrázok</button>` : ''}
+                    </div>
+
+                    <div class="options-container">
+                        ${optionsHTML}
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        });
+    }
+
+    function changeDistractorCount(id, count) {
+        count = Math.min(3, Math.max(1, parseInt(count)));
+        const task = tasks.find(t => t.id === id);
+        const current = task.settings.distractors || [];
+        while(current.length < count) current.push("");
+        while(current.length > count) current.pop();
+        task.settings.distractors = current;
+        renderTasks(); 
+    }
+
+    function updateDistractor(id, index, value) {
+        const task = tasks.find(t => t.id === id);
+        task.settings.distractors[index] = value;
+    }
+
+    // Storage & IO
+    function saveToStorage() {
+        const data = {
+            title: document.getElementById('testTitle').value,
+            author: document.getElementById('testAuthor').value,
+            tasks: tasks
+        };
+        localStorage.setItem('interactiveTestBuilder', JSON.stringify(data));
+        alert('Údaje boli uložené do prehliadača.');
+    }
+
+    function loadFromStorage() {
+        const dataStr = localStorage.getItem('interactiveTestBuilder');
+        if (dataStr) {
+            const data = JSON.parse(dataStr);
+            document.getElementById('testTitle').value = data.title || '';
+            document.getElementById('testAuthor').value = data.author || '';
+            tasks = data.tasks || [];
+            renderTasks();
+        } else {
+            alert('Žiadne uložené údaje sa nenašli.');
+        }
+    }
+
+    function exportJSON() {
+        const data = {
+            title: document.getElementById('testTitle').value,
+            author: document.getElementById('testAuthor').value,
+            tasks: tasks
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "test_data.json";
+        a.click();
+    }
+
+    function importJSON() {
+        document.getElementById('importFile').click();
+    }
+
+    function processImport(input) {
+        const file = input.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                document.getElementById('testTitle').value = data.title || '';
+                document.getElementById('testAuthor').value = data.author || '';
+                tasks = data.tasks || [];
+                renderTasks();
+            } catch(err) {
+                alert('Chyba pri čítaní súboru.');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // --- HTML GENERATOR ---
+    function generateHTML() {
+        const title = document.getElementById('testTitle').value || 'Test';
+        const author = document.getElementById('testAuthor').value || 'Neznámy';
+        const year = new Date().getFullYear();
+        
+        const filename = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_").toLowerCase() + ".html";
+
+        const generatedContent = `
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display:flex; flex-direction:column; min-height:100vh; align-items:center; }
+        .main-card { background: white; width: 100%; max-width: 800px; padding: 30px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        .meta { text-align: center; color: #7f8c8d; margin-bottom: 25px; font-style: italic; }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        
+        .btn { padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: 0.2s; display: inline-block; }
+        .btn-start { background: #3498db; color: white; }
+        /* Common button styles */
+        .btn-next, .btn-eval { background: #3498db; color: white; }
+        .btn-eval { background: #27ae60; } 
+        .btn-detail { background: #8e44ad; color: white; margin-top: 10px; }
+        .btn:hover { opacity: 0.9; }
+
+        .hidden { display: none; }
+        .instructions { background: #e8f6f3; padding: 15px; border-radius: 5px; border-left: 4px solid #1abc9c; margin-bottom: 20px; }
+        
+        .question-box { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 20px; text-align: center; }
+        .q-img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 5px; max-height: 400px; }
+        
+        .nav-dots { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 20px; justify-content: center; }
+        /* Zmena tvaru tlačidiel na štvorčeky */
+        .dot { width: 35px; height: 35px; background: #ddd; display: flex; align-items: center; justify-content: center; border-radius: 5px; cursor: pointer; font-size: 14px; user-select: none; transition: 0.2s; }
+        .dot:hover { background: #ccc; }
+        .dot.active { border: 2px solid #2c3e50; font-weight: bold; }
+        .dot.answered { background: #aed6f1; color: #154360; }
+
+        .symbol { font-weight: bold; font-size: 1.2em; margin-right: 10px; min-width: 25px; }
+        
+        .choice-label { display: inline-block; width: 100%; max-width: 500px; text-align: left; padding: 10px; background: #f9f9f9; margin-bottom: 8px; cursor: pointer; border-radius: 4px; border: 1px solid #ddd; box-sizing: border-box; }
+        .choice-label:hover { background: #eee; }
+        input[type="radio"] { margin-right: 10px; }
+        input[type="text"].ans-input { width: 100%; max-width: 400px; text-align: center; }
+
+        #summary-box { margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
+        .summary-item { margin-bottom: 5px; }
+
+        /* Kontajner pre centrálne tlačidlá */
+        .buttons-wrapper { text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="main-card">
+    <h1>${title}</h1>
+    <div class="meta">Autor: ${author}, ${year}</div>
+
+    <div id="screen-start">
+        <div class="input-group">
+            <label>Meno žiaka:</label>
+            <input type="text" id="studentName" placeholder="Zadaj svoje meno (nepovinné)">
+        </div>
+        <div class="input-group" style="display:flex; gap:10px; align-items:flex-end;">
+            <div style="flex:1">
+                <label>Počet otázok (maximálny počet: ${tasks.length}):</label>
+                <input type="number" id="qCount" min="1" max="${tasks.length}" value="${tasks.length}">
+            </div>
+            <button class="btn btn-start" onclick="startTest()">Štart</button>
+        </div>
+    </div>
+
+    <div id="screen-test" class="hidden">
+        <div class="instructions">
+            Rieš úlohy podľa pokynov. Následne klikni na tlačidlo "Ďalej". Po poslednej úlohe klikni na tlačidlo "Vyhodnotiť."
+        </div>
+        
+        <div id="question-container"></div>
+
+        <div class="buttons-wrapper">
+            <button id="btn-next" class="btn btn-next" onclick="nextQuestion()">Ďalej</button>
+            <button id="btn-finish" class="btn btn-eval hidden" onclick="evaluateTest()">Vyhodnotiť</button>
+        </div>
+
+        <div class="nav-dots" id="nav-dots"></div>
+    </div>
+
+    <div id="screen-results" class="hidden">
+        <h2>Výsledky</h2>
+        <div id="summary-box"></div>
+        <button class="btn btn-detail" onclick="showDetailedResults()">Detailné výsledky</button>
+    </div>
+</div>
+
+<script>
+    const allTasks = ${JSON.stringify(tasks)};
+    let activeTasks = [];
+    let userAnswers = {}; 
+    let currentIdx = 0;
+    let studentName = "";
+    let testDate = "";
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function startTest() {
+        // Úprava: Ak nie je zadané meno, použije sa XY
+        const nameInput = document.getElementById('studentName').value.trim();
+        studentName = nameInput || "XY";
+        
+        const maxQ = allTasks.length;
+        let reqQ = parseInt(document.getElementById('qCount').value);
+        if(isNaN(reqQ) || reqQ < 1) reqQ = 1;
+        if(reqQ > maxQ) reqQ = maxQ;
+
+        activeTasks = shuffle([...allTasks]).slice(0, reqQ);
+        userAnswers = {};
+        currentIdx = 0;
+
+        document.getElementById('screen-start').classList.add('hidden');
+        document.getElementById('screen-test').classList.remove('hidden');
+        
+        renderNav();
+        loadQuestion(0);
+    }
+
+    function renderNav() {
+        const container = document.getElementById('nav-dots');
+        container.innerHTML = '';
+        activeTasks.forEach((_, idx) => {
+            const btn = document.createElement('div');
+            btn.className = 'dot';
+            btn.innerText = idx + 1;
+            btn.onclick = () => loadQuestion(idx);
+            btn.id = 'dot-' + idx;
+            container.appendChild(btn);
+        });
+    }
+
+    function updateNavState() {
+        activeTasks.forEach((t, idx) => {
+            const dot = document.getElementById('dot-' + idx);
+            if(userAnswers[t.id] !== undefined && userAnswers[t.id] !== "") {
+                dot.classList.add('answered');
+            }
+            if(idx === currentIdx) {
+                dot.style.border = "2px solid #2c3e50";
+            } else {
+                dot.style.border = "none";
+            }
+        });
+    }
+
+    function loadQuestion(idx) {
+        currentIdx = idx;
+        const task = activeTasks[idx];
+        const container = document.getElementById('question-container');
+        
+        let inputHTML = '';
+        const savedAns = userAnswers[task.id] || "";
+
+        if(task.type === 'short') {
+            inputHTML = \`<input type="text" class="ans-input" value="\${savedAns}" oninput="saveAnswer(\${task.id}, this.value)" placeholder="Tvoja odpoveď">\`;
+        } else if (task.type === 'bool') {
+            inputHTML = \`
+                <div>
+                <label class="choice-label"><input type="radio" name="q_\${task.id}" value="true" onchange="saveAnswer(\${task.id}, 'true')" \${savedAns === 'true' ? 'checked' : ''}> Pravda</label>
+                </div>
+                <div>
+                <label class="choice-label"><input type="radio" name="q_\${task.id}" value="false" onchange="saveAnswer(\${task.id}, 'false')" \${savedAns === 'false' ? 'checked' : ''}> Nepravda</label>
+                </div>
+            \`;
+        } else if (task.type === 'choice') {
+            if(!task._shuffledOptions) {
+                const opts = [task.answer, ...task.settings.distractors];
+                task._shuffledOptions = shuffle(opts);
+            }
+            
+            inputHTML = task._shuffledOptions.map(opt => \`
+                <div>
+                <label class="choice-label">
+                    <input type="radio" name="q_\${task.id}" value="\${opt.replace(/"/g, '&quot;')}" onchange="saveAnswer(\${task.id}, this.value)" \${savedAns === opt ? 'checked' : ''}>
+                    \${opt}
+                </label>
+                </div>
+            \`).join('');
+        }
+
+        const imgHTML = task.image ? \`<img src="\${task.image}" class="q-img">\` : '';
+
+        container.innerHTML = \`
+            <div class="question-box">
+                <p style="color:#7f8c8d; font-size:0.9em; margin-bottom:5px; white-space: pre-wrap;">\${task.instruction}</p>
+                <h3 style="margin-top:0;">\${task.question}</h3>
+                \${imgHTML}
+                <div style="margin-top:15px;">
+                    \${inputHTML}
+                </div>
+            </div>
+        \`;
+
+        const btnNext = document.getElementById('btn-next');
+        const btnFinish = document.getElementById('btn-finish');
+        
+        // Zobrazovanie tlačidiel - konzistentná pozícia
+        if (currentIdx === activeTasks.length - 1) {
+            btnNext.style.display = 'none';
+            btnFinish.style.display = 'inline-block';
+            btnFinish.classList.remove('hidden');
+        } else {
+            btnNext.style.display = 'inline-block';
+            btnFinish.style.display = 'none';
+        }
+
+        updateNavState();
+    }
+
+    function saveAnswer(id, val) {
+        userAnswers[id] = val;
+        updateNavState();
+    }
+
+    function nextQuestion() {
+        if(currentIdx < activeTasks.length - 1) {
+            loadQuestion(currentIdx + 1);
+        }
+    }
+
+    function evaluateTest() {
+        if(!confirm("Chceš naozaj ukončiť a vyhodnotiť test?")) return;
+
+        testDate = new Date().toLocaleString('sk-SK');
+        let points = 0;
+        let total = activeTasks.length;
+
+        activeTasks.forEach(t => {
+            const uAns = userAnswers[t.id];
+            let isCorrect = false;
+
+            if (t.type === 'short') {
+                if(uAns) {
+                    if(t.settings.caseSensitive) {
+                        isCorrect = uAns.trim() === t.answer.trim();
+                    } else {
+                        isCorrect = uAns.trim().toLowerCase() === t.answer.trim().toLowerCase();
+                    }
+                }
+            } else {
+                isCorrect = uAns === t.answer;
+            }
+            t._result = {
+                userAnswer: uAns,
+                isCorrect: isCorrect,
+                status: !uAns ? 'missing' : (isCorrect ? 'ok' : 'err')
+            };
+            if(isCorrect) points++;
+        });
+
+        const percent = Math.round((points / total) * 100);
+
+        const summary = document.getElementById('summary-box');
+        summary.innerHTML = \`
+            <div class="summary-item"><strong>Názov testu:</strong> ${title}</div>
+            <div class="summary-item"><strong>Meno žiaka:</strong> \${studentName}</div>
+            <div class="summary-item"><strong>Hodnotenie:</strong> \${points} z \${total} (\${percent}%)</div>
+            <div class="summary-item"><strong>Dátum a čas:</strong> \${testDate}</div>
+        \`;
+
+        document.getElementById('screen-test').classList.add('hidden');
+        document.getElementById('screen-results').classList.remove('hidden');
+    }
+
+    function showDetailedResults() {
+        const win = window.open("", "_blank", "width=800,height=600");
+        
+        let rows = "";
+        activeTasks.forEach((t, i) => {
+            const r = t._result;
+            let symbol = "";
+            
+            if(r.status === 'ok') symbol = "<span style='color:green'>&#10004;</span>"; 
+            else if(r.status === 'err') symbol = "<span style='color:red'>&#10006;</span>"; 
+            else symbol = "<span style='color:orange'>&#10071;</span>"; 
+
+            rows += \`
+                <tr style="border-bottom: 1px solid #ccc;">
+                    <td style="padding:8px;">\${t.question}</td>
+                    <td style="padding:8px;">\${t.answer}</td>
+                    <td style="padding:8px;">\${r.userAnswer || '-'} \${symbol}</td>
+                </tr>
+            \`;
+        });
+
+        win.document.write(\`
+            <html>
+            <head>
+                <title>Detailné výsledky</title>
+                <style>
+                    body { font-family: sans-serif; padding: 20px; }
+                    h2, h3 { color: #2c3e50; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th { background: #eee; text-align: left; padding: 10px; border-bottom: 2px solid #ddd; }
+                    td { border-bottom: 1px solid #eee; }
+                    .legend { margin-top: 30px; font-size: 0.9em; background: #f9f9f9; padding: 10px; }
+                    @media print { .no-print { display: none; } }
+                </style>
+            </head>
+            <body>
+                <h2>Detailný prehľad</h2>
+                <p><strong>Názov testu:</strong> ${title}</p>
+                <p><strong>Meno žiaka:</strong> \${studentName}</p>
+                <p><strong>Hodnotenie:</strong> \${Math.round((activeTasks.filter(t=>t._result.isCorrect).length / activeTasks.length) * 100)}%</p>
+                <p><strong>Dátum a čas:</strong> \${testDate}</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th width="40%">Úloha</th>
+                            <th width="30%">Správna odpoveď</th>
+                            <th width="30%">Odpoveď žiaka</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        \${rows}
+                    </tbody>
+                </table>
+
+                <div class="legend">
+                    <strong>Legenda:</strong><br>
+                    <span style='color:green'>&#10004;</span> = Správne <br>
+                    <span style='color:red'>&#10006;</span> = Nesprávne <br>
+                    <span style='color:orange'>&#10071;</span> = Chýbajúca odpoveď
+                </div>
+
+                <div class="no-print" style="margin-top:20px; text-align:center;">
+                    <button onclick="window.print()" style="padding:10px 20px; cursor:pointer;">Vytlačiť (Ctrl + P)</button>
+                </div>
+            </body>
+            </html>
+        \`);
+        win.document.close();
+    }
+<\/script>
+</body>
+</html>
+        `;
+
+        const blob = new Blob([generatedContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8"/>
+<title>Generátor viacsmerovky</title>
+<style>
+    body { font-family: 'Courier bold', monospace; padding: 20px; }
+    textarea, input[type=number] { width: 100%; margin-bottom: 10px; }
+    table { border-collapse: collapse; margin-top: 10px; }
+    td {
+      width: 30px; height: 30px; text-align: center; vertical-align: middle;
+      border: 1px solid black; font-weight: bold; cursor: pointer;
+    }
+    td.highlight { background-color: yellow; }
+    td.solution { background-color: lightgreen; }
+    .word-list span { display: inline-block; margin: 5px; padding: 3px 6px; border: 1px solid #ccc; border-radius: 4px; }
+    .word-list span.found { text-decoration: line-through; background-color: lightgreen; }
+    .sipky { font-weight: bold; font-size: 160%; }
+</style>
+</head>
+<body>
+<h1>Generátor viacsmerovky</h1>
+
+<label style="font-size: 115%;"><b>Zadajte slová (každé na nový riadok):</b></label><p></p>
+<textarea id="words" rows="15" style="font-size: 160%; width: 600px;" placeholder="Napr.:&#10;pes&#10;mačka&#10;myš"></textarea>
+<br>
+
+<label style="font-size: 115%;">
+  <input checked id="uppercaseToggle" type="checkbox"/>
+  <b>Použiť kapitálky</b>
+</label>
+<br/><br/>
+
+<label style="font-size: 115%;"><b>Počet riadkov:</b></label>
+<input id="rows" max="30" min="5" size="5" style="width: 40px;" type="number" value="15"/>
+<br/>
+
+<label style="font-size: 115%;"><b>Počet stĺpcov:</b></label>
+<input id="cols" max="30" min="5" size="5" style="width: 40px;" type="number" value="15"/>
+<br/>
+
+<label style="font-size: 115%;"><h3>Smery hľadania:</h3></label>
+<label style="font-size: 150%;"><input class="dir" type="checkbox" value="N"/> <span class="sipky">&uarr;</span></label>
+<label style="font-size: 150%;"><input checked class="dir" type="checkbox" value="S"/> <span class="sipky">&darr;</span></label>
+<label style="font-size: 190%;"><input checked class="dir" type="checkbox" value="E"/> <span class="sipky">&rarr;</span></label>
+<label style="font-size: 190%;"><input class="dir" type="checkbox" value="W"/> <span class="sipky">&larr;</span></label>
+<label style="font-size: 150%;"><input class="dir" type="checkbox" value="NE"/> <span class="sipky">&#8599;</span></label>
+<label style="font-size: 150%;"><input class="dir" type="checkbox" value="SE"/> <span class="sipky">&#8600;</span></label>
+<label style="font-size: 150%;"><input class="dir" type="checkbox" value="SW"/> <span class="sipky">&#8601;</span></label>
+<label style="font-size: 150%;"><input class="dir" type="checkbox" value="NW"/> <span class="sipky">&#8598;</span></label>
+<br/><br/>
+
+<button id="btnGenerate" onclick="generate()" style="font-size: 115%;">Generovať</button>
+<button onclick="toggleSolution()" style="font-size: 115%;">Zobraziť / Skryť riešenie</button>
+<button onclick="clearSavedState()" style="font-size: 115%;">Vymazať uložené údaje</button>
+
+<div id="grid"></div>
+<br/><br/>
+
+<button onclick="exportGridAsImage()" style="font-size: 115%;">Exportovať mriežku ako obrázok</button>
+<button onclick="exportAsRTF()" style="font-size: 115%;">Exportovať RTF</button>
+
+<div id="unplaced-words" style="margin-top: 10px;">
+  <h3 id="unplaced-title" style="color: red; display: none;">Slová, ktoré sa nezmestili do mriežky:</h3>
+  <ul id="unplaced-list" style="color: red;"></ul>
+</div>
+
+<h3>Zoznam slov:</h3>
+<div class="word-list" id="wordList"></div>
+
+<script>
+  const directions = {
+    N: [-1, 0], NE: [-1, 1], E: [0, 1], SE: [1, 1],
+    S: [1, 0], SW: [1, -1], W: [0, -1], NW: [-1, -1]
+  };
+  let solutionMap = {};
+  let showSolution = false;
+  let unplacedWords = [];
+
+  // Persistencia: uloženie
+  function saveState() {
+    try {
+      localStorage.setItem("words", document.getElementById("words").value);
+      localStorage.setItem("rows", document.getElementById("rows").value);
+      localStorage.setItem("cols", document.getElementById("cols").value);
+      localStorage.setItem("uppercase", document.getElementById("uppercaseToggle").checked ? "true" : "false");
+
+      // Ulož hodnoty smerov (napr. ["S","E","NE"])
+      const selectedDirValues = Array.from(document.querySelectorAll(".dir"))
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+      localStorage.setItem("directions", JSON.stringify(selectedDirValues));
+    } catch (e) {
+      console.warn("Nepodarilo sa uložiť do localStorage:", e);
+    }
+  }
+
+  // Persistencia: načítanie
+  function loadState() {
+    try {
+      const words = localStorage.getItem("words");
+      const rows = localStorage.getItem("rows");
+      const cols = localStorage.getItem("cols");
+      const uppercase = localStorage.getItem("uppercase");
+      const dirsJson = localStorage.getItem("directions");
+
+      if (words !== null) document.getElementById("words").value = words;
+      if (rows !== null) document.getElementById("rows").value = rows;
+      if (cols !== null) document.getElementById("cols").value = cols;
+      if (uppercase !== null) document.getElementById("uppercaseToggle").checked = (uppercase === "true");
+
+      // Obnovenie smerov podľa hodnoty
+      if (dirsJson) {
+        const selected = JSON.parse(dirsJson);
+        document.querySelectorAll(".dir").forEach(cb => {
+          cb.checked = selected.includes(cb.value);
+        });
+      }
+    } catch (e) {
+      console.warn("Nepodarilo sa načítať z localStorage:", e);
+    }
+  }
+
+  // Vymazanie uloženého stavu
+  function clearSavedState() {
+    localStorage.removeItem("words");
+    localStorage.removeItem("rows");
+    localStorage.removeItem("cols");
+    localStorage.removeItem("uppercase");
+    localStorage.removeItem("directions");
+    location.reload();
+  }
+
+  // Auto-uloženie pri zmene vstupov (bez nutnosti kliknúť na Generovať)
+  function attachAutosave() {
+    document.getElementById("words").addEventListener("input", saveState);
+    document.getElementById("rows").addEventListener("input", saveState);
+    document.getElementById("cols").addEventListener("input", saveState);
+    document.getElementById("uppercaseToggle").addEventListener("change", saveState);
+    document.querySelectorAll(".dir").forEach(cb => cb.addEventListener("change", saveState));
+  }
+
+  function generate() {
+    // pred generovaním uložíme aktuálny stav
+    saveState();
+
+    const useUppercase = document.getElementById("uppercaseToggle").checked;
+    const rawInput = document.getElementById("words").value.trim();
+    const originalSentences = rawInput.split(/\n+/).map(s => s.trim()).filter(s => s.length > 0);
+    const words = originalSentences.map(s => s.replace(/\s+/g, '')); // odstráni medzery, ponechá interpunkciu
+
+    const rows = parseInt(document.getElementById("rows").value);
+    const cols = parseInt(document.getElementById("cols").value);
+
+    // Použi smery podľa uložených/aktuálnych checkboxov
+    const dirs = Array.from(document.querySelectorAll(".dir:checked")).map(cb => cb.value);
+
+    let grid = Array.from({ length: rows }, () => Array(cols).fill(""));
+    solutionMap = {};
+
+    function placeWord(word) {
+      const attempts = 100;
+      for (let i = 0; i < attempts; i++) {
+        const dir = dirs[Math.floor(Math.random() * dirs.length)];
+        if (!dir) break; // Ak nie sú povolené smery, skonči
+        const [dr, dc] = directions[dir];
+        const r = Math.floor(Math.random() * rows);
+        const c = Math.floor(Math.random() * cols);
+        let fits = true;
+        let positions = [];
+
+        for (let j = 0; j < word.length; j++) {
+          const nr = r + dr * j;
+          const nc = c + dc * j;
+          if (nr < 0 || nr >= rows || nc < 0 || nc >= cols || (grid[nr][nc] && grid[nr][nc] !== word[j])) {
+            fits = false;
+            break;
+          }
+          positions.push([nr, nc]);
+        }
+
+        if (fits) {
+          positions.forEach(([nr, nc], idx) => grid[nr][nc] = word[idx]);
+          solutionMap[word] = positions;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    unplacedWords = [];
+    words.forEach(w => {
+      if (!placeWord(w)) {
+        unplacedWords.push(w);
+      }
+    });
+
+    // Vyplnenie prázdnych buniek náhodnými písmenami
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (!grid[r][c]) {
+          const baseCharCode = useUppercase ? 65 : 97; // 65 = 'A', 97 = 'a'
+          grid[r][c] = String.fromCharCode(baseCharCode + Math.floor(Math.random() * 26));
+        }
+      }
+    }
+
+    // Render mriežky
+    const table = document.createElement("table");
+    for (let r = 0; r < rows; r++) {
+      const tr = document.createElement("tr");
+      for (let c = 0; c < cols; c++) {
+        const td = document.createElement("td");
+        td.textContent = grid[r][c];
+        td.dataset.row = r;
+        td.dataset.col = c;
+        td.onclick = () => handleClick(td);
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+    document.getElementById("grid").innerHTML = "";
+    document.getElementById("grid").appendChild(table);
+
+    // Render zoznamu slov
+    const list = document.getElementById("wordList");
+    list.innerHTML = "";
+    originalSentences.forEach((w, i) => {
+      const span = document.createElement("span");
+      span.textContent = w;
+      span.id = "word-" + words[i]; // ID zodpovedá verzii bez medzier v mriežke
+      list.appendChild(span);
+    });
+
+    showUnplacedWords();
+  }
+
+  function handleClick(cell) {
+    cell.classList.toggle("highlight");
+    checkWords();
+  }
+
+  function checkWords() {
+    for (const word in solutionMap) {
+      const positions = solutionMap[word];
+      const allHighlighted = positions.every(([r, c]) => {
+        const cell = document.querySelector(`td[data-row='${r}'][data-col='${c}']`);
+        return cell.classList.contains("highlight");
+      });
+      if (allHighlighted) {
+        positions.forEach(([r, c]) => {
+          const cell = document.querySelector(`td[data-row='${r}'][data-col='${c}']`);
+          cell.classList.add("solution");
+        });
+        const label = document.getElementById("word-" + word);
+        if (label) label.classList.add("found");
+      }
+    }
+  }
+
+  function toggleSolution() {
+    showSolution = !showSolution;
+    for (const word in solutionMap) {
+      const positions = solutionMap[word];
+      positions.forEach(([r, c]) => {
+        const cell = document.querySelector(`td[data-row='${r}'][data-col='${c}']`);
+        if (showSolution) {
+          cell.classList.add("solution");
+          const label = document.getElementById("word-" + word);
+          if (label) label.classList.add("found");
+        } else {
+          cell.classList.remove("solution");
+          const label = document.getElementById("word-" + word);
+          if (label) label.classList.remove("found");
+        }
+      });
+    }
+  }
+
+  // Zobrazenie neumiestnených slov
+  function showUnplacedWords() {
+    const title = document.getElementById("unplaced-title");
+    const list = document.getElementById("unplaced-list");
+    list.innerHTML = "";
+
+    if (unplacedWords.length > 0) {
+      title.style.display = "block";
+      unplacedWords.forEach(function(word) {
+        const li = document.createElement("li");
+        li.textContent = word;
+        list.appendChild(li);
+      });
+    } else {
+      title.style.display = "none";
+    }
+  }
+
+  // Export mriežky ako obrázok
+  function exportGridAsImage() {
+    const table = document.querySelector("#grid table");
+    if (!table) {
+      alert("Najprv vygeneruj mriežku.");
+      return;
+    }
+
+    const cellSize = 60;
+    const scaleFactor = 2;
+    const rows = table.rows.length;
+    const cols = table.rows[0].cells.length;
+    const canvas = document.createElement("canvas");
+    canvas.width = cols * cellSize * scaleFactor;
+    canvas.style.width = `${cols * cellSize}px`;
+    canvas.height = rows * cellSize * scaleFactor;
+    canvas.style.height = `${rows * cellSize}px`;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(scaleFactor, scaleFactor);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "30px Consolas";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.strokeStyle = "#000000";
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cell = table.rows[r].cells[c];
+        const x = c * cellSize;
+        const y = r * cellSize;
+        ctx.strokeRect(x, y, cellSize, cellSize);
+        ctx.fillStyle = "#000000";
+        ctx.fillText(cell.textContent, x + cellSize / 2, y + cellSize / 2);
+      }
+    }
+
+    const link = document.createElement("a");
+    link.download = "word_search.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
+  // Export RTF s podporou slovenských znakov (Unicode) a požadovaným rozložením
+  function exportAsRTF() {
+    const table = document.querySelector("#grid table");
+    if (!table) {
+      alert("Najprv vygeneruj mriežku.");
+      return;
+    }
+
+    // 1) Vytvor vysokokvalitný PNG z mriežky
+    const cellSize = 80;       // väčšie bunky pre vyššie rozlíšenie
+    const scaleFactor = 3;     // vysoké DPI
+    const rows = table.rows.length;
+    const cols = table.rows[0].cells.length;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = cols * cellSize * scaleFactor;
+    canvas.height = rows * cellSize * scaleFactor;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(scaleFactor, scaleFactor);
+
+    // Pozadie
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Štýl textu v mriežke
+    ctx.font = "bold 42px 'Courier New', Courier, monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.strokeStyle = "#000000";
+
+    // Kreslenie buniek
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = c * cellSize;
+        const y = r * cellSize;
+        ctx.strokeRect(x, y, cellSize, cellSize);
+        ctx.fillStyle = "#000000";
+        const ch = table.rows[r].cells[c].textContent;
+        ctx.fillText(ch, x + cellSize / 2, y + cellSize / 2);
+      }
+    }
+
+    const dataURL = canvas.toDataURL("image/png");
+    const pngBase64 = dataURL.split(",")[1];
+    const pngBytes = base64ToBytes(pngBase64);
+    const pngHex = bytesToHex(pngBytes);
+
+    // RTF pracuje v twips (1 palec = 1440 twips). Pre výpočet použijeme CSS pixely pri 96 DPI.
+    const cssPixelW = cols * cellSize;
+    const cssPixelH = rows * cellSize;
+    const twipsW = Math.round(cssPixelW * 1440 / 96);
+    const twipsH = Math.round(cssPixelH * 1440 / 96);
+
+    // 2) RTF hlavička – Courier New + CE kódová stránka
+    let rtf = "{\\rtf1\\ansi\\ansicpg1250\\deff0{\\fonttbl{\\f0 Courier New;}}\\fs28\\f0\n";
+
+    // 3) Nadpis (editovateľný) + 2 prázdne riadky
+    rtf += "\\fs32\\b " + escapeRTF("Viacsmerovka - pracovný list") + "\\b0\\par\n\\par\n";
+
+    // 4) Obrázok PNG vložený cez \\pict \\pngblip
+    rtf += "{\\pict\\pngblip" +
+           "\\picw" + (cssPixelW) +
+           "\\pich" + (cssPixelH) +
+           "\\picwgoal" + twipsW +
+           "\\pichgoal" + twipsH + "\n" +
+           pngHex + "}\n";
+
+    // 5) Dva prázdne riadky
+    rtf += "\\par\\par\n";
+
+    // 6) Pokyn + 1 prázdny riadok
+     rtf += "\\fs26\\b " + escapeRTF("Nájdi a zvýrazni zvýrazňovačom v štvorcovej sieti nasledovné slová:") + "\\b0\\par\n";
+    rtf += "\\par\n";
+	rtf += "\\fs26\\tx5100\n"; // set ~13 pt and tab stop for two columns
+
+    // 7) Zoznam slov v dvoch stĺpcoch (pôvodné s medzerami)
+    const rawInput = document.getElementById("words").value.trim();
+    const originalSentences = rawInput.split(/\n+/).map(s => s.trim()).filter(s => s.length > 0);
+
+    const half = Math.ceil(originalSentences.length / 2);
+    const leftCol = originalSentences.slice(0, half);
+    const rightCol = originalSentences.slice(half);
+
+    // Tab stop pre druhý stĺpec (cca 9 cm ~ 5100 twips)
+    rtf += "\\tx5100\n";
+    const maxRows = Math.max(leftCol.length, rightCol.length);
+    for (let i = 0; i < maxRows; i++) {
+      const left = leftCol[i] ? escapeRTF(leftCol[i]) : "";
+      const right = rightCol[i] ? escapeRTF(rightCol[i]) : "";
+      rtf += left + "\\tab " + right + "\\par\n";
+    }
+
+    rtf += "}";
+
+    // 8) Stiahni .rtf súbor
+    const blob = new Blob([rtf], { type: "application/rtf" });
+    const link = document.createElement("a");
+    link.download = "viacsmerovka_pracovny_list.rtf";
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  // Pomocné funkcie – Base64 -> bytes -> hex, a escapovanie textu do RTF s Unicode
+  function base64ToBytes(base64) {
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  }
+  function bytesToHex(bytes) {
+    return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  function escapeRTF(text) {
+    let out = "";
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const code = ch.charCodeAt(0);
+      if (ch === "\\" || ch === "{" || ch === "}") {
+        out += "\\" + ch; // escapuj RTF špeciálne znaky
+      } else if (code > 127) {
+        out += "\\u" + code + "?"; // Unicode zápis, napr. ľ -> \u318?
+      } else if (ch === "\n") {
+        out += "\\par ";
+      } else {
+        out += ch;
+      }
+    }
+    return out;
+  }
+
+  // Inicializácia po načítaní – načítaj uložený stav a auto-uloženie
+  window.addEventListener("DOMContentLoaded", () => {
+    loadState();
+    attachAutosave();
+
+    // Ak sú uložené dáta a povolené smery + nejaké slová, automaticky vygeneruj mriežku
+    const hasSaved =
+      localStorage.getItem("words") !== null ||
+      localStorage.getItem("rows") !== null ||
+      localStorage.getItem("cols") !== null ||
+      localStorage.getItem("directions") !== null;
+
+    if (hasSaved) {
+      const dirs = Array.from(document.querySelectorAll(".dir:checked"));
+      const words = (document.getElementById("words").value || "").trim();
+      if (dirs.length > 0 && words.length > 0) {
+        generate();
+      }
+    }
+  });
+</script>
+
+<br/><br/>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br/><br/>
+</body>
+</html>

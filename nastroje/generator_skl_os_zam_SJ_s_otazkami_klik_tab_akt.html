@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skloňovanie osobných zámen - generátor klikacej tabuľky</title>
+    <style>
+        body {
+            font-family: Courier bold, Monaco, monospace;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input[type="text"], input[type="number"], textarea {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            padding: 2px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        textarea {
+            resize: vertical;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .help-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+        .buttons-panel {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            color: white;
+        }
+        .btn-generate { background-color: #28a745; }
+        .btn-generate:hover { background-color: #218838; }
+        .btn-export { background-color: #17a2b8; }
+        .btn-export:hover { background-color: #138496; }
+        .btn-import { background-color: #6c757d; }
+        .btn-import:hover { background-color: #5a6268; }
+        
+        #fileImport { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Skloňovanie osobných zámen v slovenčine (1 pád) - generátor klikacej tabuľky</h1>
+        
+        <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+                <label for="exTitle">Názov cvičenia</label>
+                <input type="text" id="exTitle" placeholder="Napr. Akuzatív osobných zámen...">
+            </div>
+            <div class="form-group">
+                <label for="exAuthor">Autor cvičenia</label>
+                <input type="text" id="exAuthor" placeholder="Napr. Ján Novák">
+            </div>
+            <div class="form-group">
+                <label for="exYear">Rok</label>
+                <input type="number" id="exYear" placeholder="2026">
+            </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="col1Name">Názov 1. stĺpca</label>
+                <input type="text" id="col1Name" value="nominatív">
+            </div>
+            <div class="form-group">
+                <label for="col2Name">Názov 2. stĺpca (statický)</label>
+                <input type="text" id="col2Name" value="otázka">
+            </div>
+            <div class="form-group">
+                <label for="col3Name">Názov 3. stĺpca (dopĺňací)</label>
+                <input type="text" id="col3Name" value="akuzatív">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="col2Bg">Farba pozadia 2. stĺpca</label>
+                <input type="color" id="col2Bg" value="#f0f0f0">
+            </div>
+            <div class="form-group">
+                <label for="col3Bg">Farba pozadia 3. stĺpca</label>
+                <input type="color" id="col3Bg" value="#e8f5e3">
+            </div>
+            <div class="form-group">
+                <label for="btn3Bg">Farba tlačidiel (pre 3. stĺpec)</label>
+                <input type="color" id="btn3Bg" value="#e8f5e3">
+            </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+        <div class="form-group">
+            <label for="exData">Dáta (zámeno[TAB]otázka[TAB]správny tvar)</label>
+            <textarea id="exData" rows="12">ja&#9;Koho/čo vidím?&#9;mňa, ma
+ty&#9;Koho/čo vidím?&#9;teba, ťa
+on&#9;Koho/čo vidím?&#9;jeho, ho
+ona&#9;Koho/čo vidím?&#9;ju
+ono&#9;Koho/čo vidím?&#9;jeho, ho
+my&#9;Koho/čo vidím?&#9;nás
+vy&#9;Koho/čo vidím?&#9;vás
+oni, ony&#9;Koho/čo vidím?&#9;ich</textarea>
+            <div class="help-text">Každý riadok predstavuje jeden záznam. Oddeľujte klávesom TAB. Podporované sú bežné HTML tagy (napr. &lt;b&gt;, &lt;i&gt;). Druhý stĺpec slúži len ako nápoveda pre žiaka.</div>
+        </div>
+
+        <div class="buttons-panel">
+            <button class="btn-generate" onclick="generateAndDownloadHTML()">Stiahnuť cvičenie ako súbor .html</button>
+            <button class="btn-export" onclick="exportJSON()">Exportovať do .json</button>
+            <button class="btn-import" onclick="document.getElementById('fileImport').click()">Importovať z .json</button>
+            <input type="file" id="fileImport" accept=".json" onchange="importJSON(event)">
+        </div>
+		<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+<br><br>
+    </div>
+
+    <script>
+        const fields = ['exTitle', 'exAuthor', 'exYear', 'col1Name', 'col2Name', 'col3Name', 'col2Bg', 'col3Bg', 'btn3Bg', 'exData'];
+
+        // Zachytávanie TAB v textarei
+        document.getElementById('exData').addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+                saveToLocal();
+            }
+        });
+
+        // Automatické ukladanie do localStorage pri zmene
+        fields.forEach(id => {
+            document.getElementById(id).addEventListener('input', saveToLocal);
+        });
+
+        function saveToLocal() {
+            const data = {};
+            fields.forEach(id => { data[id] = document.getElementById(id).value; });
+            localStorage.setItem('pronounGenData', JSON.stringify(data));
+        }
+
+        function loadFromLocal() {
+            const data = JSON.parse(localStorage.getItem('pronounGenData'));
+            if (data) {
+                fields.forEach(id => {
+                    if (data[id] !== undefined) document.getElementById(id).value = data[id];
+                });
+            }
+        }
+        window.onload = loadFromLocal;
+
+        // Export do JSON
+        function exportJSON() {
+            const data = {};
+            fields.forEach(id => { data[id] = document.getElementById(id).value; });
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = sanitizeFilename(data.exTitle || "export") + "_data.json";
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        // Import z JSON
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    fields.forEach(id => {
+                        if (data[id] !== undefined) document.getElementById(id).value = data[id];
+                    });
+                    saveToLocal();
+                    alert("Dáta úspešne načítané.");
+                } catch (err) {
+                    // Chybová hláška bola odstránená, chyba sa zapíše len do konzoly
+                    console.error("Chyba pri čítaní súboru: Neplatný formát JSON.", err);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // reset input
+        }
+
+        // Bezpečný názov súboru
+        function sanitizeFilename(name) {
+            return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                       .replace(/[\s\(\)]/g, "_")
+                       .replace(/_+/g, "_")
+                       .replace(/[^a-zA-Z0-9_]/g, "");
+        }
+
+        // Generovanie a sťahovanie HTML
+        function generateAndDownloadHTML() {
+            try {
+                const title = document.getElementById('exTitle').value || "Cvičenie";
+                const author = document.getElementById('exAuthor').value || "Neznámy";
+                const year = document.getElementById('exYear').value || new Date().getFullYear();
+                const col1 = document.getElementById('col1Name').value;
+                const col2 = document.getElementById('col2Name').value;
+                const col3 = document.getElementById('col3Name').value;
+                const c2bg = document.getElementById('col2Bg').value;
+                const c3bg = document.getElementById('col3Bg').value;
+                const b3bg = document.getElementById('btn3Bg').value;
+                const dataRaw = document.getElementById('exData').value;
+
+                let rowsHTML = "";
+                let btnsHTML = "";
+                let btnIdCounter = 0;
+                
+                const lines = dataRaw.split('\n').filter(line => line.trim() !== '');
+                
+                lines.forEach((line, index) => {
+                    const parts = line.split('\t');
+                    const val1 = parts[0] ? parts[0].trim() : "";
+                    const val2 = parts[1] ? parts[1].trim() : "";
+                    const val3 = parts[2] ? parts[2].trim() : "";
+
+                    rowsHTML += `
+                    <tr data-row-id="${index}">
+                        <td><strong>${val1}</strong></td>
+                        <td>${val2}</td>
+                        <td class="droppable" data-correct="${val3.replace(/"/g, '&quot;')}"></td>
+                    </tr>`;
+
+                    if (val3) {
+                        btnsHTML += `\n            <button class="answer-button btn-col3" id="btn_${btnIdCounter++}" data-val="${val3.replace(/"/g, '&quot;')}">${val3}</button>`;
+                    }
+                });
+
+                const templateContent = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body { font-family: Courier bold, monospace; margin: 20px; background-color: #fdfdfd; }
+        h1 { text-align: center; color: #333; }
+        .author-info { text-align: center; font-size: 0.9em; color: #555; margin-top: -10px; margin-bottom: 20px; font-family: sans-serif; }
+        #studentInfo { text-align: center; margin-bottom: 20px; }
+        #studentInfo label { font-weight: bold; margin-right: 10px; }
+        #studentInfo input { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        #instructions { background-color: #f0f0f0; padding: 15px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 20px; max-width: 950px; margin: 0 auto; text-align: left; }
+        #exerciseContainer { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 50px; /* Toto zväčší medzeru medzi tabuľkou a tlačidlami */
+    align-items: center; 
+    justify-content: center; 
+    max-width: 1000px; /* Môžete mierne rozšíriť celkový kontajner */
+    margin: 0 auto; 
+}
+        #tableContainer { margin-top: 10px; flex: 2; min-width: 450px; }
+        #buttonContainer { 
+    flex: 1; 
+    min-width: 150px; /* Zvýšte minimálnu šírku kontajnera, aby sa nekrčil */
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Tlačidlá budú mať min. 120px */
+    column-gap: 10px; 
+	row-gap: 15px; /* TOTO PRIDAJTE: medzera medzi riadkami tlačidiel */
+    align-items: center; 
+    justify-content: center; 
+}
+        
+        table { width: 100%; border-collapse: collapse; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin: 0 auto; }
+        th, td { border: 1px solid #424242; padding: 8px; text-align: center; height: 1.5em; font-size: 1.3em; }
+        th { background-color: #e9e9e9; font-size: 1.2em;}
+        
+        td:nth-child(1), th:nth-child(1) { background-color: #ffffff; width: 25%; }
+        td:nth-child(2), th:nth-child(2) { background-color: ${c2bg}; width: 40%; font-family: Courier bold, monospace; font-size: 1.1em; color: #444; }
+        td:nth-child(3), th:nth-child(3) { background-color: ${c3bg}; width: 35%; font-weight: normal; }
+
+        .droppable { cursor: pointer; transition: background-color 0.2s; font-weight: bold; color: #000; }
+        td:nth-child(3).droppable { font-weight: normal; }
+        .droppable:hover { filter: brightness(0.95); }
+        .droppable.filled { cursor: ns-resize; }
+        
+        .answer-button { padding: 6px 10px; cursor: pointer; justify-content: center; border: 1px solid #ccc; box-sizing: border-box; border-radius: 5px; transition: all 0.2s; font-size: 1.3em; font-family: Courier bold, monospace; background-color: ${b3bg}; }
+			
+        
+        .answer-button:hover { filter: brightness(0.9); }
+        .answer-button.selected { border: 3px solid #007BFF; transform: scale(1.02); filter: brightness(0.9); }
+
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 75% { transform: translateX(-4px); } 100% { transform: translateX(0); } }
+        .answer-button.shake { animation: shake 0.28s ease-in-out; }
+
+        #evaluationSection { margin-top: 30px; text-align: center; clear: both; }
+        #evaluateButton, #detailedButton { padding: 12px 25px; font-size: 1.1rem; font-weight: bold; color: #fff; background-color: #007BFF; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        #evaluateButton:hover, #detailedButton:hover { background-color: #0056b3; }
+        #evaluateButton:disabled { background-color: #aaa; cursor: not-allowed; }
+        
+        #summarySection { display: none; margin-top: 20px; border: 2px solid #007BFF; padding: 20px; background-color: #f4faff; border-radius: 8px; max-width: 900px; margin: 20px auto; font-family: sans-serif; }
+        #summarySection h2 { margin-top: 0; color: #0056b3; }
+        .result-symbol { font-size: 1.3em; font-weight: bold; margin-left: 10px; }
+        .correct { color: green; }
+        .incorrect { color: red; }
+    </style>
+</head>
+<body>
+
+    <h1>${title}</h1>
+    <div class="author-info">Autor: ${author} &nbsp;|&nbsp; Rok: ${year}</div>
+
+    <div id="studentInfo">
+        <label for="studentName">Meno žiaka:</label>
+        <input type="text" id="studentName" style="width:400px; box-sizing:border-box;">
+    </div>
+
+    <div id="instructions">
+        <span style="font-size: 110%;"><strong>Pokyny:</strong> Klikni na tlačidlo, ktorého obsah chceš umiestniť.<br>
+        Následne klikni na príslušnú prázdnu bunku v treťom stĺpci.<br>
+        Ak si to rozmyslíš, klikni na obsah bunky dvakrát a dané tlačidlo sa objaví znova medzi možnosťami.</span>
+    </div>
+
+    <div id="exerciseContainer">
+        <div id="tableContainer">
+            <table>
+                <thead>
+                    <tr>
+                        <th><strong>${col1}</strong></th>
+                        <th><strong>${col2}</strong></th>
+                        <th><strong>${col3}</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHTML}
+                </tbody>
+            </table>
+        </div>
+        <div id="buttonContainer">
+            ${btnsHTML}
+        </div>
+    </div>
+
+    <div id="evaluationSection">
+        <button id="evaluateButton">Vyhodnotiť</button>
+        <button id="detailedButton" style="display: none;">Detailné výsledky</button>
+    </div>
+
+    <div id="summarySection">
+        <h2>Prehľad hodnotenia</h2>
+        <p><strong>Názov cvičenia:</strong> <span id="summaryTitle"></span></p>
+        <p><strong>Meno žiaka:</strong> <span id="summaryName"></span></p>
+        <p><strong>Hodnotenie:</strong> <span id="summaryScore"></span></p>
+        <p><strong>Dátum a čas:</strong> <span id="summaryDate"></span></p>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const buttonContainer = document.getElementById('buttonContainer');
+        if (buttonContainer) {
+            const nodes = Array.from(buttonContainer.children);
+            for (let i = nodes.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [nodes[i], nodes[j]] = [nodes[j], nodes[i]];
+            }
+            nodes.forEach(n => buttonContainer.appendChild(n));
+        }
+
+        let selectedButton = null;
+        let exerciseState = 'active';
+        let detailedResultsData = [];
+        const exerciseTitle = "${title}";
+
+        const answerButtons = document.querySelectorAll('.answer-button');
+        const droppableCells = document.querySelectorAll('.droppable');
+        const evaluateButton = document.getElementById('evaluateButton');
+        const detailedButton = document.getElementById('detailedButton');
+        const studentNameInput = document.getElementById('studentName');
+        
+        answerButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (exerciseState !== 'active') return;
+                if (selectedButton === button) {
+                    button.classList.remove('selected');
+                    selectedButton = null;
+                } else {
+                    if (selectedButton) selectedButton.classList.remove('selected');
+                    button.classList.add('selected');
+                    selectedButton = button;
+                }
+            });
+        });
+        
+        droppableCells.forEach(cell => {
+            cell.addEventListener('click', () => {
+                if (exerciseState !== 'active') return;
+                
+                if (selectedButton && !cell.dataset.sourceId) {
+                    cell.innerHTML = selectedButton.innerHTML;
+                    cell.dataset.sourceId = selectedButton.id;
+                    cell.dataset.val = selectedButton.dataset.val;
+                    cell.classList.add('filled');
+                    
+                    selectedButton.style.display = 'none'; 
+                    selectedButton.classList.remove('selected');
+                    selectedButton = null;
+                    return;
+                }
+
+                if (selectedButton && cell.dataset.sourceId) {
+                    selectedButton.classList.add('shake');
+                    setTimeout(() => selectedButton.classList.remove('shake'), 300);
+                    return;
+                }
+            });
+
+            cell.addEventListener('dblclick', () => {
+                if (exerciseState !== 'active') return;
+                const sourceId = cell.dataset.sourceId;
+                if (sourceId) {
+                    const buttonToRestore = document.getElementById(sourceId);
+                    if (buttonToRestore) buttonToRestore.style.display = 'block'; 
+                    cell.innerHTML = ''; 
+                    delete cell.dataset.sourceId;
+                    delete cell.dataset.val;
+                    cell.classList.remove('filled');
+                }
+            });
+        });
+        
+        evaluateButton.addEventListener('click', () => {
+            if (exerciseState !== 'evaluated') {
+                exerciseState = 'evaluated';
+                evaluateButton.disabled = true;
+                detailedButton.style.display = 'inline-block';
+
+                let total = 0;
+                let correct = 0;
+                detailedResultsData = [];
+
+                const studentName = studentNameInput.value.trim() || 'Anonym';
+                studentNameInput.disabled = true; 
+
+                document.querySelectorAll('#tableContainer tbody tr').forEach(row => {
+                    const nominativ = row.cells[0].textContent.trim();
+                    const cellCol3 = row.cells[2]; 
+
+                    total++;
+                    const userVal3 = cellCol3.dataset.val || '';
+                    const correctVal3 = cellCol3.dataset.correct;
+                    let symbol3 = '✗';
+                    let class3 = 'incorrect';
+                    
+                    if (userVal3 === correctVal3) {
+                        correct++;
+                        symbol3 = '✓';
+                        class3 = 'correct';
+                    }
+                    cellCol3.innerHTML += " <span class='result-symbol " + class3 + "'>" + symbol3 + "</span>";
+                    detailedResultsData.push({ base: nominativ, type: '${col3}', user: userVal3 || '---', correct: correctVal3, symbol: symbol3 });
+                });
+
+                droppableCells.forEach(cell => cell.style.cursor = 'default');
+                answerButtons.forEach(btn => {
+                    btn.style.cursor = 'not-allowed';
+                    btn.disabled = true;
+                });
+                
+                const percentage = (total > 0) ? (correct / total * 100).toFixed(1) : 0;
+                const scoreText = correct + " z " + total + " správnych (" + percentage + " %)";
+                const now = new Date();
+                const dateTimeText = now.toLocaleString('sk-SK');
+
+                document.getElementById('summaryTitle').textContent = exerciseTitle;
+                document.getElementById('summaryName').textContent = studentName;
+                document.getElementById('summaryScore').textContent = scoreText;
+                document.getElementById('summaryDate').textContent = dateTimeText;
+                document.getElementById('summarySection').style.display = 'block';
+            }
+        });
+        
+        detailedButton.addEventListener('click', () => {
+            const studentName = document.getElementById('studentName').value.trim() || 'Anonym';
+            const score = document.getElementById('summaryScore').textContent;
+            const date = document.getElementById('summaryDate').textContent;
+
+            let detailTableHTML = "<table><thead><tr><th>Základ (${col1})</th><th>Hľadaný tvar</th><th>Tvoja odpoveď</th><th>Správna odpoveď</th><th>Hodnotenie</th></tr></thead><tbody>";
+
+            detailedResultsData.forEach(res => {
+                const markClass = res.symbol === '✓' ? 'correct' : 'incorrect';
+                detailTableHTML += "<tr>" +
+                    "<td>" + res.base + "</td>" +
+                    "<td>" + res.type + "</td>" +
+                    "<td>" + res.user + "</td>" +
+                    "<td><strong>" + res.correct + "</strong></td>" +
+                    "<td><span class='result-symbol " + markClass + "'>" + res.symbol + "</span></td>" +
+                "</tr>";
+            });
+            
+            detailTableHTML += "</tbody></table>";
+
+            const popupContent = "<html><head><title>Detailné výsledky: " + exerciseTitle + "</title>" +
+                "<style>body { font-family: Arial, sans-serif; padding: 20px; } h1 { text-align: center; color: #333; } .summary-block { border: 1px solid #ccc; background: #f9f9f9; padding: 15px; margin-bottom: 20px; border-radius: 8px; } table { width: 100%; border-collapse: collapse; margin-top: 20px; } th, td { border: 1px solid #ddd; padding: 10px; text-align: left; } th { background-color: #f2f2f2; } .result-symbol { font-size: 1.3em; font-weight: bold; } .correct { color: green; } .incorrect { color: red; } .legend { margin-top: 20px; background-color: #f0f0f0; padding: 10px; border-radius: 5px; } .legend-symbol { font-weight: bold; font-size: 1.2em; }</style>" +
+                "</head><body>" +
+                "<h1>Detailné výsledky</h1>" +
+                "<div class='summary-block'>" +
+                "<p><strong>Názov cvičenia:</strong> " + exerciseTitle + "</p>" +
+                "<p><strong>Autor:</strong> ${author} &nbsp;|&nbsp; <strong>Rok:</strong> ${year}</p>" +
+                "<p><strong>Meno žiaka:</strong> " + studentName + "</p>" +
+                "<p><strong>Hodnotenie:</strong> " + score + "</p>" +
+                "<p><strong>Dátum a čas:</strong> " + date + "</p>" +
+                "</div>" +
+                "<h2>Detailný prehľad</h2>" +
+                detailTableHTML +
+                "<div class='legend'><strong>Vysvetlivky:</strong><br><span class='legend-symbol correct'>✓</span> = Správna odpoveď<br><span class='legend-symbol incorrect'>✗</span> = Nesprávna odpoveď</div>" +
+                "</body></html>";
+
+            const popupWindow = window.open('', 'DetailneVysledky', 'width=900,height=700,scrollbars=yes,resizable=yes');
+            popupWindow.document.open();
+            popupWindow.document.write(popupContent);
+            popupWindow.document.close();
+            popupWindow.focus(); 
+        });
+    });
+    <\/script>
+</body>
+</html>`;
+
+                const filename = sanitizeFilename(title) + ".html";
+                const blob = new Blob([templateContent], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert("Nastala chyba pri generovaní súboru. Skontrolujte prosím zadané údaje.");
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

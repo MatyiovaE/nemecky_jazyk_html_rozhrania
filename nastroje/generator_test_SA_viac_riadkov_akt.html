@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <title>Generátor cvičení s krátkou odpoveďou (viac riadkov)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Courier, monospace; font-size: 110%; padding: 20px; }
+    label { display:block; margin-top:12px; font-weight:600; }
+    .hint { color:#555; font-size:0.9rem; margin-bottom:6px; }
+    textarea { width:100%; box-sizing:border-box; padding:8px; margin-top:6px; }
+    textarea { min-height:170px; font-family:monospace; font-size: 120%;white-space:pre; }
+    input[type="text"] { width: 90%; margin-bottom: 10px; font-size: 110%; }
+    input[type="number"] { width: 10%; margin-bottom: 10px; font-size: 110%; }
+    button { margin-top:12px; padding:8px 12px; margin-right: 8px; cursor: pointer; }
+    .button-group { margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd; }
+    .preview { margin-top:20px; border-top:1px solid #ddd; padding-top:16px; }
+    @media print {
+      header, h1, .meta, .instructions, .controls, #exercise, input, button, .preview, .button-group { display: none !important; }
+      #result { display: block !important; width: 100% !important; }
+      body { padding: 8mm; }
+    }
+    .print-button { margin-left: 6px; padding: 6px 10px; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Generátor testov s krátkou odpoveďou -<br>
+	viac riadkov (zobrazuje sa naraz len jedna úloha)</h1>
+  </header>
+
+  <label for="titleInput">Názov testu:</label>
+  <input id="titleInput" type="text" placeholder="Zadajte názov testu." />
+
+  <label for="instructionsInput">Pokyny pre žiaka:</label>
+  <input id="instructionsInput" type="text" placeholder="Zadajte pokyny pre žiaka." />
+  <div class="hint instructions">Tento element sa pri tlači skryje.</div>
+
+  <label for="authorInput">Autor (zobrazí sa vo vygenerovanom súbore):</label>
+  <input id="authorInput" type="text" placeholder="Meno Priezvisko" />
+
+  <label for="yearInput">Rok:</label>
+  <input id="yearInput" type="number" placeholder="napr. 2026" />
+
+  <label for="exerciseCount">Predvolený počet úloh v cvičení:</label><input id="exerciseCount" type="number" min="1" value="10" />
+
+  <label for="taskInput"><b>Zadajte úlohy. Každá úloha má byť v samostatnom riadku.<br>Zadanie a riešenie oddeľte klávesom[TAB].<br>Ak má zadanie viac riešení, ďalšie riešenie pridajte za ďalší [TAB]:</b></label>
+  <div class="hint"><b>Formát:</b><br>zadanie[TAB]správna odpoveď 1[TAB]správna odpoveď 2 (ak existuje)<br>
+  Je povolené formátovanie pomocou tagov html.<br>
+  <b>Hodnotenie po slovách:</b> Ak chcete prideliť body za jednotlivé slová, pridajte ich do zátvorky za slovo, napr.: in(0,5) der(0,5) Slowakei(1).<br>
+  <i>Upozornenie: Pri tomto bodovaní sa za každé slovo navyše (ktoré žiak napíše chybne navyše) odpočíta 0,5 bodu!</i><br>
+  <b>Je možné zadávať úlohy aj takto:</b> On zbiera staré mobily.|Er ... alte Handys.[TAB]sammelt<br><br>
+  Znak | znamená nový riadok v úlohe.</div>
+  <textarea id="taskInput" placeholder="fernsehen (du)  Sieh fern!  Sieh ... fern!"></textarea>
+  <div style="margin-top: 5px;">
+    <button type="button" id="insertPipeBtn" style="font-size: 0.9rem; padding: 4px 10px; cursor: pointer; border: 1px solid #aaa; border-radius: 4px; background: #eee; margin-top: 0;">Vložiť znak <b>|</b> (ľavý Alt + 0124)</button>
+  </div>
+
+  <div>
+    <button id="downloadBtn" style="font-weight: bold; background-color: #e0f7fa;">Stiahnuť test ako súbor .html</button>
+  </div>
+
+  <div class="button-group">
+    <button id="exportJsonBtn">Exportovať nastavenia (.json)</button>
+    <input type="file" id="importJsonFile" accept=".json" style="display:none" />
+    <button id="importJsonBtn">Importovať nastavenia (.json)</button>
+  </div>
+
+  <div class="preview" id="preview"></div>
+
+  <script>
+    const taskInput = document.getElementById('taskInput');
+    const titleInput = document.getElementById('titleInput');
+    const instructionsInput = document.getElementById('instructionsInput');
+    const authorInput = document.getElementById('authorInput');
+    const yearInput = document.getElementById('yearInput');
+    const exerciseCountEl = document.getElementById('exerciseCount');
+    const preview = document.getElementById('preview');
+    
+    const downloadBtn = document.getElementById('downloadBtn');
+    const exportJsonBtn = document.getElementById('exportJsonBtn');
+    const importJsonBtn = document.getElementById('importJsonBtn');
+    const importJsonFile = document.getElementById('importJsonFile');
+    const insertPipeBtn = document.getElementById('insertPipeBtn');
+
+    taskInput.addEventListener('keydown', function(e){
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = this.selectionStart, epos = this.selectionEnd;
+        this.value = this.value.slice(0,s) + '\t' + this.value.slice(epos);
+        this.selectionStart = this.selectionEnd = s + 1;
+      }
+    });
+
+    insertPipeBtn.addEventListener('click', function() {
+      const s = taskInput.selectionStart, epos = taskInput.selectionEnd;
+      taskInput.value = taskInput.value.slice(0,s) + '|' + taskInput.value.slice(epos);
+      taskInput.selectionStart = taskInput.selectionEnd = s + 1;
+      taskInput.focus();
+    });
+
+    window.addEventListener('load', () => {
+      const raw = localStorage.getItem('exerciseRaw'); if (raw) taskInput.value = raw;
+      const t = localStorage.getItem('exerciseTitle'); if (t) titleInput.value = t;
+      const instr = localStorage.getItem('exerciseInstr'); if (instr) instructionsInput.value = instr;
+      const auth = localStorage.getItem('exerciseAuthor'); if (auth) authorInput.value = auth;
+      const yr = localStorage.getItem('exerciseYear'); if (yr) yearInput.value = yr;
+      const cnt = localStorage.getItem('exerciseCount'); if (cnt) exerciseCountEl.value = cnt;
+    });
+
+    taskInput.addEventListener('input', ()=> localStorage.setItem('exerciseRaw', taskInput.value));
+    titleInput.addEventListener('input', e=> localStorage.setItem('exerciseTitle', e.target.value));
+    instructionsInput.addEventListener('input', e=> localStorage.setItem('exerciseInstr', e.target.value));
+    authorInput.addEventListener('input', e=> localStorage.setItem('exerciseAuthor', e.target.value));
+    yearInput.addEventListener('input', e=> localStorage.setItem('exerciseYear', e.target.value));
+    exerciseCountEl.addEventListener('input', e=> localStorage.setItem('exerciseCount', e.target.value));
+
+    function parseTasks(raw) {
+      return raw
+        .split('\n')
+        .map(l => l.replace(/\r/g,''))
+        .map(l => l.trim())
+        .filter(l => l.length>0)
+        .map(line => {
+          const parts = line.split('\t').map(p => (p||'').trim());
+          const prompt = parts[0] || '';
+          const answers = parts.slice(1).filter(a => a.length>0);
+          return { prompt, answers };
+        })
+        .filter(t => t.prompt && t.answers && t.answers.length>0);
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }); }
+
+    function sanitizeFilename(str) {
+      if (!str) return '';
+      return str
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[ \(\)\[\]]+/g, "_")
+        .replace(/[^a-zA-Z0-9_\-]/g, "");
+    }
+
+    function downloadHtml(){
+      const title = titleInput.value.trim();
+      const instructions = instructionsInput.value.trim();
+      const author = authorInput.value.trim();
+      const year = yearInput.value.trim();
+      const count = parseInt(exerciseCountEl.value, 10) || 1;
+      const raw = taskInput.value;
+      const all = parseTasks(raw);
+
+      if (!title) { alert('Zadaj názov cvičenia.'); return; }
+      if (all.length === 0) { alert('Zadaj aspoň jednu úlohu s aspoň jednou správnou odpoveďou.'); return; }
+
+      localStorage.setItem('exerciseData', JSON.stringify(all));
+
+      let authorInfoHtml = '';
+      if (author || year) {
+        authorInfoHtml = `<b>Autor:</b> ${escapeHtml(author)} ${year ? '(' + escapeHtml(year) + ')' : ''}`;
+      }
+
+      const htmlContent = `<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>${escapeHtml(title)}</title>
+<style>
+  body { font-family: Courier, monospace; font-size: 110%; padding: 18px; margin: 0; background-color: #ffffff; }
+  .test-container { max-width: 900px; margin: 0 auto; text-align: center; }
+  
+  .meta { margin-bottom: 20px; }
+  .setup-input-group { margin: 15px auto; max-width: 400px; text-align: left; }
+  .setup-input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+  
+  input[type="text"], input[type="number"] { width: 100%; font-size: 130%; padding: 10px; box-sizing: border-box; text-align: center; border: 1px solid #ccc; border-radius: 4px; }
+  
+  .task { margin: 20px 0; padding: 20px; font-size: 200%; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+  .instructions { font-size: 120%; font-weight: bold; margin-bottom: 20px; }
+  
+  .controls { margin-top: 15px; }
+  
+  #navContainer { margin: 25px auto 10px auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .nav-btn { min-width: 40px; padding: 8px 10px; font-size: 1rem; border: 1px solid #bbb; border-radius: 6px; cursor: pointer; background-color: #e0e0e0; transition: all 0.2s; }
+  .nav-btn:hover { filter: brightness(0.95); }
+  .nav-btn.answered { background-color: #add8e6; border-color: #8cbcd1; }
+  .nav-btn.current { border: 2px solid #333; font-weight: bold; transform: scale(1.1); }
+  
+  #nextBtn { padding: 10px 20px; font-size: 1.1rem; cursor: pointer; border-radius: 6px; border: 1px solid #aaa; background-color: #fff; }
+  #nextBtn:hover { background-color: #eee; }
+  
+  #evalBtn { background-color: #4CAF50; color: white; display: block; margin: 30px auto; padding: 12px 25px; font-size: 1.3rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+  #evalBtn:hover { background-color: #45a049; }
+  
+  #startBtn { padding: 12px 24px; font-size: 1.2rem; cursor: pointer; background-color: #2196F3; color: white; border: none; border-radius: 6px; margin-top: 20px; font-weight: bold; }
+  #startBtn:hover { background-color: #1976D2; }
+
+  .result { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; text-align: left; }
+  .correct { background: #c8e6c9; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
+  .partial { background: #fff9c4; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
+  .incorrect { background: #ffcdd2; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
+  .row { margin-bottom: 12px; }
+  #answerInput { font-family: Courier bold, monospace; font-size: 2.6rem; line-height: 1.2; padding: 10px; text-align: center; }
+  
+  .char-keyboard { margin-top: 15px; display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
+  .char-btn { padding: 8px 15px; font-size: 1.2rem; cursor: pointer; border: 1px solid #aaa; border-radius: 4px; background-color: #fff; font-family: Courier bold, monospace; font-weight: bold; }
+  .char-btn:hover { background-color: #e0e0e0; }
+  
+  @media print {
+    header, h1, .meta, .instructions, .controls, #exercise, #navContainer, input, button, #setupScreen { display: none !important; }
+    #result { display: block !important; width: 100% !important; border: none; }
+    body { padding: 0; }
+    .test-container { max-width: 100%; margin: 0; text-align: left; }
+  }
+  .print-button { margin: 20px auto; padding: 10px 15px; font-size: 1.1rem; display: block; }
+</style>
+</head>
+<body>
+  <div class="test-container">
+    <header>
+      <h1>${escapeHtml(title)}</h1>
+    </header>
+
+    <div id="setupScreen">
+      <div class="setup-input-group">
+        <label for="studentName">Meno žiaka:</label>
+        <input id="studentName" type="text" placeholder="Zadajte svoje meno" />
+      </div>
+      
+      <div class="setup-input-group">
+        <label for="userTaskCount">Počet úloh v teste (max ${all.length}):</label>
+        <input id="userTaskCount" type="number" min="1" max="${all.length}" value="${Number(count)}" />
+      </div>
+      
+      <button id="startBtn" onclick="startTest()">Začať test</button>
+    </div>
+
+    <div id="testScreen" style="display:none;">
+      <p class="instructions" style="text-align:center;">${escapeHtml(instructions)}</p>
+      <div id="exercise"></div>
+      
+      <div class="controls">
+        <button id="nextBtn" onclick="goNext()">Ďalej</button>
+      </div>
+
+      <div id="navContainer"></div>
+      
+      <button id="evalBtn" onclick="evaluateTest()" style="display:none;">Vyhodnotiť</button>
+    </div>
+
+    <div id="result" class="result" style="display:none;"></div>
+    <button id="printBtn" class="print-button" style="display:none" onclick="window.print()">Tlačiť výsledky</button>
+
+    <br><br>
+    ${authorInfoHtml}
+    <br><br>
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025/2026)
+    <br><br>
+  </div>
+
+  <script>
+    const tasksAll = ${JSON.stringify(all)};
+    let tasks = [];
+    let answers = [];
+    let currentIndex = 0;
+
+    function pickRandomSubset(allTasks, count){
+      const pool = allTasks.slice();
+      const out = [];
+      const N = Math.max(1, Math.min(count, pool.length));
+      for (let i=0;i<N;i++){
+        const idx = Math.floor(Math.random()*pool.length);
+        out.push(pool.splice(idx,1)[0]);
+      }
+      return out;
+    }
+
+    function normalizePreserveCase(s) {
+      if (!s) return '';
+      return String(s).trim().replace(/\\s+/g, ' ');
+    }
+
+    function stripPunctuation(str) {
+      return str.replace(/[.,?!:;]/g, '');
+    }
+
+    function parseAnswerTokens(ansString) {
+      if (!/\\([\\d]+[.,]?[\\d]*\\)/.test(ansString)) return null;
+      let chunks = ansString.trim().split(/\\s+/);
+      let tokens = [];
+      let totalMax = 0;
+      for (let chunk of chunks) {
+        let m = chunk.match(/^(.*?)\\(([\\d]+[.,]?[\\d]*)\\)$/);
+        if (m) {
+          let w = m[1];
+          let p = parseFloat(m[2].replace(',', '.'));
+          tokens.push({ word: w, pts: p });
+          totalMax = Number((totalMax + p).toFixed(2));
+        } else {
+          tokens.push({ word: chunk, pts: 0 });
+        }
+      }
+      return { tokens, totalMax };
+    }
+
+    // Levenshteinova vzdialenosť (počet preklepov: vymazanie, pridanie, zámena)
+    function getLevenshteinDist(a, b) {
+      if (a.length === 0) return b.length;
+      if (b.length === 0) return a.length;
+      const matrix = [];
+      for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+      for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          if (b.charAt(i - 1) === a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
+          }
+        }
+      }
+      return matrix[b.length][a.length];
+    }
+
+    function getWordScore(cWord, sWord, maxPts) {
+      let cLower = cWord.toLowerCase();
+      let sLower = sWord.toLowerCase();
+      let isAbbreviation = (cWord === cWord.toUpperCase() && cWord.length > 1);
+      
+      let dist = getLevenshteinDist(cLower, sLower);
+      
+      // Slovo sa neuzná, ak má viac než 1 preklep.
+      // 1 preklep povolíme LEN ak je slovo za presne 1 bod a nie je to skratka.
+      if (dist > 1) return -1;
+      if (dist === 1 && (maxPts !== 1 || isAbbreviation)) return -1; 
+      
+      let penalty = 0;
+      
+      // 1. Penalizácia za preklep (chýbajúce, pridané alebo nesprávne písmeno)
+      if (dist === 1) {
+        penalty += 0.5;
+      }
+      
+      // 2. Penalizácia za veľké/malé písmená (Case penalty)
+      if (cWord === cWord.toLowerCase()) {
+        penalty += 0;
+      } else if (isAbbreviation) {
+        if (sWord === sWord.toLowerCase()) penalty += 0.5;
+      } else {
+        // Kontroluje formát ako 'Schweiz' (len prvé veľké)
+        let isFirstUpperRestLower = (cWord.charAt(0) === cWord.charAt(0).toUpperCase()) &&
+                                    (cWord.slice(1) === cWord.slice(1).toLowerCase());
+        if (isFirstUpperRestLower) {
+          if (sWord === sWord.toUpperCase()) penalty += 0.75;
+          // Ak žiak nenapísal na začiatku veľké písmeno:
+          else if (sWord.charAt(0) === sWord.charAt(0).toLowerCase()) penalty += 0.5;
+        } else {
+          penalty += 0.5;
+        }
+      }
+      
+      let finalPts = maxPts - penalty;
+      return finalPts > 0 ? finalPts : 0;
+    }
+
+    function evaluateVariant(studentAns, correctAns) {
+      let s = normalizePreserveCase(studentAns);
+      let c = normalizePreserveCase(correctAns);
+
+      let parsed = parseAnswerTokens(c);
+      if (parsed) {
+        let studentWords = s === "" ? [] : s.split(" ");
+        let studentTotalCount = studentWords.length;
+        let correctTotalCount = parsed.tokens.length;
+        
+        let score = 0;
+        let max = parsed.totalMax;
+
+        for (let tk of parsed.tokens) {
+          if (tk.pts > 0) {
+            let cClean = stripPunctuation(tk.word);
+            let bestMatchIdx = -1;
+            let bestMatchScore = -1;
+
+            for (let i = 0; i < studentWords.length; i++) {
+              let swClean = stripPunctuation(studentWords[i]);
+              
+              let currentScore = getWordScore(cClean, swClean, tk.pts);
+              if (currentScore !== -1) { 
+                if (currentScore > bestMatchScore) {
+                  bestMatchScore = currentScore;
+                  bestMatchIdx = i;
+                }
+                // Ak našlo zhodu na plný počet bodov pre toto slovo, ďalej nehľadáme
+                if (currentScore === tk.pts) break;
+              }
+            }
+
+            if (bestMatchIdx !== -1) {
+              score = Number((score + bestMatchScore).toFixed(2));
+              studentWords.splice(bestMatchIdx, 1);
+            }
+          }
+        }
+        
+        if (studentTotalCount > correctTotalCount) {
+          let extraCount = studentTotalCount - correctTotalCount;
+          score = Number((score - (extraCount * 0.5)).toFixed(2));
+        }
+        
+        if (score < 0) score = 0;
+
+        return { 
+          score: score, 
+          max: max, 
+          isPartial: (score > 0 && score < max), 
+          isCorrect: (score === max && studentTotalCount === correctTotalCount) 
+        };
+      }
+
+      let isMatch = false;
+      if (c.includes('...')) {
+        let parts = c.split('...');
+        let escParts = parts.map(p => p.replace(/[-\\/\\\\^$*+?.()|[\\]{}]/g, '\\\\$&'));
+        let pattern = '^' + escParts.join('.*') + '$';
+        try {
+          isMatch = new RegExp(pattern).test(s);
+        } catch(e) { isMatch = s === c; }
+      } else {
+        isMatch = s === c;
+      }
+      return { score: isMatch ? 1 : 0, max: 1, isPartial: false, isCorrect: isMatch };
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }); }
+
+    function formatPrompt(text) {
+      if (!text) return '';
+      let lines = String(text).split('|');
+      return lines.map(line => {
+        let esc = escapeHtml(line);
+        esc = esc.replace(/&lt;b&gt;/gi, '<b>').replace(/&lt;\\/b&gt;/gi, '</b>');
+        esc = esc.replace(/&lt;i&gt;/gi, '<i>').replace(/&lt;\\/i&gt;/gi, '</i>');
+        esc = esc.replace(/&lt;u&gt;/gi, '<u>').replace(/&lt;\\/u&gt;/gi, '</u>');
+        esc = esc.replace(/&lt;span(.*?)&gt;/gi, function(m, p1) {
+          return '<span' + p1.replace(/&quot;/g, '"').replace(/&#39;/g, "\\'") + '>';
+        }).replace(/&lt;\\/span&gt;/gi, '</span>');
+        return esc;
+      }).join('<br>');
+    }
+
+    function insertChar(char) {
+      const inp = document.getElementById('answerInput');
+      if(inp) {
+        const start = inp.selectionStart;
+        const end = inp.selectionEnd;
+        inp.value = inp.value.substring(0, start) + char + inp.value.substring(end);
+        inp.selectionStart = inp.selectionEnd = start + 1;
+        inp.focus();
+      }
+    }
+
+    function startTest() {
+      let reqCount = parseInt(document.getElementById('userTaskCount').value, 10);
+      if (isNaN(reqCount) || reqCount < 1) reqCount = 1;
+      if (reqCount > tasksAll.length) reqCount = tasksAll.length;
+
+      tasks = pickRandomSubset(tasksAll, reqCount);
+      answers = new Array(tasks.length).fill('');
+      currentIndex = 0;
+
+      document.getElementById('setupScreen').style.display = 'none';
+      document.getElementById('testScreen').style.display = 'block';
+
+      renderTask(0);
+    }
+
+    function saveCurrentAnswer() {
+      const inp = document.getElementById('answerInput');
+      if (inp) {
+        answers[currentIndex] = inp.value;
+      }
+    }
+
+    function renderTask(index) {
+      currentIndex = index;
+      const task = tasks[currentIndex];
+
+      document.getElementById('exercise').innerHTML = \`
+        <div class="task">
+          <div class="row" style="text-align: center;">\${formatPrompt(task.prompt)}</div>
+          <div class="row">
+            <input id="answerInput" type="text" autocomplete="off" value="\${escapeHtml(answers[currentIndex])}" />
+          </div>
+          <div class="char-keyboard">
+            <button type="button" class="char-btn" onclick="insertChar('ä')">ä</button>
+            <button type="button" class="char-btn" onclick="insertChar('ö')">ö</button>
+            <button type="button" class="char-btn" onclick="insertChar('ü')">ü</button>
+            <button type="button" class="char-btn" onclick="insertChar('ß')">ß</button>
+            <button type="button" class="char-btn" onclick="insertChar('Ä')">Ä</button>
+            <button type="button" class="char-btn" onclick="insertChar('Ö')">Ö</button>
+            <button type="button" class="char-btn" onclick="insertChar('Ü')">Ü</button>
+          </div>
+        </div>\`;
+      
+      const inp = document.getElementById('answerInput');
+      inp.focus();
+      inp.addEventListener('keydown', function(e){
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          if (currentIndex < tasks.length - 1) goNext(); else evaluateTest();
+        }
+      });
+
+      if (currentIndex < tasks.length - 1) {
+        document.getElementById('nextBtn').style.display = 'inline-block';
+        document.getElementById('evalBtn').style.display = 'none';
+      } else {
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('evalBtn').style.display = 'block';
+      }
+
+      updateNav();
+    }
+
+    function goNext() {
+      saveCurrentAnswer();
+      if (currentIndex < tasks.length - 1) {
+        renderTask(currentIndex + 1);
+      }
+    }
+
+    function jumpTo(index) {
+      saveCurrentAnswer();
+      renderTask(index);
+    }
+
+    function updateNav() {
+      const nav = document.getElementById('navContainer');
+      nav.innerHTML = '';
+      for (let i = 0; i < tasks.length; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i + 1;
+        btn.className = 'nav-btn';
+        
+        if (i === currentIndex) {
+          btn.classList.add('current');
+        }
+        
+        if (answers[i] && answers[i].trim() !== '') {
+          btn.classList.add('answered');
+        }
+        
+        btn.onclick = () => jumpTo(i);
+        nav.appendChild(btn);
+      }
+    }
+
+    function evaluateTest() {
+      saveCurrentAnswer();
+      
+      document.getElementById('testScreen').style.display = 'none';
+      const resultDiv = document.getElementById('result');
+      resultDiv.style.display = 'block';
+
+      let totalScore = 0;
+      let totalMaxScore = 0;
+      let summary = '';
+      
+      for (let i = 0; i < tasks.length; i++){
+        const t = tasks[i]; 
+        const aRaw = (answers[i] || '').trim();
+        
+        const variants = Array.isArray(t.answers) ? t.answers.slice() : [t.answers];
+        let bestEval = { score: 0, max: 1, isPartial: false, isCorrect: false };
+        let maxFound = false;
+        
+        for (const cv of variants) {
+          if (!cv) continue;
+          let currentEval = evaluateVariant(aRaw, cv);
+          if (currentEval.score > bestEval.score || (!maxFound && currentEval.score === 0)) {
+            bestEval = currentEval;
+            maxFound = true;
+          }
+        }
+        
+        totalScore = Number((totalScore + bestEval.score).toFixed(2));
+        totalMaxScore = Number((totalMaxScore + bestEval.max).toFixed(2));
+        
+        const aEsc = escapeHtml(aRaw || '(žiadna odpoveď)');
+        let boxClass = '';
+        let statusText = '';
+        
+        if (bestEval.isCorrect) {
+          boxClass = 'correct';
+          statusText = \`<strong>Správne ✅</strong> (\${bestEval.score} / \${bestEval.max} b.)\`;
+        } else if (bestEval.score > 0) {
+          boxClass = 'partial';
+          statusText = \`<strong>Čiastočne správne ⚠️</strong> (\${bestEval.score} / \${bestEval.max} b.)\`;
+        } else {
+          boxClass = 'incorrect';
+          statusText = \`<strong>Nesprávne ❌</strong> (\${bestEval.score} / \${bestEval.max} b.)\`;
+        }
+        
+        let displayVariants = variants.map(v => v.replace(/\\([\\d]+[.,]?[\\d]*\\)/g, '')).join(' | ');
+
+        summary += \`<div class="\${boxClass}"><div style="text-align:center;">\${formatPrompt(t.prompt)}</div><div>Tvoja odpoveď: <em>\${aEsc}</em></div><div>Správne odpovede: <strong>\${escapeHtml(displayVariants)}</strong></div><div>\${statusText}</div></div><br />\`;
+      }
+
+      const percent = totalMaxScore > 0 ? Math.round((totalScore / totalMaxScore) * 100) : 0;
+      const now = new Date().toLocaleString();
+      const studentName = document.getElementById('studentName').value.trim();
+
+      resultDiv.innerHTML = \`
+        <p><strong>Názov testu:</strong> \${escapeHtml(document.title)}</p>
+        <p><strong>Meno žiaka:</strong> \${escapeHtml(studentName)}</p>
+        <p><strong>Bodovanie:</strong> \${totalScore} / \${totalMaxScore} (\${percent}%)</p>
+        <p><strong>Dátum a čas:</strong> \${escapeHtml(now)}</p>
+        <hr />
+        <h3>Vyhodnotenie úloh:</h3>\${summary}\`;
+      
+      document.getElementById('printBtn').style.display = 'block';
+    }
+
+  \x3C/script>
+</body>
+</html>`;
+
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeTitle = sanitizeFilename(title) || 'cvicenie';
+      a.download = safeTitle + '.html';
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      URL.revokeObjectURL(url);
+    }
+
+    function exportSettings() {
+      const data = {
+        title: titleInput.value,
+        instructions: instructionsInput.value,
+        author: authorInput.value,
+        year: yearInput.value,
+        count: exerciseCountEl.value,
+        tasksRaw: taskInput.value
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeTitle = sanitizeFilename(titleInput.value) || 'nastavenia';
+      a.download = safeTitle + '_nastavenia.json';
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      URL.revokeObjectURL(url);
+    }
+
+    importJsonBtn.addEventListener('click', () => importJsonFile.click());
+    importJsonFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if(data.title !== undefined) { titleInput.value = data.title; localStorage.setItem('exerciseTitle', data.title); }
+          if(data.instructions !== undefined) { instructionsInput.value = data.instructions; localStorage.setItem('exerciseInstr', data.instructions); }
+          if(data.author !== undefined) { authorInput.value = data.author; localStorage.setItem('exerciseAuthor', data.author); }
+          if(data.year !== undefined) { yearInput.value = data.year; localStorage.setItem('exerciseYear', data.year); }
+          if(data.count !== undefined) { exerciseCountEl.value = data.count; localStorage.setItem('exerciseCount', data.count); }
+          if(data.tasksRaw !== undefined) { taskInput.value = data.tasksRaw; localStorage.setItem('exerciseRaw', data.tasksRaw); }
+          
+          importJsonFile.value = '';
+        } catch (err) {
+          alert('Nepodarilo sa načítať súbor. Skontrolujte, či ide o správny .json formát.');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    downloadBtn.addEventListener('click', downloadHtml);
+    exportJsonBtn.addEventListener('click', exportSettings);
+
+  </script>
+  <br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025/2026)
+<br><br>
+</body>
+</html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Triedenie podstatných mien podľa rodu (ten/tá/to)</title>
+  <style>
+    body { font-family: monospace; font-size: 17px; padding: 20px; }
+    textarea { width: 100%; height: 150px; font-size: 18px; font-family: monospace; }
+    .columns {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 20px;
+    }
+
+    .column {
+      width: 40%;
+      padding: 10px;
+      min-height: 450px;
+      border-radius: 8px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .ten { background-color: #cce5ff; font-size: 25px; }
+    .tá { background-color: #f8d7da; font-size: 25px;}
+    .to { background-color: #d4edda; font-size: 25px; }
+
+    .word-ten { background-color: #99ccff; color: #003366; }
+    .word-tá { background-color: #f5b7b1; color: #641e16; }
+    .word-to { background-color: #a9dfbf; color: #145a32; }
+
+    .word {
+      padding: 5px;
+      margin: 5px;
+      border-radius: 4px;
+      cursor: default;
+      font-weight: bold;
+	  font-size: 30px;
+    }
+
+    #feedback {
+      color: red;
+      font-weight: bold;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    #current-word.wrong-word {
+      color: red;
+    }
+
+    #score {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🎯 Generátor hry: Triedenie podstatných mien podľa rodu (ten/tá/to)</h1>
+
+<label for="input"><b>Zadajte podstatné mená s členmi (ten/tá/to) oddelené klávesou TAB. Každý pár zapisujte do nového riadku.</b></label>
+<div style="height: 5px;"></div>
+<textarea id="input" placeholder="dom[TAB]ten&#10;mačka[TAB]tá&#10;auto[TAB]to"></textarea><br>
+
+<label for="count">Počet položiek v hre:</label>
+<input type="number" id="count" value="10" min="1" style="width: 60px;">
+<button onclick="generateGame()">Generovať hru</button>
+<button onclick="saveAsHTML()">Uložiť ako HTML</button>
+
+<div id="game-area" style="display:none;">
+  <h3 style="text-align: center;">Klikni na správny stĺpec podľa rodu podstatného mena.</h3>
+  <div id="current-word" style="font-size: 30px; margin-bottom: 10px; text-align: center;"></div>
+  <div id="feedback"></div>
+
+  <div class="columns">
+    <div class="column ten" onclick="checkAnswer('ten')"><strong>ten</strong><div id="ten-list"></div></div>
+    <div class="column tá" onclick="checkAnswer('tá')"><strong>tá</strong><div id="tá-list"></div></div>
+    <div class="column to" onclick="checkAnswer('to')"><strong>to</strong><div id="to-list"></div></div>
+  </div>
+
+  <div id="score">Skóre: 0</div>
+</div>
+
+<script>
+  let allPairs = [];
+  let gamePairs = [];
+  let currentIndex = 0;
+  let score = 0;
+
+  const inputEl = document.getElementById('input');
+  const feedbackDiv = document.getElementById('feedback');
+
+  // --- Umožní vložiť znak tabulátora do textarea ---
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      this.value = this.value.substring(0, start) + '\t' + this.value.substring(end);
+      this.selectionStart = this.selectionEnd = start + 1;
+    }
+  });
+
+  // --- LOCALSTORAGE: načítanie uloženého obsahu ---
+  document.addEventListener('DOMContentLoaded', function() {
+    const savedText = localStorage.getItem('hra_ten_ta_to_input');
+    if (savedText) {
+      inputEl.value = savedText;
+    }
+  });
+
+  // --- LOCALSTORAGE: ukladanie pri zmene obsahu ---
+  inputEl.addEventListener('input', function() {
+    localStorage.setItem('hra_ten_ta_to_input', this.value);
+  });
+
+  function generateGame() {
+    feedbackDiv.innerHTML = ''; // vyčisti staré hlásenia
+
+    const rawInput = inputEl.value.trim();
+    if (!rawInput) {
+      feedbackDiv.textContent = '⚠️ Vstupné pole je prázdne.';
+      return;
+    }
+
+    const lines = rawInput.split('\n');
+    allPairs = [];
+    const errors = [];
+    const corrected = [];
+    const ALLOWED = ['ten', 'tá', 'to']; // povolené hodnoty (slovenské rody)
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Prípad 1: Tabulátor prítomný → štandardné spracovanie
+      if (line.includes('\t')) {
+        const [wordRaw, articleRaw] = line.split('\t');
+        const word = (wordRaw ?? '').trim();
+        const article = (articleRaw ?? '').trim().toLowerCase();
+
+        if (!word || !article) {
+          errors.push(`Riadok ${i + 1}: chýba pojem alebo definícia.`);
+          continue;
+        }
+        if (!ALLOWED.includes(article)) {
+          errors.push(`Riadok ${i + 1}: hodnota musí byť ${ALLOWED.join('/')} (nájdené: "${(articleRaw ?? '').trim()}").`);
+          continue;
+        }
+        allPairs.push({ word, article });
+        continue;
+      }
+
+      // Prípad 2: Bez tabulátora → pokús sa nájsť rod na konci riadku (ten/tá/to)
+      // Vzor: "ľubovoľný pojem (končiaci neprázdnym znakom)" + aspoň jedna medzera + (ten|tá|to) + voliteľné medzery na konci
+      const regex = /^(.*\S)\s+(ten|tá|to)\s*$/i;
+      const match = line.match(regex);
+      if (match) {
+        const word = match[1].trim();               // zachová vnútorné medzery, orezáva len kraje
+        const article = match[2].toLowerCase();     // povolené rody, case-insensitive
+        allPairs.push({ word, article });
+        corrected.push(i + 1);
+        continue;
+      }
+
+      // Prípad 3: Nevieme oddeliť pojem od definície alebo definícia nie je ten/tá/to
+      errors.push(`Riadok ${i + 1}: chýba tabulátor alebo medzera medzi pojmom a hodnotou, alebo hodnota nie je ${ALLOWED.join('/')}.`);
+    }
+
+    // Info o automatických opravách (neblokuje hru)
+    if (corrected.length > 0) {
+      feedbackDiv.innerHTML = `ℹ️ Automaticky opravené riadky (medzera → oddelenie): ${corrected.join(', ')}.`;
+    }
+
+    // Zobraziť chyby
+    if (errors.length > 0) {
+      feedbackDiv.innerHTML += (feedbackDiv.innerHTML ? '<br>' : '') + errors.join('<br>');
+    }
+
+    // Bez platných položiek hru nespúšťaj
+    if (allPairs.length === 0) {
+      feedbackDiv.innerHTML += (feedbackDiv.innerHTML ? '<br>' : '') + '⚠️ Nebola nájdená žiadna platná položka pre hru.';
+      return;
+    }
+
+    const count = parseInt(document.getElementById('count').value, 10);
+    gamePairs = shuffleArray(allPairs).slice(0, count);
+    currentIndex = 0;
+    score = 0;
+
+    document.getElementById('ten-list').innerHTML = '';
+    document.getElementById('tá-list').innerHTML = '';
+    document.getElementById('to-list').innerHTML = '';
+    document.getElementById('score').textContent = 'Skóre: 0';
+    document.getElementById('game-area').style.display = 'block';
+
+    showNextWord();
+  }
+
+  function showNextWord() {
+    const currentWordDiv = document.getElementById('current-word');
+    // Feedback nevymazávame, aby správy ostali zobrazené
+    if (currentIndex < gamePairs.length) {
+      currentWordDiv.textContent = gamePairs[currentIndex].word;
+      currentWordDiv.classList.remove('wrong-word');
+    } else {
+      currentWordDiv.textContent = '🎉 Hotovo!';
+    }
+  }
+
+  function checkAnswer(selectedArticle) {
+    if (currentIndex >= gamePairs.length) return;
+
+    const correctArticle = gamePairs[currentIndex].article;
+    const word = gamePairs[currentIndex].word;
+
+    const currentWordDiv = document.getElementById('current-word');
+    const feedbackDiv = document.getElementById('feedback');
+
+    if (selectedArticle === correctArticle) {
+      score++;
+      const wordDiv = `<div class="word word-${selectedArticle}">${word}</div>`;
+      document.getElementById(selectedArticle + '-list').innerHTML += wordDiv;
+      currentIndex++;
+      showNextWord();
+    } else {
+      score--;
+      currentWordDiv.classList.add('wrong-word');
+      feedbackDiv.innerHTML = 'Nesprávny pokus. Skús znova!<br>Teraz klikni na správny stĺpec.';
+    }
+
+    document.getElementById('score').textContent = `Skóre: ${score}`;
+  }
+
+  function shuffleArray(array) {
+    return array.sort(() => Math.random() - 0.5);
+  }
+</script>
+
+<script>
+function saveAsHTML() {
+  const rawInput = document.getElementById('input').value.trim();
+  const lines = rawInput.split('\n');
+  const allPairsExport = [];
+
+  for (let line of lines) {
+    const [word, article] = line.split('\t');
+    if (word && article && ['ten', 'tá', 'to'].includes(article.trim())) {
+      allPairsExport.push({ word: word.trim(), article: article.trim() });
+    }
+  }
+
+  const count = parseInt(document.getElementById('count').value);
+  const jsonPairs = JSON.stringify(allPairsExport).replace(/</g, '\\u003c');
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Hra: Triedenie podstatných mien podľa slovenského rodu</title>
+  <style>
+    body { font-family: monospace; font-size: 20px; padding: 20px; }
+    .columns { display: flex; justify-content: center; gap: 5px; margin-top: 20px; }
+    .column { width: 40%; padding: 10px; min-height: 450px; border-radius: 8px; box-sizing: border-box; text-align: center; }
+    .ten { background-color: #cce5ff; font-size: 25px; }
+    .tá { background-color: #f8d7da; font-size: 25px; }
+    .to { background-color: #d4edda; font-size: 25px; }
+    .word-ten { background-color: #99ccff; color: #003366; }
+    .word-tá { background-color: #f5b7b1; color: #641e16; }
+    .word-to { background-color: #a9dfbf; color: #145a32; }
+    .word { padding: 5px; margin: 5px; border-radius: 4px; cursor: default; font-weight: bold; font-size: 30px;}
+    #feedback { color: red; font-weight: bold; margin-top: 10px; text-align: center; }
+    #current-word.wrong-word { color: red; }
+    #score { font-weight: bold; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h2>🎯 Triedenie podstatných mien podľa rodu (ten/tá/to)</h2>
+
+<label for="count">Počet položiek v hre:</label>
+<input type="number" id="count" value="${count}" min="1">
+<button onclick="startGame()">Spustiť hru</button>
+
+<div id="game-area" style="display:none;">
+  <h3 style="text-align: center;">Klikni na správny stĺpec podľa rodu podstatného mena.</h3>
+  <div id="current-word" style="font-size: 24px; margin-bottom: 10px; text-align: center;"></div>
+  <div id="feedback"></div>
+
+  <div class="columns">
+    <div class="column ten" onclick="checkAnswer('ten')"><strong>ten</strong><div id="ten-list"></div></div>
+    <div class="column tá" onclick="checkAnswer('tá')"><strong>tá</strong><div id="tá-list"></div></div>
+    <div class="column to" onclick="checkAnswer('to')"><strong>to</strong><div id="to-list"></div></div>
+  </div>
+
+  <div id="score">Skóre: 0</div>
+</div>
+
+<script>
+  const allPairs = ${jsonPairs};
+  let gamePairs = [];
+  let currentIndex = 0;
+  let score = 0;
+
+  function startGame() {
+    const count = parseInt(document.getElementById('count').value);
+    gamePairs = shuffleArray(allPairs).slice(0, count);
+    currentIndex = 0;
+    score = 0;
+
+    document.getElementById('ten-list').innerHTML = '';
+    document.getElementById('tá-list').innerHTML = '';
+    document.getElementById('to-list').innerHTML = '';
+    document.getElementById('score').textContent = 'Skóre: 0';
+    document.getElementById('game-area').style.display = 'block';
+
+    showNextWord();
+  }
+
+  function showNextWord() {
+    const currentWordDiv = document.getElementById('current-word');
+    const feedbackDiv = document.getElementById('feedback');
+
+    if (currentIndex < gamePairs.length) {
+      currentWordDiv.textContent = gamePairs[currentIndex].word;
+      currentWordDiv.classList.remove('wrong-word');
+      feedbackDiv.textContent = '';
+    } else {
+      currentWordDiv.textContent = '🎉 Hotovo!';
+      feedbackDiv.textContent = '';
+    }
+  }
+
+  function checkAnswer(selectedArticle) {
+    if (currentIndex >= gamePairs.length) return;
+
+    const correctArticle = gamePairs[currentIndex].article;
+    const word = gamePairs[currentIndex].word;
+
+    const currentWordDiv = document.getElementById('current-word');
+    const feedbackDiv = document.getElementById('feedback');
+
+    if (selectedArticle === correctArticle) {
+      score++;
+      const wordDiv = \`<div class="word word-\${selectedArticle}">\${word}</div>\`;
+      document.getElementById(selectedArticle + '-list').innerHTML += wordDiv;
+      currentIndex++;
+      showNextWord();
+    } else {
+      score--;
+      currentWordDiv.classList.add('wrong-word');
+      feedbackDiv.innerHTML = 'Nesprávny pokus. Skús znova!<br>Teraz klikni na správny stĺpec.';
+    }
+
+    document.getElementById('score').textContent = \`Skóre: \${score}\`;
+  }
+
+  function shuffleArray(array) {
+    return array.sort(() => Math.random() - 0.5);
+  }
+<\/script>
+<br><br>
+      <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+      <br><br>
+</body>
+</html>
+`;
+
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'hra_ten_ta_to.html';
+  link.click();
+}
+</script>
+
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

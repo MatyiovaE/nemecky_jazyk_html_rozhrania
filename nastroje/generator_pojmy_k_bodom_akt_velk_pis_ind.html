@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Priraďovanie pojmom k bodom na obrázku (generátor cvičenia)</title>
+    <style>
+        :root { --primary: #2563eb; --danger: #dc2626; --success: #16a34a; --warning: #eab308; --bg: #f3f4f6; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #1f2937; }
+        .row { display: flex; gap: 20px; flex-wrap: wrap; }
+        .col { flex: 1; min-width: 300px; }
+        
+        /* Form elements */
+        label { display: block; margin-top: 10px; font-weight: bold; font-size: 0.9em; }
+        input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { cursor: pointer; padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; transition: 0.2s; margin-top: 10px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-outline { background: white; border: 1px solid #ccc; color: #333; }
+        button:hover { opacity: 0.9; }
+
+        /* Image Editor Area */
+        #editor-wrapper { position: relative; user-select: none; margin-top: 20px; }
+        #editor-area { position: relative; display: inline-block; border: 2px dashed #ccc; max-width: 100%; }
+        #target-image { display: block; max-width: 100%; height: auto; cursor: crosshair; pointer-events: none; }
+        #svg-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        
+        /* Markers in Generator (Red) */
+        .marker-point { 
+            position: absolute; transform: translate(-50%, -50%); 
+            /* Width/Height is now set via JS based on radius */
+            background: rgba(255, 0, 0, 0.4); border: 2px solid red; 
+            cursor: grab; z-index: 10; display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 10px; font-weight: bold;
+            box-sizing: border-box;
+        }
+        .marker-label-pos {
+            position: absolute; transform: translate(-50%, -50%); min-width: 60px; padding: 2px 5px;
+            background: rgba(255, 200, 0, 0.8); border: 2px solid #b45309;
+            color: black; font-size: 11px; cursor: grab; z-index: 11;
+            text-align: center; border-radius: 3px; white-space: nowrap;
+        }
+        .marker-point:active, .marker-label-pos:active { cursor: grabbing; border-color: white; z-index: 20; }
+
+        .point-item { background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px; margin-bottom: 5px; border-radius: 4px; display: flex; align-items: center; gap: 10px; }
+        .hidden { display: none; }
+        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; background: #e0e7ff; padding: 10px; border-radius: 6px; flex-wrap: wrap; }
+        .hint-box { background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 10px; margin-bottom: 15px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Priraďovanie pojmom k bodom na obrázku (generátor cvičenia)</h1>
+    
+    <div class="toolbar">
+        <button onclick="saveToStorage()" class="btn-outline">💾 Uložiť</button>
+        <button onclick="loadFromStorage()" class="btn-outline">📂 Načítať</button>
+        <button onclick="exportJSON()" class="btn-outline">⬇ Export</button>
+        <label class="btn-outline" style="display:inline-block; width:auto; margin:10px 0 0 0; cursor:pointer; padding: 10px 15px;">
+            ⬆ Import <input type="file" id="importFile" style="display:none" onchange="importJSON(this)">
+        </label>
+        <button onclick="clearAll()" class="btn-danger" style="margin-left:auto;">🗑 Vymazať všetko</button>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <h3>1. Nastavenie cvičenia</h3>
+            <label>Nadpis cvičenia:</label>
+            <input type="text" id="meta-title" placeholder="Napr. Časti hodín">
+            <label>Autor:</label>
+            <input type="text" id="meta-author" placeholder="Meno učiteľa">
+            <label>Pokyny pre žiaka:</label>
+            <textarea id="meta-instructions" rows="3">Označ pojem v zozname a následne klikni na jeden z modrých krúžkov na obrázku. Označený modrý krúžok sa zmení na žltý. Dvojitým kliknutím na pojem ho vrátiš späť.</textarea>
+            
+            <label>Základná veľkosť písma popiskov (px):</label>
+            <input type="number" id="meta-fontsize" value="13" min="8" max="40" onchange="renderMarkers()" title="Toto je predvolená veľkosť. Pre jednotlivé body ju môžete zmeniť v zozname bodov vpravo.">
+            
+            <label>Nahrať obrázok:</label>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+        
+        <div class="col">
+            <h3>2. Zoznam bodov</h3>
+            <div class="hint-box">
+                <strong>Viacriadkový text:</strong> Ak chcete text rozdeliť na viac riadkov, použite znak <strong>|</strong> (zvislá čiara).<br>
+				<strong>Viac správnych odpovedí</strong> oddeľte bodkočiarkou <code>;</code>.<br>
+                <strong>Duplicity:</strong> Ak zadáte rovnaký pojem viackrát (pre rôzne body), v cvičení sa zobrazí toľkokrát, koľko bodov ho vyžaduje.<br>
+				<strong>zvislá čiara</strong> = ľavý Alt + 0124<br>
+				<strong>bodkočiarka</strong> = ľavý Alt + 059
+            </div>
+            <div id="points-list">
+                <p style="color:#666; font-style:italic;">Nahrajte obrázok a kliknite naň pre pridanie bodu.</p>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+    <h3>3. Editácia polôh</h3>
+    <div id="editor-wrapper">
+        <div id="editor-area">
+            <img id="target-image" src="" alt="" class="hidden">
+            <svg id="svg-overlay"></svg>
+            <div id="markers-layer" style="position:absolute; top:0; left:0; width:100%; height:100%;"></div>
+        </div>
+    </div>
+
+    <hr>
+    <div style="text-align: center; padding: 20px;">
+        <button onclick="generateExercise()" class="btn-success" style="font-size: 1.2em; padding: 15px 30px;">🚀 Stiahnuť hotové cvičenie (HTML)</button>
+    </div>
+    <br><small>Spracovala pomocou UI: Mgr. Erika Matyiová (2026)</small>
+</div>
+
+<script>
+    let appState = { title: '', author: '', instructions: '', imageData: null, points: [], labelFontSize: 13 };
+    let draggingState = { active: false, pointIndex: null, type: null };
+
+    const imageInput = document.getElementById('imageInput');
+    const targetImage = document.getElementById('target-image');
+    const editorArea = document.getElementById('editor-area');
+    const markersLayer = document.getElementById('markers-layer');
+    const svgOverlay = document.getElementById('svg-overlay');
+    const pointsList = document.getElementById('points-list');
+
+    imageInput.addEventListener('change', handleImageUpload);
+    markersLayer.addEventListener('mousedown', (e) => { if(e.target === markersLayer) handleMapClick(e); });
+    window.addEventListener('mouseup', stopDrag);
+    window.addEventListener('mousemove', handleDrag);
+
+    function handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) { appState.imageData = event.target.result; renderImage(); };
+        reader.readAsDataURL(file);
+    }
+
+    function renderImage() {
+        if (!appState.imageData) return;
+        targetImage.src = appState.imageData;
+        targetImage.classList.remove('hidden');
+        targetImage.onload = () => { renderMarkers(); }
+    }
+
+    function getNextId() {
+        const idx = appState.points.length;
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        return idx < letters.length ? letters[idx] : "P" + (idx + 1);
+    }
+
+    function handleMapClick(e) {
+        if (!appState.imageData) return;
+        const rect = targetImage.getBoundingClientRect();
+        const xPerc = ((e.clientX - rect.left) / rect.width) * 100;
+        const yPerc = ((e.clientY - rect.top) / rect.height) * 100;
+
+        appState.points.push({
+            id: getNextId(),
+            term: '',
+            x: xPerc, y: yPerc,
+            lx: xPerc + 10, ly: yPerc - 5,
+            shape: 'circle', radius: 1.5, // Zväčšená default hodnota pre lepšiu viditeľnosť
+            fontSize: '' // Defaultne prázdne = použije sa globálne
+        });
+        renderPointsList(); renderMarkers();
+    }
+
+    function startDrag(e, index, type) {
+        e.stopPropagation(); e.preventDefault();
+        draggingState.active = true; draggingState.pointIndex = index; draggingState.type = type;
+    }
+
+    function handleDrag(e) {
+        if (!draggingState.active) return;
+        const rect = targetImage.getBoundingClientRect();
+        let x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+        let y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
+        const p = appState.points[draggingState.pointIndex];
+        if (draggingState.type === 'target') { p.x = (x/rect.width)*100; p.y = (y/rect.height)*100; }
+        else { p.lx = (x/rect.width)*100; p.ly = (y/rect.height)*100; }
+        renderMarkers();
+    }
+
+    function stopDrag() { draggingState.active = false; draggingState.pointIndex = null; }
+
+    function renderPointsList() {
+        pointsList.innerHTML = '';
+        if (appState.points.length === 0) { pointsList.innerHTML = '<p style="color:#666;">Kliknite na obrázok pre pridanie bodu.</p>'; return; }
+        appState.points.forEach((p, index) => {
+            const div = document.createElement('div');
+            div.className = 'point-item';
+            div.innerHTML = `
+                <div class="point-id">${p.id}</div>
+                <div style="flex:1">
+                    <input type="text" placeholder="Pojem (pre nový riadok použite | )" value="${p.term}" oninput="updatePoint(${index}, 'term', this.value)">
+                    <div style="display:flex; gap:5px; margin-top:5px; font-size:0.85em; color:#666; align-items:center;">
+                        <span>Zóna:</span>
+                        <input type="number" step="0.1" value="${p.radius}" oninput="updatePoint(${index}, 'radius', this.value)" style="width:50px; padding:2px;">
+                        
+                        <span style="margin-left:5px;">Písmo:</span>
+                        <input type="number" value="${p.fontSize || ''}" placeholder="Auto" oninput="updatePoint(${index}, 'fontSize', this.value)" style="width:50px; padding:2px;" title="Veľkosť písma pre tento bod (v px). Ak necháte prázdne, použije sa základná veľkosť.">
+                        
+                        <select onchange="updatePoint(${index}, 'shape', this.value)" style="width:80px; padding:2px; margin-left:5px;">
+                            <option value="circle" ${p.shape === 'circle' ? 'selected' : ''}>Kruh</option>
+                            <option value="square" ${p.shape === 'square' ? 'selected' : ''}>Štvorec</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-danger" onclick="removePoint(${index})" style="margin:0; padding:5px 10px;">X</button>
+            `;
+            pointsList.appendChild(div);
+        });
+    }
+
+    function updatePoint(index, field, value) { appState.points[index][field] = value; renderMarkers(); }
+    function removePoint(index) { appState.points.splice(index, 1); renderPointsList(); renderMarkers(); }
+
+    function renderMarkers() {
+        markersLayer.innerHTML = '';
+        while(svgOverlay.firstChild) svgOverlay.removeChild(svgOverlay.firstChild);
+        
+        const globalFontSize = document.getElementById('meta-fontsize').value || 13;
+        
+        appState.points.forEach((p, index) => {
+            const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+            line.setAttribute('x1', p.x + '%'); line.setAttribute('y1', p.y + '%');
+            line.setAttribute('x2', p.lx + '%'); line.setAttribute('y2', p.ly + '%');
+            line.setAttribute('stroke', '#555'); line.setAttribute('stroke-width', '1.5'); line.setAttribute('stroke-dasharray', '4');
+            svgOverlay.appendChild(line);
+
+            const targetEl = document.createElement('div');
+            targetEl.className = 'marker-point';
+            targetEl.style.left = p.x + '%'; targetEl.style.top = p.y + '%';
+            
+            // --- VÝPOČET REÁLNEJ VEĽKOSTI ---
+            const radius = parseFloat(p.radius) || 1;
+            const size = (p.shape === 'circle' || p.shape === 'square') ? radius * 2 : radius * 3;
+            
+            targetEl.style.width = size + '%';
+            targetEl.style.aspectRatio = (p.shape === 'rect') ? "2 / 1.5" : "1 / 1";
+            targetEl.style.borderRadius = (p.shape === 'circle') ? "50%" : "0";
+            // -------------------------------
+
+            targetEl.innerHTML = p.id;
+            targetEl.addEventListener('mousedown', (e) => startDrag(e, index, 'target'));
+            markersLayer.appendChild(targetEl);
+
+            const labelEl = document.createElement('div');
+            labelEl.className = 'marker-label-pos';
+            labelEl.style.left = p.lx + '%'; labelEl.style.top = p.ly + '%';
+            
+            const specificSize = p.fontSize ? p.fontSize : globalFontSize;
+            labelEl.style.fontSize = specificSize + 'px';
+            
+            const rawTerm = p.term ? p.term.split(';')[0] : 'Text';
+            labelEl.innerHTML = rawTerm.replace(/\|/g, '<br>');
+            labelEl.addEventListener('mousedown', (e) => startDrag(e, index, 'label'));
+            markersLayer.appendChild(labelEl);
+        });
+    }
+
+    function syncMeta() { 
+        appState.title = document.getElementById('meta-title').value; 
+        appState.author = document.getElementById('meta-author').value; 
+        appState.instructions = document.getElementById('meta-instructions').value;
+        appState.labelFontSize = parseInt(document.getElementById('meta-fontsize').value) || 13;
+    }
+    
+    function saveToStorage() { syncMeta(); localStorage.setItem('advGenDataV3', JSON.stringify(appState)); alert('Uložené.'); }
+    function loadFromStorage() { const data = localStorage.getItem('advGenDataV3'); if (data) { appState = JSON.parse(data); restoreUI(); } else alert('Žiadne dáta.'); }
+    function exportJSON() { syncMeta(); const blob = new Blob([JSON.stringify(appState)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cvicenie.json'; a.click(); }
+    function importJSON(input) { const file = input.files[0]; if(!file)return; const r = new FileReader(); r.onload=(e)=>{try{appState=JSON.parse(e.target.result); restoreUI();}catch(x){alert('Chyba');}}; r.readAsText(file); }
+    
+    function restoreUI() { 
+        document.getElementById('meta-title').value = appState.title; 
+        document.getElementById('meta-author').value = appState.author; 
+        document.getElementById('meta-instructions').value = appState.instructions; 
+        document.getElementById('meta-fontsize').value = appState.labelFontSize || 13;
+        if(appState.imageData) renderImage(); 
+        renderPointsList(); 
+    }
+    
+    function clearAll() { if(confirm('Vymazať?')) { localStorage.removeItem('advGenDataV3'); location.reload(); } }
+    
+    function safeFilename(str) { 
+        if (!str) return 'cvicenie';
+        return str
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+            .toLowerCase() 
+            .trim() 
+            .replace(/\s+/g, '_') 
+            .replace(/[^a-z0-9_]/g, '') || 'cvicenie'; 
+    }
+
+    function generateExercise() {
+        syncMeta();
+        if (!appState.imageData || appState.points.length === 0) { alert('Chýba obrázok/body.'); return; }
+        const jsonString = JSON.stringify(appState);
+        
+        const fontSize = appState.labelFontSize || 13;
+
+        const htmlContent = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${appState.title}</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f9f9f9; padding: 20px; color: #333; }
+        .container { max-width: 1600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2563eb; margin-bottom: 5px; }
+        .meta { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+        .instructions { background: #e0f2fe; border-left: 4px solid #2563eb; padding: 15px; margin-bottom: 20px; }
+        
+        .layout { display: flex; flex-wrap: wrap; gap: 30px; }
+        
+        .sidebar { 
+            flex: 0 0 240px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .game-area { flex: 1; min-width: 300px; }
+
+        .term-btn { 
+            display: flex; justify-content: space-between; align-items: center;
+            width: 100%; padding: 12px; margin-bottom: 8px; 
+            background: white; border: 1px solid #d1d5db; border-radius: 6px; 
+            cursor: pointer; text-align: left; transition: 0.2s; font-size: 1em;
+            height: auto;
+        }
+        .term-btn:hover { background: #f3f4f6; }
+        .term-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
+        .term-btn.done { display: none; }
+        
+        .image-wrapper { position: relative; width: 100%; user-select: none; }
+        #game-image { width: 100%; display: block; }
+        #game-svg { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index: 5; }
+
+        .target-hitbox { 
+            position: absolute; transform: translate(-50%, -50%); z-index: 10; cursor: pointer;
+            box-sizing: border-box;
+            border: 2px solid #374151; 
+            background-color: #2563eb; 
+            opacity: 0.8;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .target-hitbox:hover { transform: translate(-50%, -50%) scale(1.1); }
+        
+        .marker-assigned {
+            background-color: #facc15 !important; 
+            border-color: #374151 !important;
+        }
+        
+        .marker-correct {
+            background-color: #16a34a !important;
+            border-color: #14532d !important;
+            cursor: default;
+        }
+        
+        .marker-wrong {
+            background-color: #dc2626 !important;
+            border-color: #7f1d1d !important;
+            cursor: default;
+        }
+
+        .map-label {
+            position: absolute; transform: translate(-50%, -50%);
+            padding: 4px 10px; border-radius: 4px;
+            font-size: ${fontSize}px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 20; cursor: pointer;
+            text-align: center; white-space: nowrap;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        
+        .lbl-neutral { background: white; border: 1px solid #333; color: black; }
+        .lbl-neutral:hover { background: #fefce8; border-color: #eab308; }
+        
+        .lbl-correct { border: 2px solid #16a34a; background: #dcfce7; color: #14532d; font-weight: bold; pointer-events: none; }
+        .lbl-wrong { border: 2px solid #dc2626; background: #fee2e2; color: #7f1d1d; pointer-events: none; }
+
+        .btn-eval { background: #16a34a; color: white; border: none; padding: 12px 24px; font-size: 1.1em; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 20px; }
+        .btn-detail { background: #4b5563; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 10px; font-size: 1em; }
+        .btn-detail:hover { background: #374151; }
+
+        .results-box { margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; display: none; }
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>${appState.title}</h1>
+        <div class="meta">Autor: ${appState.author}</div>
+        
+        <div class="input-group no-print" style="margin-bottom: 20px;">
+            <label><strong>Meno žiaka:</strong></label>
+            <input type="text" id="studentName" style="padding: 8px; font-size: 1em; width: 250px;" placeholder="Zadaj meno (alebo nechaj prázdne)">
+        </div>
+
+        <div class="instructions no-print">
+            ${appState.instructions}
+        </div>
+
+        <div class="layout">
+            <div class="sidebar no-print">
+                <h3>Položky na priradenie</h3>
+                <div id="terms-list"></div>
+                <button onclick="evaluateExercise()" class="btn-eval" id="btnEval">Vyhodnotiť</button>
+            </div>
+            <div class="game-area">
+                <div class="image-wrapper" id="imgWrapper">
+                    <img src="${appState.imageData}" id="game-image">
+                    <svg id="game-svg"></svg>
+                </div>
+            </div>
+        </div>
+
+        <div id="summary" class="results-box">
+            <h2>Výsledky</h2>
+            <p><strong>Meno:</strong> <span id="resName"></span></p>
+            <p><strong>Skóre:</strong> <span id="resScore"></span> / <span id="resTotal"></span> (<span id="resPerc"></span>%)</p>
+            <p>Dátum: <span id="resTime"></span></p>
+            <button onclick="showDetails()" class="btn-detail no-print">Detailné výsledky</button>
+        </div>
+    </div>
+
+    <script>
+        const appData = ${jsonString};
+        let pointsState = {}; 
+        let selectedTerm = null;
+        let isEvaluated = false;
+
+        function init() {
+            appData.points.forEach(p => {
+                pointsState[p.id] = { filled: false, assignedTerm: null, labelId: null, def: p };
+                createHitbox(p);
+            });
+            renderSidebar();
+        }
+
+        function createHitbox(p) {
+            const el = document.createElement('div');
+            el.className = 'target-hitbox'; 
+            el.id = 'hit-' + p.id;
+            el.style.left = p.x + '%'; 
+            el.style.top = p.y + '%';
+            
+            const radius = p.radius || 1;
+            const size = (p.shape === 'circle' || p.shape === 'square') ? radius * 2 : radius * 3;
+            el.style.width = size + '%';
+            
+            el.style.aspectRatio = "1 / 1"; 
+            if (p.shape === 'rect') { el.style.aspectRatio = "2 / 1.5"; }
+
+            if(p.shape === 'circle') el.style.borderRadius = '50%';
+            el.onclick = () => handlePointClick(p.id);
+            document.getElementById('imgWrapper').appendChild(el);
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById('terms-list');
+            list.innerHTML = '';
+            
+            let allTerms = [];
+            appData.points.forEach((p, index) => {
+                const termText = p.term ? p.term.split(';')[0].trim() : '???';
+                allTerms.push({ text: termText, id: 't-' + index });
+            });
+
+            for (let i = allTerms.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allTerms[i], allTerms[j]] = [allTerms[j], allTerms[i]];
+            }
+
+            allTerms.forEach(item => {
+                const btn = document.createElement('div');
+                btn.className = 'term-btn';
+                btn.id = item.id;
+                btn.dataset.term = item.text;
+                btn.innerHTML = item.text.replace(/\\|/g, '<br>'); 
+                btn.onclick = () => selectTerm(item.text, item.id);
+                list.appendChild(btn);
+            });
+        }
+
+        function selectTerm(term, btnId) {
+            if(isEvaluated) return;
+            selectedTerm = { text: term, btnId: btnId };
+            document.querySelectorAll('.term-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(btnId).classList.add('active');
+        }
+
+        function handlePointClick(pointId) {
+            if(isEvaluated || !selectedTerm) return;
+            const pState = pointsState[pointId];
+            if (pState.filled) { alert('Obsadené. Dvojklikom na text ho odstrániš.'); return; }
+            
+            pState.filled = true;
+            pState.assignedTerm = selectedTerm.text;
+            
+            document.getElementById('hit-' + pointId).classList.add('marker-assigned');
+            
+            document.getElementById(selectedTerm.btnId).classList.add('done');
+            createLabel(pointId, selectedTerm.text, selectedTerm.btnId);
+            document.querySelectorAll('.term-btn').forEach(b => b.classList.remove('active'));
+            selectedTerm = null;
+        }
+
+        function createLabel(pointId, text, btnId) {
+            const def = pointsState[pointId].def;
+            const lbl = document.createElement('div');
+            lbl.className = 'map-label lbl-neutral';
+            
+            if (def.fontSize) {
+                lbl.style.fontSize = def.fontSize + 'px';
+            }
+            
+            lbl.innerHTML = text.replace(/\\|/g, '<br>');
+            lbl.style.left = def.lx + '%'; lbl.style.top = def.ly + '%';
+            lbl.title = "Dvojklikom odstrániť";
+            lbl.ondblclick = () => removeAssignment(pointId, btnId, lbl, line);
+            document.getElementById('imgWrapper').appendChild(lbl);
+
+            const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+            line.setAttribute('x1', def.x + '%'); line.setAttribute('y1', def.y + '%');
+            line.setAttribute('x2', def.lx + '%'); line.setAttribute('y2', def.ly + '%');
+            line.setAttribute('stroke', '#333'); line.setAttribute('stroke-width', '2');
+            document.getElementById('game-svg').appendChild(line);
+
+            pointsState[pointId].labelEl = lbl;
+            pointsState[pointId].lineEl = line;
+        }
+
+        function removeAssignment(pointId, btnId, lblEl, lineEl) {
+            if(isEvaluated) return;
+            pointsState[pointId].filled = false;
+            pointsState[pointId].assignedTerm = null;
+            pointsState[pointId].labelEl = null;
+            pointsState[pointId].lineEl = null;
+            
+            document.getElementById('hit-' + pointId).classList.remove('marker-assigned');
+            
+            lblEl.remove();
+            lineEl.remove();
+            const btn = document.getElementById(btnId);
+            if(btn) btn.classList.remove('done');
+        }
+
+        function evaluateExercise() {
+            if(isEvaluated) return;
+            let name = document.getElementById('studentName').value.trim() || "XY";
+            isEvaluated = true;
+            let score = 0;
+            
+            Object.keys(pointsState).forEach(pid => {
+                const state = pointsState[pid];
+                const hitbox = document.getElementById('hit-' + pid);
+                
+                hitbox.classList.remove('marker-assigned');
+
+                if (!state.filled) {
+                    hitbox.classList.add('marker-wrong'); 
+                    return;
+                }
+
+                const validTerms = state.def.term.split(';').map(t=>t.trim());
+                const isCorrect = validTerms.includes(state.assignedTerm);
+
+                hitbox.classList.add(isCorrect ? 'marker-correct' : 'marker-wrong');
+
+                if(state.labelEl) {
+                    state.labelEl.classList.remove('lbl-neutral');
+                    state.labelEl.classList.add(isCorrect ? 'lbl-correct' : 'lbl-wrong');
+                    state.labelEl.title = ""; 
+                    state.labelEl.ondblclick = null; 
+                }
+                if(state.lineEl) {
+                    state.lineEl.setAttribute('stroke', isCorrect ? '#16a34a' : '#dc2626');
+                }
+                if(isCorrect) score++;
+            });
+
+            document.getElementById('summary').style.display = 'block';
+            document.getElementById('resName').innerText = name;
+            document.getElementById('resScore').innerText = score;
+            document.getElementById('resTotal').innerText = Object.keys(pointsState).length;
+            document.getElementById('resPerc').innerText = Math.round((score / Object.keys(pointsState).length) * 100);
+            document.getElementById('resTime').innerText = new Date().toLocaleString('sk-SK');
+            document.getElementById('btnEval').style.display = 'none';
+        }
+
+        function showDetails() {
+            const name = document.getElementById('resName').innerText;
+            const score = document.getElementById('resScore').innerText;
+            const total = document.getElementById('resTotal').innerText;
+            const perc = document.getElementById('resPerc').innerText;
+            const time = document.getElementById('resTime').innerText;
+
+            let rows = '';
+            
+            Object.keys(pointsState).sort().forEach(pid => {
+                const state = pointsState[pid];
+                const cleanValid = state.def.term.replace(/\\|/g, ' ').replace(/;/g, ' / ');
+                let cleanUser = '';
+                let symbol = '';
+                let rowStyle = '';
+
+                if (state.filled) {
+                    cleanUser = state.assignedTerm.replace(/\\|/g, ' ');
+                    const validTerms = state.def.term.split(';').map(t=>t.trim());
+                    if (validTerms.includes(state.assignedTerm)) {
+                        symbol = '<span style="color:green; font-weight:bold; font-size:1.2em">&#10004;</span>'; 
+                        rowStyle = 'background-color: #f0fdf4;';
+                    } else {
+                        symbol = '<span style="color:red; font-weight:bold; font-size:1.2em">&#10008;</span>'; 
+                        rowStyle = 'background-color: #fef2f2;';
+                    }
+                } else {
+                    cleanUser = '<span style="color:#aaa; font-style:italic">Neodpovedané</span>';
+                    symbol = '<span style="color:red; font-weight:bold; font-size:1.2em">&#10008;</span>';
+                    rowStyle = 'background-color: #fef2f2;';
+                }
+
+                rows += \`<tr style="\${rowStyle}">
+                    <td style="padding:10px; border:1px solid #ddd">\${cleanValid}</td>
+                    <td style="padding:10px; border:1px solid #ddd">\${cleanUser}</td>
+                    <td style="padding:10px; border:1px solid #ddd; text-align:center">\${symbol}</td>
+                </tr>\`;
+            });
+
+            const win = window.open('', '_blank', 'width=850,height=700');
+            win.document.write(\`
+                <!DOCTYPE html>
+                <html lang="sk">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Detailné výsledky - \${name}</title>
+                    <style>
+                        body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; }
+                        h1 { color: #2563eb; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+                        .info { margin-bottom: 30px; font-size: 1.1em; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+                        th { background: #f3f4f6; text-align: left; padding: 12px; border: 1px solid #ddd; }
+                        .legend { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px; font-size: 0.9em; color: #666; }
+                        @media print { 
+                            .no-print { display: none; } 
+                            body { padding: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div style="text-align:right" class="no-print">
+                        <button onclick="window.print()" style="cursor:pointer; padding:8px 16px; font-size:14px; background:#4b5563; color:white; border:none; border-radius:4px;">🖨 Vytlačiť (Ctrl + P)</button>
+                    </div>
+
+                    <h1>Detailný prehľad výsledkov</h1>
+                    <div class="info">
+                        <p><strong>Názov cvičenia:</strong> ${appState.title}</p>
+                        <p><strong>Meno žiaka:</strong> \${name}</p>
+                        <p><strong>Hodnotenie:</strong> \${score} / \${total} bodov (\${perc}%)</p>
+                        <p><strong>Dátum a čas:</strong> \${time}</p>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Správna odpoveď</th>
+                                <th>Odpoveď žiaka</th>
+                                <th style="text-align:center; width:80px;">Výsledok</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            \${rows}
+                        </tbody>
+                    </table>
+
+                    <div class="legend">
+                        <strong>Legenda:</strong><br>
+                        <span style="color:green; font-weight:bold">&#10004;</span> = Správna odpoveď<br>
+                        <span style="color:red; font-weight:bold">&#10008;</span> = Nesprávna odpoveď alebo žiadna odpoveď
+                    </div>
+                </body>
+                </html>
+            \`);
+            win.document.close();
+        }
+
+        window.onload = init;
+    <\/script>
+</body>
+</html>`;
+        const blob = new Blob([htmlContent], {type: 'text/html'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = safeFilename(appState.title) + '.html';
+        a.click();
+    }
+</script>
+</body>
+</html>

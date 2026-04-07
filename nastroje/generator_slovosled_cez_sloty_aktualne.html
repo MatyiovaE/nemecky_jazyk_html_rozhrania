@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<title>Generátor cvičení na slovosled (Verzia pre tlač - čiernobiela)</title>
+<style>
+body { font-family: Courier bold, monospace; max-width: 1000px; margin: 2em auto; padding: 0 1em; }
+textarea, input[type="text"], input[type="number"] { width: 100%; padding: .5em; margin-bottom: 1em; font-family: monospace; box-sizing: border-box; }
+button { padding: .5em 1em; background: #007BFF; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: .5em; }
+button:hover { background: #005bb5; }
+label { font-weight: bold; display: block; margin-top: 1em; }
+#preview { margin-top: 2em; border-top: 2px solid #ccc; padding-top: 2em; }
+iframe { width: 100%; height: 800px; border: 1px solid #ccc; }
+.controls { margin-top: .5em; }
+.row { display: flex; gap: 20px; }
+.col { flex: 1; }
+.note { font-size: 0.9em; color: #666; margin-top: -0.8em; margin-bottom: 1em; }
+</style>
+</head>
+<body>
+<h1>Generátor cvičení na slovosled</h1>
+<p><i>Verzia: Nastaviteľný limit vo vnútri + bodovanie slov + čiernobiela tlač (symboly).</i></p>
+
+<label for="title">Názov cvičenia:</label>
+<input type="text" id="title" placeholder="Zoradenie slov vo vete">
+
+<div class="row">
+  <div class="col">
+    <label for="student">Meno žiaka (predvolené):</label>
+    <input type="text" id="student" placeholder="Zadaj meno žiaka (nepovinné)">
+  </div>
+</div>
+
+<label for="input">Zadajte vety (jednotlivé položky oddeľte TAB alebo dvomi medzerami, alternatívy oddeľte "//", jednotlivé vety oddeľte prázdnym riadkom):</label>
+<textarea id="input" rows="10" placeholder="Kedy[TAB]prídeš[TAB]domov[TAB]?&#10;&#10;Prečo  si  nebol  v pondelok  v škole?//Prečo  si  v pondelok  nebol  v škole?"></textarea>
+
+<div class="controls">
+  <button id="genBtn">Vygenerovať cvičenie</button>
+  <button id="openWinBtn">Otvoriť v novom okne</button>
+  <button id="saveBtn">💾 Uložiť cvičenie ako HTML</button>
+</div>
+
+<iframe id="previewFrame" title="Náhľad cvičenia"></iframe>
+
+<script>
+/* ---------- LocalStorage pre Generátor ---------- */
+window.addEventListener("load", () => {
+  document.getElementById("title").value = localStorage.getItem("sv_title") || "";
+  document.getElementById("student").value = localStorage.getItem("sv_student") || "";
+  document.getElementById("input").value = localStorage.getItem("sv_input") || "";
+});
+
+["title","student","input"].forEach(id => {
+  document.getElementById(id).addEventListener("input", () => {
+    localStorage.setItem("sv_" + id, document.getElementById(id).value);
+  });
+});
+
+/* ---------- Generovanie dát ---------- */
+function parseInput(text) {
+  if (!text || !text.trim()) return [];
+  const blocks = text.trim().split(/\r?\n\s*\r?\n/);
+  return blocks.map(block => block.split('//').map(v =>
+    v.trim().split(/\t| {2,}/).map(w => w.trim()).filter(Boolean)
+  ));
+}
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+/* ---------- Generovanie HTML ---------- */
+function buildExerciseHTML(title, student, data) {
+return `<!DOCTYPE html><html lang="sk"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+<style>
+body{font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width:900px; margin:2em auto; padding:0 1em; background-color: #fdfdfd;}
+h1 { text-align: center; color: #333; }
+.info-panel { background: #eee; padding: 15px; border-radius: 5px; margin-bottom: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 15px; justify-content: space-between; }
+.student-input { font-size: 1em; padding: 5px; border: 1px solid #aaa; border-radius: 3px; width: 200px; }
+
+/* Settings panel styles */
+.settings-box { font-size: 0.9em; display: flex; align-items: center; gap: 10px; background: #e2e6ea; padding: 5px 10px; border-radius: 4px; border: 1px solid #ccc; }
+.settings-box input { width: 60px; padding: 3px; text-align: center; }
+
+.slot{display:inline-flex; align-items:center; justify-content:center; min-width:2em; min-height:1.8em; border-bottom: 2px solid #555; padding:.2em .4em; margin:.2em; flex-shrink:0; white-space:nowrap; background: #fff; font-weight: bold; position: relative; border-radius: 3px; transition: background 0.3s; }
+.slots{display:flex; flex-wrap:wrap; gap:.5em; margin-bottom:1.5em; min-height: 50px; align-items: center;}
+.card{display:inline-block; background:#fff; padding:.5em 1em; margin:.3em; border:1px solid #aaa; border-radius:4px; cursor:pointer; user-select:none; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+.card:hover { background: #f0f8ff; border-color: #007BFF; }
+.card.selected{background:#cfe5ff; border-color: #0056b3;}
+
+/* Evaluation styles (On Screen only - colors remain for interactive mode) */
+.slot.correct { background-color: #d4edda; border-bottom-color: #28a745; color: #155724; }
+.slot.incorrect { background-color: #f8d7da; border-bottom-color: #dc3545; color: #721c24; }
+
+.task { display: none; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+.task.active { display: block; }
+.nav-buttons { margin-top: 2em; text-align: center; }
+.main-btn { padding: 10px 20px; font-size: 1.1em; background: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; }
+.main-btn:hover { background: #005bb5; }
+.main-btn:disabled { background: #ccc; cursor: default; }
+.pagination { margin-top: 15px; display: flex; justify-content: center; gap: 5px; flex-wrap: wrap;}
+.page-btn { padding: 5px 10px; border: 1px solid #ccc; background: white; cursor: pointer; border-radius: 3px; }
+.page-btn.active { background: #007BFF; color: white; border-color: #007BFF; }
+.page-btn.solved { background: #d4edda; color: #155724; border-color: #c3e6cb; }
+.page-btn.solved:hover:not(.active) { background: #c3e6cb; }
+.page-btn:hover:not(.active) { background: #f0f0f0; }
+
+/* Status icons */
+.status-score { margin-left: 10px; font-weight: bold; font-size: 1.1em; color: #007BFF; background: #eef; padding: 2px 8px; border-radius: 4px; }
+
+/* Results section */
+#finalSummary { display: none; margin-top: 2em; padding: 20px; background: #f9f9f9; border: 2px solid #007BFF; border-radius: 8px; }
+.summary-line { margin: 10px 0; font-size: 1.1em; }
+.detail-btn { background: #28a745; margin-top: 10px; }
+.detail-btn:hover { background: #218838; }
+
+@media print{ button, .nav-buttons, .card, .settings-box { display:none!important; } body { max-width: 100%; } .info-panel { background: none; border: none; padding: 0; } .student-input { border: none; font-weight: bold; padding: 0; } }
+</style></head><body>
+
+<h1>${escapeHtml(title)}</h1>
+<div class="info-panel">
+  <div>
+    <label for="studentName"><b>Meno žiaka:</b></label>
+    <input type="text" id="studentName" class="student-input" value="${escapeHtml(student)}" placeholder="Sem napíš svoje meno">
+  </div>
+  
+  <div class="settings-box">
+    <label for="limitInput">Počet viet:</label>
+    <input type="number" id="limitInput" min="0" value="0" title="0 = všetky vety">
+    <button onclick="applyLimit()" style="font-size:0.8em; padding: 3px 8px; margin:0;">Použiť a reštartovať</button>
+  </div>
+</div>
+
+<div id="instruction" style="text-align:center; margin-bottom:1em; color:#555;">
+  Klikni na slovo v zásobníku a následne na prázdnu čiaru vo vete.<br>
+  Kliknutím na vložené slovo ho vrátiš späť.
+</div>
+
+<div id="tasksContainer"></div>
+
+<div class="nav-buttons" id="navControls">
+  <button id="nextBtn" class="main-btn">Ďalej</button>
+  <button id="evalBtn" class="main-btn" style="display:none;">Vyhodnotiť</button>
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<div id="finalSummary">
+  <h2 style="margin-top:0">Výsledky cvičenia</h2>
+  <div class="summary-line"><b>Názov cvičenia:</b> ${escapeHtml(title)}</div>
+  <div class="summary-line"><b>Meno žiaka:</b> <span id="resName"></span></div>
+  <div class="summary-line"><b>Získané body:</b> <span id="resScore"></span></div>
+  <div class="summary-line"><b>Úspešnosť:</b> <span id="resPercent"></span></div>
+  <div class="summary-line"><b>Dátum a čas:</b> <span id="resTime"></span></div>
+  <button id="detailBtn" class="main-btn detail-btn">Detailné výsledky (Tlač)</button>
+</div>
+
+<script>
+// Funkcia na miešanie poľa
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+// Dáta z generátora
+let fullData = ${JSON.stringify(data)};
+let activeData = [];
+
+// --- Správa limitu (LocalStorage) ---
+const STORAGE_KEY_LIMIT = 'sv_limit_' + window.location.pathname.split('/').pop(); 
+function loadLimit() {
+  const saved = localStorage.getItem(STORAGE_KEY_LIMIT);
+  return saved ? parseInt(saved, 10) : 0;
+}
+
+function applyLimit() {
+  const val = parseInt(document.getElementById('limitInput').value, 10) || 0;
+  localStorage.setItem(STORAGE_KEY_LIMIT, val);
+  location.reload();
+}
+
+// Inicializácia dát
+const userLimit = loadLimit();
+document.getElementById('limitInput').value = userLimit;
+
+// Príprava otázok
+activeData = shuffle([...fullData]); 
+if (userLimit > 0 && userLimit < activeData.length) {
+  activeData = activeData.slice(0, userLimit);
+}
+
+const taskContainer = document.getElementById('tasksContainer');
+const pagContainer = document.getElementById('pagination');
+const nextBtn = document.getElementById('nextBtn');
+const evalBtn = document.getElementById('evalBtn');
+const navControls = document.getElementById('navControls');
+const finalSummary = document.getElementById('finalSummary');
+const instruction = document.getElementById('instruction');
+
+let currentTaskIndex = 0;
+let isEvaluated = false;
+
+// --- Helper pre kontrolu dokončenia úlohy ---
+function checkAndMarkPage(taskIndex) {
+    if (!pagContainer.children[taskIndex]) return; 
+    const taskEl = taskContainer.children[taskIndex];
+    const slots = taskEl.querySelectorAll('.slot');
+    const allSlotsFilled = [...slots].every(s => s.dataset.value); 
+    const pageButton = pagContainer.querySelector(\`.page-btn:nth-child(\${taskIndex + 1})\`);
+    if (pageButton) pageButton.classList.toggle('solved', allSlotsFilled);
+}
+
+// --- Vykreslenie úloh ---
+activeData.forEach((vars, idx) => {
+  const ref = vars[0];
+  
+  const t = document.createElement('div');
+  t.className = 'task';
+  t.dataset.idx = idx;
+  if(idx === 0) t.classList.add('active');
+
+  const h = document.createElement('h3');
+  h.textContent = 'Úloha ' + (idx + 1) + ' / ' + activeData.length;
+  t.appendChild(h);
+
+  const slotsDiv = document.createElement('div');
+  slotsDiv.className = 'slots';
+  ref.forEach(() => {
+    const s = document.createElement('div');
+    s.className = 'slot';
+    slotsDiv.appendChild(s);
+  });
+  t.appendChild(slotsDiv);
+
+  const cardsDiv = document.createElement('div');
+  cardsDiv.className = 'cards-area';
+  shuffle(ref.slice()).forEach(w => {
+    const c = document.createElement('div');
+    c.className = 'card';
+    c.textContent = w;
+    cardsDiv.appendChild(c);
+  });
+  t.appendChild(cardsDiv);
+
+  taskContainer.appendChild(t);
+
+  let sel = null;
+  
+  cardsDiv.addEventListener('click', e => {
+    if(isEvaluated) return;
+    const c = e.target.closest('.card'); if(!c) return;
+    if(sel) sel.classList.remove('selected');
+    if(sel === c) { sel = null; return; }
+    sel = c; 
+    sel.classList.add('selected');
+  });
+
+  slotsDiv.addEventListener('click', e => {
+    if(isEvaluated) return;
+    const s = e.target.closest('.slot'); if(!s) return;
+
+    if(sel && !s.dataset.value) {
+      s.textContent = sel.textContent;
+      s.dataset.value = sel.textContent;
+      sel.remove();
+      sel = null;
+      checkAndMarkPage(idx);
+    }
+    else if(s.dataset.value && !sel) {
+      const w = s.dataset.value;
+      s.textContent = '';
+      delete s.dataset.value;
+      const c = document.createElement('div');
+      c.className = 'card';
+      c.textContent = w;
+      cardsDiv.appendChild(c);
+      checkAndMarkPage(idx);
+    }
+  });
+});
+
+// --- Navigácia ---
+function updateNav() {
+  document.querySelectorAll('.task').forEach((t, i) => {
+    t.classList.toggle('active', i === currentTaskIndex);
+  });
+  
+  pagContainer.innerHTML = '';
+  activeData.forEach((_, i) => {
+    const taskEl = taskContainer.children[i];
+    const slots = taskEl.querySelectorAll('.slot');
+    const allSlotsFilled = [...slots].every(s => s.dataset.value);
+
+    const btn = document.createElement('button');
+    btn.className = 'page-btn' + (i === currentTaskIndex ? ' active' : '') + (allSlotsFilled ? ' solved' : '');
+    btn.textContent = i + 1;
+    btn.onclick = () => { if(!isEvaluated) goToTask(i); };
+    pagContainer.appendChild(btn);
+  });
+
+  if (currentTaskIndex === activeData.length - 1) {
+    nextBtn.style.display = 'none';
+    evalBtn.style.display = 'inline-block';
+  } else {
+    nextBtn.style.display = 'inline-block';
+    evalBtn.style.display = 'none';
+  }
+}
+
+function goToTask(index) {
+  currentTaskIndex = index;
+  updateNav();
+}
+
+nextBtn.addEventListener('click', () => {
+  if (currentTaskIndex < activeData.length - 1) {
+    currentTaskIndex++;
+    updateNav();
+  }
+});
+
+// --- Vyhodnotenie (Bod za slovo) ---
+evalBtn.addEventListener('click', () => {
+  const sNameInput = document.getElementById('studentName');
+  if(!sNameInput.value.trim()){
+    if(!confirm('Nezadali ste meno žiaka. Chcete napriek tomu vyhodnotiť?')) return;
+  }
+  if(!confirm('Naozaj chcete ukončiť cvičenie a zobraziť výsledky?')) return;
+  
+  isEvaluated = true;
+  instruction.style.display = 'none';
+  navControls.style.display = 'none';
+  sNameInput.disabled = true;
+  document.querySelector('.settings-box button').disabled = true;
+  document.getElementById('limitInput').disabled = true;
+  
+  document.querySelectorAll('.task').forEach(t => t.style.display = 'block');
+  
+  let globalPoints = 0;
+  let globalMaxPoints = 0;
+
+  activeData.forEach((vars, idx) => {
+    const taskEl = taskContainer.children[idx];
+    const slots = taskEl.querySelectorAll('.slot');
+    const userAns = [...slots].map(s => s.dataset.value || '');
+    
+    let bestMatchScore = -1;
+    let bestVariant = vars[0];
+    let bestMatchIndices = []; 
+
+    vars.forEach(variant => {
+        let currentScore = 0;
+        let currentIndices = [];
+        for(let i=0; i < Math.max(variant.length, userAns.length); i++) {
+            if(i < variant.length && i < userAns.length && variant[i] === userAns[i]) {
+                currentScore++;
+                currentIndices.push(true);
+            } else {
+                currentIndices.push(false);
+            }
+        }
+        if (currentScore > bestMatchScore) {
+            bestMatchScore = currentScore;
+            bestVariant = variant;
+            bestMatchIndices = currentIndices;
+        }
+    });
+
+    const maxPointsForTask = bestVariant.length;
+    globalPoints += bestMatchScore;
+    globalMaxPoints += maxPointsForTask;
+
+    // Vizuálne zafarbenie na obrazovke
+    slots.forEach((slot, i) => {
+        if (bestMatchIndices[i]) {
+            slot.classList.add('correct');
+        } else {
+            slot.classList.add('incorrect');
+        }
+    });
+
+    const statusSpan = document.createElement('span');
+    statusSpan.className = 'status-score';
+    statusSpan.textContent = \`\${bestMatchScore} / \${maxPointsForTask} b\`;
+    taskEl.querySelector('.slots').appendChild(statusSpan);
+    taskEl.querySelectorAll('.card').forEach(c => c.style.cursor = 'default');
+  });
+
+  const percent = globalMaxPoints > 0 ? Math.round((globalPoints / globalMaxPoints) * 100) : 0;
+  const now = new Date();
+  
+  document.getElementById('resName').textContent = sNameInput.value || 'Bez mena';
+  document.getElementById('resScore').textContent = globalPoints + ' / ' + globalMaxPoints;
+  document.getElementById('resPercent').textContent = percent + ' %';
+  document.getElementById('resTime').textContent = now.toLocaleDateString('sk-SK') + ' ' + now.toLocaleTimeString('sk-SK');
+  
+  finalSummary.style.display = 'block';
+  finalSummary.scrollIntoView({behavior: 'smooth'});
+});
+
+updateNav();
+
+// --- Detailné výsledky (Upravené pre čiernobielu tlač) ---
+document.getElementById('detailBtn').addEventListener('click', () => {
+  const title = "${escapeHtml(title)}";
+  const name = document.getElementById('resName').textContent;
+  const score = document.getElementById('resScore').textContent;
+  const percent = document.getElementById('resPercent').textContent;
+  const time = document.getElementById('resTime').textContent;
+  
+  let content = '';
+  
+  activeData.forEach((vars, idx) => {
+    const taskEl = taskContainer.children[idx];
+    const slots = taskEl.querySelectorAll('.slot');
+    const userWords = [...slots].map(s => s.dataset.value || '___');
+    
+    // Nájdenie najlepšieho variantu pre zobrazenie
+    let bestMatchScore = -1;
+    let bestVariant = vars[0];
+    
+    vars.forEach(variant => {
+        let currentScore = 0;
+        for(let i=0; i < Math.max(variant.length, userWords.length); i++) {
+            if(i < variant.length && i < userWords.length && variant[i] === userWords[i]) {
+                currentScore++;
+            }
+        }
+        if (currentScore > bestMatchScore) {
+            bestMatchScore = currentScore;
+            bestVariant = variant;
+        }
+    });
+
+    // Zostavenie HTML pre riadok s FAJKAMI a KRÍŽIKMI
+    let visualizedSentence = '';
+    userWords.forEach((w, i) => {
+        const isCorrect = (i < bestVariant.length && w === bestVariant[i]);
+        // Používame symboly namiesto farieb
+        const symbol = isCorrect ? '✔' : '✖';
+        // Pridáme span pre nerušivé formátovanie
+        visualizedSentence += \`<span style="white-space:nowrap; margin-right: 0.5em; display:inline-block;">\${w} <b>\${symbol}</b></span> \`;
+    });
+
+    const isFullyCorrect = (bestMatchScore === bestVariant.length);
+    const maxP = bestVariant.length;
+    
+    content += '<div class="report-task">';
+    content += '<strong>Úloha ' + (idx + 1) + ' (' + bestMatchScore + '/' + maxP + ' b):</strong><br>';
+    // Odstránené farebné pozadie, iba jednoduchý rámik pre čitateľnosť
+    content += '<div style="padding:10px; border:1px solid #333; margin:5px 0;">' + visualizedSentence + '</div>';
+    
+    if (!isFullyCorrect) {
+      content += '<div style="font-size:0.9em; margin-top:5px;"><i>Správne riešenie:</i> ' + bestVariant.join(' ') + '</div>';
+    }
+    content += '</div><hr>';
+  });
+
+  const win = window.open('', '_blank');
+  win.document.write(\`
+    <!DOCTYPE html>
+    <html lang="sk">
+    <head>
+      <meta charset="utf-8">
+      <title>Detailné výsledky - \${title}</title>
+      <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 20px auto; line-height: 1.5; color: #000; }
+        h1 { margin-bottom: 5px; }
+        .header { padding: 15px; border: 1px solid #000; margin-bottom: 20px; }
+        .report-task { margin-bottom: 15px; page-break-inside: avoid; }
+        .legend { margin-top: 30px; font-size: 0.9em; border-top: 2px solid #000; padding-top: 10px; }
+        @media print {
+          .no-print { display: none; }
+          body { max-width: 100%; color: black; }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Detailný prehľad výsledkov</h1>
+      <div class="header">
+        <strong>Cvičenie:</strong> \${title}<br>
+        <strong>Žiak:</strong> \${name}<br>
+        <strong>Hodnotenie:</strong> \${score} (\${percent})<br>
+        <strong>Dátum:</strong> \${time}
+      </div>
+      
+      <div class="results">
+        \${content}
+      </div>
+      
+      <div class="legend">
+        <strong>Vysvetlivky:</strong><br>
+        ✔ = Správne umiestnené slovo (+1 bod)<br>
+        ✖ = Nesprávne slovo alebo pozícia (0 bodov)
+      </div>
+      
+      <div class="no-print" style="margin-top:20px; text-align:center;">
+        <button onclick="window.print()" style="padding:10px 20px; font-size:16px; cursor:pointer;">🖨 Vytlačiť (Ctrl + P)</button>
+        <button onclick="window.close()" style="padding:10px 20px; font-size:16px; cursor:pointer;">Zavrieť</button>
+      </div>
+    </body>
+    </html>
+  \`);
+  win.document.close();
+});
+
+<\/script>
+
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body></html>`;
+}
+
+/* ---------- Generovanie a uloženie ---------- */
+document.getElementById('genBtn').addEventListener('click',()=>{
+ const title=document.getElementById('title').value||'Cvičenie';
+ const student=document.getElementById('student').value||'';
+ const data=parseInput(document.getElementById('input').value);
+ if(!data.length){alert('Zadaj aspoň jednu vetu.');return;}
+ const html=buildExerciseHTML(title,student,data);
+ document.getElementById('previewFrame').srcdoc=html;
+ window.generatedHTML=html;
+});
+
+document.getElementById('openWinBtn').addEventListener('click',()=>{
+ if(!window.generatedHTML){alert('Najprv vygeneruj cvičenie.');return;}
+ const w=window.open();w.document.open();w.document.write(window.generatedHTML);w.document.close();
+});
+
+document.getElementById('saveBtn').addEventListener('click',()=>{
+ if(!window.generatedHTML){alert('Najprv vygeneruj cvičenie.');return;}
+ const blob=new Blob([window.generatedHTML],{type:'text/html'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download=(document.getElementById('title').value||'cvicenie')+'.html';
+ document.body.appendChild(a); a.click(); document.body.removeChild(a);
+});
+</script>
+<script>
+/* ---------- Podpora klávesy TAB vo vstupnom poli ---------- */
+document.getElementById("input").addEventListener("keydown", function(e) {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const start = this.selectionStart;
+    const end = this.selectionEnd;
+    this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+    this.selectionStart = this.selectionEnd = start + 1;
+  }
+});
+</script>
+ <br><br>
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+    <br><br>
+</body>
+</html>

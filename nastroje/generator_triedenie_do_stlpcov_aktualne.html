@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor cvičení typu triedenie do viacerých stĺpcov</title>
+    <style>
+        body { font-family: 'Courier bold', Monaco, monospace; background-color: #f4f4f9; padding: 20px; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        label { display: block; margin-top: 15px; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"], input[type="number"], textarea, input[type="color"] { width: 100%; padding: 10px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 200px; font-family: monospace; }
+        .row { display: flex; gap: 20px; }
+        .col { flex: 1; }
+        .column-config { border: 1px solid #e0e0e0; padding: 15px; margin-bottom: 10px; border-radius: 6px; background: #fafafa; }
+        .column-config h4 { margin-top: 0; }
+        .btn { display: inline-block; padding: 12px 24px; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; text-decoration: none; text-align: center; margin-right: 10px; margin-top: 10px; }
+        .btn-green { background-color: #27ae60; }
+        .btn-green:hover { background-color: #219150; }
+        .btn-blue { background-color: #2980b9; }
+        .btn-blue:hover { background-color: #21618c; }
+        .btn-orange { background-color: #e67e22; }
+        .btn-orange:hover { background-color: #d35400; }
+        .instructions { background-color: #e8f6f3; padding: 15px; border-left: 5px solid #1abc9c; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 40px; font-size: 14px; color: #7f8c8d; border-top: 1px solid #eee; padding-top: 20px; }
+        
+        /* Styl pre dynamicke inputy stlpcov */
+        .col-settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Generátor cvičení typu triedenie do viacerých stĺpcov</h1>
+
+    <div class="row">
+        <div class="col">
+            <label for="author">Meno autora</label>
+            <input type="text" id="author" class="save-local">
+        </div>
+        <div class="col">
+            <label for="year">Rok</label>
+            <input type="text" id="year" class="save-local">
+        </div>
+    </div>
+    
+    <label for="testTitle" style="margin-top: 20px;">Názov testu</label>
+    <input type="text" id="testTitle" class="save-local">
+    
+    <label for="placedItemSize" style="margin-top: 20px;">Veľkosť písma zaradených pojmov (px)</label>
+    <input type="number" id="placedItemSize" class="save-local" value="18" min="10" max="40" style="width: 150px;">
+
+    <hr style="margin: 25px 0; border: 0; border-top: 1px solid #eee;">
+
+    <label for="columnCount">Počet stĺpcov</label>
+    <input type="number" id="columnCount" min="2" max="6" value="2" class="save-local" style="width: 100px;">
+    
+    <div id="columnSettingsContainer" class="col-settings-grid">
+        </div>
+
+    <div class="instructions">
+        <strong>Zadajte údaje do vstupného poľa v tomto formáte:</strong><br>
+        pojem[TAB]názov stĺpca<br>
+        [TAB] označuje kláves na počítači, ktorým sa oddeľujú jednotlivé položky.<br>
+        Každú úlohu zadajte do osobitného riadka.
+    </div>
+
+    <textarea id="dataInput" class="save-local">
+b	párová znelá spoluhláska
+d	párová znelá spoluhláska
+ď	párová znelá spoluhláska
+dz	párová znelá spoluhláska
+dž	párová znelá spoluhláska
+g	párová znelá spoluhláska
+h	párová znelá spoluhláska
+z	párová znelá spoluhláska
+ž	párová znelá spoluhláska
+v	párová znelá spoluhláska
+p	párová neznelá spoluhláska
+t	párová neznelá spoluhláska
+ť	párová neznelá spoluhláska
+c	párová neznelá spoluhláska
+č	párová neznelá spoluhláska
+k	párová neznelá spoluhláska
+ch	párová neznelá spoluhláska
+s	párová neznelá spoluhláska
+š	párová neznelá spoluhláska
+f	párová neznelá spoluhláska
+m	nepárová znelá spoluhláska
+n	nepárová znelá spoluhláska
+ň	nepárová znelá spoluhláska
+ľ	nepárová znelá spoluhláska
+l	nepárová znelá spoluhláska
+ĺ	nepárová znelá spoluhláska
+r	nepárová znelá spoluhláska
+ŕ	nepárová znelá spoluhláska
+j	nepárová znelá spoluhláska</textarea>
+
+    <label for="studentInstructions">Pokyny pre žiaka</label>
+    <input type="text" id="studentInstructions" class="save-local" value="Klikni na správny stĺpec. Ak si klikol nesprávne, opakuj pokus. Body sa ti pripočítavajú len za úlohy, ktoré si vyriešil správne na prvýkrát.">
+
+    <div style="margin-top: 30px;">
+        <button onclick="generateFile()" class="btn btn-green">Stiahnuť vygenerovaný test ako .html</button>
+        <br>
+        <button onclick="exportData()" class="btn btn-blue">Exportovať údaje (JSON)</button>
+        <button onclick="triggerImport()" class="btn btn-orange">Importovať údaje (JSON)</button>
+        <input type="file" id="importFile" style="display: none;" onchange="importData(this)">
+    </div>
+
+    <div class="footer">
+        Spracované pomocou UI: Mgr. Erika Matyiová (2026)
+    </div>
+</div>
+
+<script>
+    // --- LocalStorage Logic ---
+    const STORAGE_PREFIX = 'column_sorter_gen_';
+
+    function saveToLocal() {
+        document.querySelectorAll('.save-local').forEach(el => {
+            localStorage.setItem(STORAGE_PREFIX + el.id, el.value);
+        });
+        const colData = [];
+        document.querySelectorAll('.col-config-item').forEach((item, index) => {
+            colData.push({
+                title: document.getElementById(`colTitle_${index}`).value,
+                bg: document.getElementById(`colBg_${index}`).value,
+                textColor: document.getElementById(`colTextColor_${index}`).value,
+                textSize: document.getElementById(`colTextSize_${index}`).value
+            });
+        });
+        localStorage.setItem(STORAGE_PREFIX + 'dynamic_cols', JSON.stringify(colData));
+    }
+
+    function loadFromLocal() {
+        try {
+            document.querySelectorAll('.save-local').forEach(el => {
+                const val = localStorage.getItem(STORAGE_PREFIX + el.id);
+                if (val !== null) el.value = val;
+            });
+            
+            renderColumns();
+            const colDataRaw = localStorage.getItem(STORAGE_PREFIX + 'dynamic_cols');
+            if (colDataRaw) {
+                const colData = JSON.parse(colDataRaw);
+                colData.forEach((data, index) => {
+                    if(document.getElementById(`colTitle_${index}`)) {
+                        document.getElementById(`colTitle_${index}`).value = data.title;
+                        document.getElementById(`colBg_${index}`).value = data.bg;
+                        document.getElementById(`colTextColor_${index}`).value = data.textColor;
+                        document.getElementById(`colTextSize_${index}`).value = data.textSize;
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn("Chyba pri načítaní z LocalStorage:", e);
+        }
+    }
+
+    // --- Tab Key Handler ---
+    document.getElementById('dataInput').addEventListener('keydown', function(e) {
+        if (e.key == 'Tab') {
+            e.preventDefault();
+            var start = this.selectionStart;
+            var end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 1;
+        }
+    });
+
+    // --- Dynamic Column Inputs ---
+    const colCountInput = document.getElementById('columnCount');
+    const colContainer = document.getElementById('columnSettingsContainer');
+
+    function renderColumns() {
+        const count = parseInt(colCountInput.value) || 2;
+        colContainer.innerHTML = '';
+        
+        for (let i = 0; i < count; i++) {
+            const div = document.createElement('div');
+            div.className = 'column-config col-config-item';
+            div.innerHTML = `
+                <h4>Stĺpec ${i + 1}</h4>
+                <label>Názov stĺpca:</label>
+                <input type="text" id="colTitle_${i}" value="Stĺpec ${i+1}" placeholder="Názov stĺpca">
+                
+                <label>Farba pozadia:</label>
+                <input type="color" id="colBg_${i}" value="${generateRandomPastelColor()}" style="height:40px;">
+                
+                <div class="row">
+                    <div class="col">
+                        <label>Farba textu:</label>
+                        <input type="color" id="colTextColor_${i}" value="#000000" style="height:40px;">
+                    </div>
+                    <div class="col">
+                        <label>Veľkosť textu nadpisu (px):</label>
+                        <input type="number" id="colTextSize_${i}" value="20" min="10" max="50">
+                    </div>
+                </div>
+            `;
+            colContainer.appendChild(div);
+        }
+    }
+    
+    function generateRandomPastelColor() {
+        const hue = Math.floor(Math.random() * 360);
+        return `hsl(${hue}, 100%, 90%)`;
+    }
+
+    colCountInput.addEventListener('change', () => {
+        renderColumns(); 
+        try { saveToLocal(); } catch(e) {}
+    });
+
+    document.addEventListener('input', (e) => {
+        if(e.target.matches('input, textarea')) {
+            try { saveToLocal(); } catch(e) {}
+        }
+    });
+
+    window.addEventListener('DOMContentLoaded', loadFromLocal);
+
+    // --- Export/Import JSON ---
+    function exportData() {
+        const data = {};
+        document.querySelectorAll('.save-local').forEach(el => {
+            data[el.id] = el.value;
+        });
+        const colData = [];
+        document.querySelectorAll('.col-config-item').forEach((item, index) => {
+            colData.push({
+                title: document.getElementById(`colTitle_${index}`).value,
+                bg: document.getElementById(`colBg_${index}`).value,
+                textColor: document.getElementById(`colTextColor_${index}`).value,
+                textSize: document.getElementById(`colTextSize_${index}`).value
+            });
+        });
+        data['dynamic_cols'] = colData;
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "stlpce_config.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function triggerImport() {
+        document.getElementById('importFile').click();
+    }
+
+    function importData(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                for (const key in data) {
+                    if (key !== 'dynamic_cols' && document.getElementById(key)) {
+                        document.getElementById(key).value = data[key];
+                    }
+                }
+                if (data['dynamic_cols']) {
+                    document.getElementById('columnCount').value = data['dynamic_cols'].length;
+                    renderColumns(); 
+                    data['dynamic_cols'].forEach((col, index) => {
+                        if(document.getElementById(`colTitle_${index}`)) {
+                            document.getElementById(`colTitle_${index}`).value = col.title;
+                            document.getElementById(`colBg_${index}`).value = col.bg;
+                            document.getElementById(`colTextColor_${index}`).value = col.textColor;
+                            document.getElementById(`colTextSize_${index}`).value = col.textSize;
+                        }
+                    });
+                }
+                
+                // POKUS O ULOŽENIE (Ak zlyhá pre nedostatok miesta, nevadí - formulár je vyplnený)
+                try {
+                    saveToLocal();
+                } catch (storageErr) {
+                    console.warn("Nepodarilo sa uložiť do LocalStorage (plná pamäť), ale import pokračuje.", storageErr);
+                }
+
+                alert("Údaje boli úspešne importované.");
+            } catch (err) {
+                alert("Chyba pri čítaní súboru: " + err);
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // --- GENERATE HTML FILE ---
+    function generateFile() {
+        // 1. Gather Data
+        const author = document.getElementById('author').value;
+        const year = document.getElementById('year').value;
+        const testTitle = document.getElementById('testTitle').value || "Test";
+        const instructions = document.getElementById('studentInstructions').value;
+        const placedItemSize = document.getElementById('placedItemSize').value || 18;
+        
+        // Columns config
+        const columns = [];
+        const count = parseInt(document.getElementById('columnCount').value);
+        for(let i=0; i<count; i++) {
+            columns.push({
+                id: i,
+                title: document.getElementById(`colTitle_${i}`).value,
+                bg: document.getElementById(`colBg_${i}`).value,
+                color: document.getElementById(`colTextColor_${i}`).value,
+                size: document.getElementById(`colTextSize_${i}`).value
+            });
+        }
+
+        // Terms parsing
+        const rawData = document.getElementById('dataInput').value;
+        const lines = rawData.split('\n');
+        const terms = [];
+        lines.forEach(line => {
+            const parts = line.split('\t');
+            if (parts.length >= 2 && parts[0].trim() !== '') {
+                terms.push({
+                    term: parts[0].trim(),
+                    target: parts[1].trim()
+                });
+            }
+        });
+
+        if (terms.length === 0) {
+            alert("Neboli zadané žiadne pojmy alebo chýba oddelenie tabulátorom.");
+            return;
+        }
+
+        const config = JSON.stringify({
+            author, year, testTitle, instructions, columns, terms, placedItemSize
+        });
+
+        // 2. Build the Template
+        const htmlContent = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${testTitle}</title>
+    <style>
+        body { font-family: 'Monaco', monospace; background-color: #fdfdfd; text-align: center; margin: 0; padding: 20px; user-select: none; }
+        .header { margin-bottom: 20px; }
+        h1 { color: #333; margin-bottom: 5px; }
+        .meta { color: #666; font-size: 0.9em; margin-bottom: 15px; }
+        
+        #setupScreen { max-width: 600px; margin: 50px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        input[type="text"], input[type="number"] { padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 5px; margin: 5px; width: 200px; }
+        .btn-start { background-color: #27ae60; color: white; border: none; padding: 10px 30px; font-size: 18px; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        .btn-start:hover { background-color: #219150; transform: scale(1.05); }
+
+        #gameScreen { display: none; max-width: 1200px; margin: 0 auto; }
+        .instructions { font-size: 1.1em; color: #444; margin-bottom: 20px; background: #e8f8f5; padding: 10px; border-radius: 5px; display: inline-block; }
+        
+        .active-term-container { min-height: 100px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .active-term { font-size: 3em; font-weight: bold; padding: 20px; border-radius: 10px; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s; border: 2px solid transparent; }
+        .active-term.error { background-color: #fadbd8; border-color: #e74c3c; color: #c0392b; animation: shake 0.5s; }
+        .error-msg { color: #c0392b; font-weight: bold; margin-top: 10px; min-height: 24px; visibility: hidden; }
+        
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+        .columns-container { display: flex; gap: 15px; justify-content: center; align-items: stretch; min-height: 400px; }
+        .column { flex: 1; border-radius: 10px; padding: 15px; display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s; position: relative; border: 2px solid transparent; }
+        .column:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 10; }
+        .column-header { text-align: center; font-weight: bold; margin-bottom: 15px; word-wrap: break-word; white-space: pre-wrap; line-height: 1.2; }
+        
+        .placed-item { margin: 5px 0; padding: 8px; border-radius: 4px; font-weight: bold; color: #000; border: 1px solid rgba(0,0,0,0.05); }
+        
+        .hud { position: fixed; top: 10px; right: 20px; text-align: right; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .score-big { font-size: 1.5em; font-weight: bold; color: #2c3e50; }
+        
+        .footer { margin-top: 40px; font-size: 0.8em; color: #aaa; }
+        
+        #evalBtn { display: none; margin-top: 30px; padding: 15px 30px; font-size: 1.2em; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #evalBtn:hover { background-color: #2980b9; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>${testTitle}</h1>
+        <div class="meta">${author} (${year})</div>
+    </div>
+
+    <div id="setupScreen">
+        <h3>Zadajte údaje pre začiatok testu</h3>
+        <div>
+            <label>Meno žiaka:</label><br>
+            <input type="text" id="studentName" placeholder="Zadaj svoje meno">
+        </div>
+        <br>
+        <div>
+            <label>Počet úloh:</label><br>
+            <input type="number" id="questionCount" value="10" min="1">
+        </div>
+        <br>
+        <button class="btn-start" onclick="startTest()">Štart</button>
+    </div>
+
+    <div id="gameScreen">
+        <div class="hud">
+            <div id="progressDisplay">0/10</div>
+            <div id="scoreDisplay" class="score-big">0 bodov</div>
+        </div>
+
+        <div class="instructions">${instructions}</div>
+
+        <div class="active-term-container">
+            <div id="currentTerm" class="active-term">...</div>
+            <div id="errorMsg" class="error-msg">Nesprávny pokus. Skús znova.</div>
+        </div>
+
+        <div id="columnsArea" class="columns-container">
+            </div>
+        
+        <h2 id="endMessage" style="display:none; color: #27ae60; margin-top:20px;">🎉 Hotovo!</h2>
+        <button id="evalBtn" onclick="showEvaluation()">Hodnotenie</button>
+    </div>
+
+    <div class="footer">
+        Spracované pomocou UI: Mgr. Erika Matyiová (2026)
+    </div>
+
+    <script>
+        const config = ${config};
+        
+        // Game State
+        let currentTermObj = null;
+        let remainingTerms = [];
+        let score = 0;
+        let answeredCount = 0;
+        let totalQuestions = 0;
+        let historyLog = []; // { term, correctTarget, studentSelection, result }
+        let isFirstTry = true;
+        let firstWrongSelection = null; // Stores the first wrong answer choice
+        let studentName = "";
+
+        // Initialization
+        function startTest() {
+            studentName = document.getElementById('studentName').value.trim() || "XY";
+            let qCountInput = parseInt(document.getElementById('questionCount').value);
+            
+            // Prepare terms
+            let allTerms = [...config.terms];
+            shuffleArray(allTerms);
+            
+            totalQuestions = Math.min(qCountInput, allTerms.length);
+            remainingTerms = allTerms.slice(0, totalQuestions);
+            
+            if(remainingTerms.length === 0) {
+                alert("Chyba: Žiadne pojmy na zobrazenie.");
+                return;
+            }
+
+            document.getElementById('setupScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            
+            renderColumns();
+            updateHUD();
+            nextQuestion();
+        }
+
+        function renderColumns() {
+            const container = document.getElementById('columnsArea');
+            container.innerHTML = '';
+            
+            config.columns.forEach(col => {
+                let div = document.createElement('div');
+                div.className = 'column';
+                div.style.backgroundColor = col.bg;
+                div.onclick = () => handleColumnClick(col.title);
+                
+                let header = document.createElement('div');
+                header.className = 'column-header';
+                header.innerText = col.title;
+                header.style.color = col.color;
+                header.style.fontSize = col.size + 'px';
+                
+                div.appendChild(header);
+                // Container for placed items
+                let itemsContainer = document.createElement('div');
+                itemsContainer.id = 'col-items-' + sanitizeId(col.title);
+                div.appendChild(itemsContainer);
+                
+                container.appendChild(div);
+            });
+        }
+
+        function nextQuestion() {
+            if (remainingTerms.length === 0) {
+                endGame();
+                return;
+            }
+            
+            currentTermObj = remainingTerms.pop();
+            const termDisplay = document.getElementById('currentTerm');
+            termDisplay.innerText = currentTermObj.term;
+            termDisplay.classList.remove('error');
+            document.getElementById('errorMsg').style.visibility = 'hidden';
+            isFirstTry = true;
+            firstWrongSelection = null; // Reset for new question
+        }
+
+        function handleColumnClick(clickedColTitle) {
+            if (!currentTermObj) return;
+
+            const correctColTitle = currentTermObj.target;
+            
+            // Simple string matching
+            if (clickedColTitle.trim() === correctColTitle.trim()) {
+                // Correct
+                if (isFirstTry) {
+                    score++;
+                }
+                
+                // Determine what to record as student's answer:
+                // If it was first try, their answer is the correct one.
+                // If it wasn't first try, their answer is the FIRST wrong selection they made.
+                let recordedAnswer = isFirstTry ? clickedColTitle : firstWrongSelection;
+
+                historyLog.push({
+                    term: currentTermObj.term,
+                    correctTarget: correctColTitle,
+                    studentSelection: recordedAnswer,
+                    result: isFirstTry
+                });
+
+                // Move visual
+                addToColumn(clickedColTitle, currentTermObj.term);
+                
+                answeredCount++;
+                updateHUD();
+                nextQuestion();
+                
+            } else {
+                // Incorrect
+                if (isFirstTry) {
+                    // Capture the first wrong choice for the history log
+                    firstWrongSelection = clickedColTitle;
+                }
+                
+                isFirstTry = false;
+                const termDisplay = document.getElementById('currentTerm');
+                termDisplay.classList.add('error');
+                document.getElementById('errorMsg').style.visibility = 'visible';
+                
+                setTimeout(() => {
+                    termDisplay.classList.remove('error');
+                }, 500);
+            }
+        }
+
+        function addToColumn(colTitle, termText) {
+            const container = document.getElementById('col-items-' + sanitizeId(colTitle));
+            const colConfig = config.columns.find(c => c.title === colTitle);
+            const baseColorHex = colConfig.bg;
+
+            let item = document.createElement('div');
+            item.className = 'placed-item';
+            item.innerText = termText;
+            
+            item.style.fontSize = config.placedItemSize + 'px';
+            item.style.backgroundColor = darkenHexToHSL(baseColorHex, 0.15);
+            
+            container.appendChild(item);
+        }
+
+        function updateHUD() {
+            document.getElementById('progressDisplay').innerText = answeredCount + '/' + totalQuestions;
+            document.getElementById('scoreDisplay').innerText = score + (score === 1 ? ' bod' : (score >= 2 && score <= 4 ? ' body' : ' bodov'));
+        }
+
+        function endGame() {
+            currentTermObj = null;
+            document.getElementById('currentTerm').style.display = 'none';
+            document.getElementById('endMessage').style.display = 'block';
+            document.getElementById('evalBtn').style.display = 'inline-block';
+        }
+
+        function showEvaluation() {
+            const percentage = Math.round((score / totalQuestions) * 100);
+            const now = new Date().toLocaleString('sk-SK');
+            
+            let tableRows = historyLog.map(log => {
+                let resultCell = "";
+                if (log.result) {
+                    // Correct on first try
+                    resultCell = \`<span style="color:green; font-weight:bold;">&#10004;</span> \${log.studentSelection}\`;
+                } else {
+                    // Wrong on first try - show the wrong answer
+                    resultCell = \`<span style="color:red; font-weight:bold;">&#10008;</span> \${log.studentSelection}\`;
+                }
+                
+                return \`<tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">\${log.term}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">\${log.correctTarget}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">\${resultCell}</td>
+                </tr>\`;
+            }).join('');
+
+            const evalHtml = \`
+                <html>
+                <head>
+                    <title>Hodnotenie - \${config.testTitle}</title>
+                    <style>
+                        body { font-family: 'Segoe UI', sans-serif; padding: 40px; }
+                        h1 { color: #2c3e50; }
+                        .summary { margin-bottom: 30px; font-size: 1.2em; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th { background: #f2f2f2; text-align: left; padding: 10px; border: 1px solid #ddd; }
+                        td { vertical-align: middle; }
+                        .legend { margin-top: 20px; font-size: 0.9em; color: #666; }
+                        @media print {
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Hodnotenie: \${config.testTitle}</h1>
+                    <div class="summary">
+                        <strong>Meno žiaka:</strong> \${studentName}<br>
+                        <strong>Dátum:</strong> \${now}<br>
+                        <strong>Počet bodov:</strong> \${score} z \${totalQuestions}<br>
+                        <strong>Úspešnosť:</strong> \${percentage}%
+                    </div>
+                    
+                    <h3>Detailný prehľad</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Úloha</th>
+                                <th>Správne riešenie</th>
+                                <th>Tvoja odpoveď</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            \${tableRows}
+                        </tbody>
+                    </table>
+                    
+                    <div class="legend">
+                        <strong>Vysvetlivky:</strong><br>
+                        <span style="color:green;">&#10004;</span> = Správne na prvý pokus (1 bod)<br>
+                        <span style="color:red;">&#10008;</span> = Nesprávne na prvý pokus (0 bodov) - zobrazená je vaša pôvodná odpoveď
+                    </div>
+                    
+                    <div class="no-print" style="margin-top: 30px;">
+                        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer;">Tlačiť (Ctrl + P)</button>
+                    </div>
+                </body>
+                </html>
+            \`;
+            
+            const win = window.open('', '_blank');
+            win.document.write(evalHtml);
+            win.document.close();
+        }
+
+        // Utils
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+        
+        function sanitizeId(str) {
+            return str.replace(/[^a-z0-9gi]/, '_');
+        }
+        
+        function darkenHexToHSL(hex, darkenAmount) {
+            let r = 0, g = 0, b = 0;
+            r = "0x" + hex[1] + hex[2]; g = "0x" + hex[3] + hex[4]; b = "0x" + hex[5] + hex[6];
+            r /= 255; g /= 255; b /= 255;
+
+            let cmin = Math.min(r,g,b), cmax = Math.max(r,g,b), delta = cmax - cmin;
+            let h = 0, s = 0, l = 0;
+
+            if (delta == 0) h = 0;
+            else if (cmax == r) h = ((g - b) / delta) % 6;
+            else if (cmax == g) h = (b - r) / delta + 2;
+            else h = (r - g) / delta + 4;
+
+            h = Math.round(h * 60);
+            if (h < 0) h += 360;
+
+            l = (cmax + cmin) / 2;
+            s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+
+            l = Math.max(0, l - darkenAmount);
+
+            return \`hsl(\${h}, \${Math.round(s * 100)}%, \${Math.round(l * 100)}%)\`;
+        }
+    <\/script>
+</body>
+</html>`;
+
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        let filenameTitle = testTitle.toLowerCase();
+        filenameTitle = filenameTitle.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        filenameTitle = filenameTitle.replace(/\s+/g, '_');
+        filenameTitle = filenameTitle.replace(/[^a-z0-9_]/g, '');
+        
+        if (!filenameTitle) filenameTitle = "stlpce_test";
+        
+        a.href = url;
+        a.download = filenameTitle + ".html";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <title>Generátor cvičenia na zoradenie položiek</title>
+  <style>
+    body { font-family: Courier bold, monospace; margin: 20px; }
+    textarea, input { width: 100%; font-size: 120%; box-sizing: border-box; margin-top: 5px; }
+    button { margin-top: 10px; padding: 8px 16px; }
+    label { font-weight: bold; margin-top: 15px; display: block; }
+  </style>
+</head>
+<body>
+  <h1>Generátor cvičenia na zoradenie položiek</h1>
+
+  <label for="tasksInput">
+    Zadajte úlohy.<br>Položky v rámci jednej úlohy napíšte pod seba v správnom poradí.<br>Jednotlivé úlohy oddeľte od seba jedným prázdnym riadkom.
+  </label>
+  <textarea id="tasksInput" rows="12"
+    placeholder="napr. jablko&#10;mango&#10;banán&#10;&#10;1&#10;3&#10;2"></textarea>
+
+  <label for="numQuestions">
+    Počet úloh v cvičení:
+  </label>
+  <input id="numQuestions" type="number" value="5" min="1" />
+
+  <button id="generateBtn">Vygenerovať cvičenie</button>
+  
+  <label for="output">
+    Vygenerovaný HTML kód:
+  </label>
+  <textarea id="output" rows="20"></textarea>
+  <button id="downloadBtn">Stiahnuť cvičenie ako HTML</button>
+
+  <script>
+    const tasksInput    = document.getElementById('tasksInput');
+    const numQuestions  = document.getElementById('numQuestions');
+    const genBtn        = document.getElementById('generateBtn');
+    const dlBtn         = document.getElementById('downloadBtn');
+    const outTA         = document.getElementById('output');
+
+    // Načítanie z localStorage
+    tasksInput.value   = localStorage.getItem('tasksInput')   || '';
+    numQuestions.value = localStorage.getItem('numQuestions') || '5';
+
+    // Ukladanie zmien
+    tasksInput.addEventListener('input', () => {
+      localStorage.setItem('tasksInput', tasksInput.value);
+    });
+    numQuestions.addEventListener('input', () => {
+      localStorage.setItem('numQuestions', numQuestions.value);
+    });
+
+    genBtn.addEventListener('click', () => {
+      const raw = tasksInput.value.trim();
+      if (!raw) {
+        alert('Zadajte aspoň jednu úlohu.');
+        return;
+      }
+      const blocks = raw.split(/\n\s*\n/);
+      const tasks  = blocks.map(b =>
+        b.split('\n').map(s => s.trim()).filter(s => s)
+      );
+      const n = Math.min(
+        tasks.length,
+        Math.max(1, +numQuestions.value)
+      );
+      const fullTasksJSON = JSON.stringify(tasks);
+
+      // tu je upravený template vrátane @media print
+      const template = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cvičenie: Zoradenie položiek</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .item-button {
+      margin: 6px;
+      padding: 12px 24px;
+      font-size: 1.2em;
+    }
+    .move-btn {
+      margin-left: 5px;
+      padding: 6px 10px;
+      font-size: 1em;
+    }
+    .answer-list { list-style: none; padding: 0; }
+    .answer-list li { margin: 8px 0; }
+    #results { margin-top: 20px; font-weight: bold; }
+    #overview { margin-top: 20px; }
+    .correct {
+      background-color: lightgreen;
+      padding: 4px 8px;
+      border-radius: 3px;
+      margin: 2px;
+      display: inline-block;
+    }
+    .incorrect {
+      background-color: lightpink;
+      padding: 4px 8px;
+      border-radius: 3px;
+      margin: 2px;
+      display: inline-block;
+    }
+    /* Tlačová podoba: zobrazí len názov, výsledky a prehľad odpovedí */
+    @media print {
+      body > * { display: none; }
+      h1, #results, #overview {
+        display: block;
+        visibility: visible;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Cvičenie na zoradenie položiek</h1>
+  <label for="studentName">Meno žiaka, trieda:</label>
+  <input id="studentName" type="text" />
+
+  <div id="questionContainer"></div>
+  <button id="nextBtn">Ďalej</button>
+  <button id="submitBtn" style="display:none;">Odoslať odpovede</button>
+
+  <div id="results"></div>
+  <div id="overview"></div>
+
+  <script>
+    const tasks = ${fullTasksJSON};
+    const N     = ${n};
+    const indices = Array.from(tasks.keys());
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    const selected = indices.slice(0, N).map(i => tasks[i]);
+
+    let current = 0;
+    const studentAnswers = [];
+    const container = document.getElementById('questionContainer');
+    const nextBtn    = document.getElementById('nextBtn');
+    const submitBtn  = document.getElementById('submitBtn');
+
+    function renderQuestion(idx) {
+      container.innerHTML = '';
+      const q = selected[idx];
+      const p = document.createElement('p');
+      p.textContent = 'Úloha ' + (idx + 1);
+      container.appendChild(p);
+
+      const shuffled = q.slice().sort(() => Math.random() - 0.5);
+      const btnContainer = document.createElement('div');
+      shuffled.forEach(text => {
+        const btn = document.createElement('button');
+        btn.textContent   = text;
+        btn.className     = 'item-button';
+        btn.addEventListener('click', () => {
+          addToAnswer(text);
+          btn.remove();
+        });
+        btnContainer.appendChild(btn);
+      });
+      container.appendChild(btnContainer);
+
+      const ul = document.createElement('ul');
+      ul.className = 'answer-list';
+      ul.id        = 'answerList';
+      container.appendChild(ul);
+    }
+
+    function addToAnswer(text) {
+      const ul = document.getElementById('answerList');
+      if ([...ul.children].some(li =>
+        li.firstChild.textContent === text
+      )) return;
+
+      const li = document.createElement('li');
+      const span = document.createElement('span');
+      span.textContent = text;
+      li.appendChild(span);
+
+      ['▲', '▼'].forEach(dir => {
+        const m = document.createElement('button');
+        m.textContent     = dir;
+        m.className       = 'move-btn';
+        m.addEventListener('click', () => {
+          const sibling = dir === '▲'
+            ? li.previousElementSibling
+            : li.nextElementSibling;
+          if (sibling) {
+            dir === '▲'
+              ? ul.insertBefore(li, sibling)
+              : ul.insertBefore(sibling, li);
+          }
+        });
+        li.appendChild(m);
+      });
+
+      ul.appendChild(li);
+    }
+
+    nextBtn.addEventListener('click', () => {
+      const ul = document.getElementById('answerList');
+      studentAnswers[current] = [...ul.children].map(
+        li => li.firstChild.textContent
+      );
+      current++;
+      if (current < selected.length) {
+        renderQuestion(current);
+      } else {
+        nextBtn.style.display   = 'none';
+        submitBtn.style.display = 'inline-block';
+      }
+    });
+
+    submitBtn.addEventListener('click', () => {
+      const ul = document.getElementById('answerList');
+      studentAnswers[current] = [...ul.children].map(
+        li => li.firstChild.textContent
+      );
+
+      let score = 0;
+      selected.forEach((correct, i) => {
+        const ans = studentAnswers[i] || [];
+        if (
+          ans.length === correct.length &&
+          ans.every((v, j) => v === correct[j])
+        ) {
+          score++;
+        }
+      });
+      const percent = Math.round((score / selected.length) * 100);
+
+      const now  = new Date();
+      const dt   = now.toLocaleString('sk-SK');
+      const name = document.getElementById('studentName').value || '-';
+      document.getElementById('results').innerHTML =
+        '<p>Meno žiaka: ' + name + '</p>' +
+        '<p>Bodové hodnotenie: ' + score + ' / ' + selected.length + '</p>' +
+        '<p>Percentuálne hodnotenie: ' + percent + '%</p>' +
+        '<p>Dátum a čas: ' + dt + '</p>';
+
+      const overview = document.getElementById('overview');
+      overview.innerHTML = '<h2>Prehľad odpovedí</h2>';
+      selected.forEach((correct, i) => {
+        const div   = document.createElement('div');
+        const title = document.createElement('p');
+        title.textContent = 'Úloha ' + (i + 1);
+        div.appendChild(title);
+
+        const ans = studentAnswers[i] || [];
+        correct.forEach((_, j) => {
+          const span = document.createElement('span');
+          const txt  = ans[j] || '';
+          span.textContent = txt;
+          span.className   = (txt === correct[j]) ? 'correct' : 'incorrect';
+          div.appendChild(span);
+        });
+
+        overview.appendChild(div);
+      });
+
+      submitBtn.disabled = true;
+    });
+
+    renderQuestion(0);
+<\/script>
+  <br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>`;
+
+      outTA.value = template;
+    });
+
+    dlBtn.addEventListener('click', () => {
+      const code = outTA.value;
+      if (!code) {
+        alert('Najprv vygenerujte cvičenie.');
+        return;
+      }
+      const blob = new Blob([code], { type: 'text/html' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'cvicenie.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  </script>
+  <br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

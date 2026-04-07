@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <title>Generátor cvičení s krátkou odpoveďou</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Courier bold, monospace; font-size: 110%; padding: 20px; }
+    label { display:block; margin-top:12px; font-weight:600; }
+    .hint { color:#555; font-size:0.9rem; margin-bottom:6px; }
+    textarea { width:100%; box-sizing:border-box; padding:8px; margin-top:6px; }
+    textarea { min-height:170px; font-family:monospace; font-size: 120%;white-space:pre; }
+    input[type="text"] { width: 90%; margin-bottom: 10px; font-size: 110%; }
+    input[type="number"] { width: 10%; margin-bottom: 10px; font-size: 110%; }
+    button { margin-top:12px; padding:8px 12px; margin-right: 8px; cursor: pointer; }
+    .button-group { margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd; }
+    .preview { margin-top:20px; border-top:1px solid #ddd; padding-top:16px; }
+    /* tlačové štýly: skryť hlavičku, pokyny, meno, ovládacie prvky a vstupy; zobraziť len výsledky */
+    @media print {
+      header, h1, .meta, .instructions, .controls, #exercise, input, button, .preview, .button-group { display: none !important; }
+      #result { display: block !important; width: 100% !important; }
+      body { padding: 8mm; }
+    }
+    .print-button { margin-left: 6px; padding: 6px 10px; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Generátor testov s krátkou odpoveďou<br>
+	(zobrazuje sa naraz len jedna úloha)</h1>
+  </header>
+
+  <label for="titleInput">Názov testu:</label>
+  <input id="titleInput" type="text" placeholder="Zadajte názov testu." />
+
+  <label for="instructionsInput">Pokyny pre žiaka:</label>
+  <input id="instructionsInput" type="text" placeholder="Zadajte pokyny pre žiaka." />
+  <div class="hint instructions">Tento element sa pri tlači skryje.</div>
+
+  <label for="authorInput">Autor (zobrazí sa vo vygenerovanom súbore):</label>
+  <input id="authorInput" type="text" placeholder="Meno Priezvisko" />
+
+  <label for="yearInput">Rok:</label>
+  <input id="yearInput" type="number" placeholder="napr. 2026" />
+
+  <label for="exerciseCount">Predvolený počet úloh v cvičení:</label><input id="exerciseCount" type="number" min="1" value="10" />
+
+  <label for="taskInput"><b>Zadajte úlohy. Každá úloha má byť v samostatnom riadku.<br>Zadanie a riešenie oddeľte klávesom[TAB].<br>Ak má zadanie viac riešení, ďalšie riešenie pridajte za ďalší [TAB]:</b></label>
+  <div class="hint">Formát:<br>zadanie[TAB]správna odpoveď 1[TAB]správna odpoveď 2 (ak existuje)[TAB]správna odpoveď 3 (ak existuje)</div>
+  <textarea id="taskInput" placeholder="fernsehen (du)  Sieh fern!  Sieh ... fern!"></textarea>
+
+  <div>
+    <button id="downloadBtn" style="font-weight: bold; background-color: #e0f7fa;">Stiahnuť test ako súbor .html</button>
+  </div>
+
+  <div class="button-group">
+    <button id="exportJsonBtn">Exportovať nastavenia (.json)</button>
+    <input type="file" id="importJsonFile" accept=".json" style="display:none" />
+    <button id="importJsonBtn">Importovať nastavenia (.json)</button>
+  </div>
+
+  <div class="preview" id="preview"></div>
+
+  <script>
+    // elementy
+    const taskInput = document.getElementById('taskInput');
+    const titleInput = document.getElementById('titleInput');
+    const instructionsInput = document.getElementById('instructionsInput');
+    const authorInput = document.getElementById('authorInput');
+    const yearInput = document.getElementById('yearInput');
+    const exerciseCountEl = document.getElementById('exerciseCount');
+    const preview = document.getElementById('preview');
+    
+    const downloadBtn = document.getElementById('downloadBtn');
+    const exportJsonBtn = document.getElementById('exportJsonBtn');
+    const importJsonBtn = document.getElementById('importJsonBtn');
+    const importJsonFile = document.getElementById('importJsonFile');
+
+    // TAB vloží skutočný tab
+    taskInput.addEventListener('keydown', function(e){
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = this.selectionStart, epos = this.selectionEnd;
+        this.value = this.value.slice(0,s) + '\t' + this.value.slice(epos);
+        this.selectionStart = this.selectionEnd = s + 1;
+      }
+    });
+
+    // localStorage načítanie
+    window.addEventListener('load', () => {
+      const raw = localStorage.getItem('exerciseRaw'); if (raw) taskInput.value = raw;
+      const t = localStorage.getItem('exerciseTitle'); if (t) titleInput.value = t;
+      const instr = localStorage.getItem('exerciseInstr'); if (instr) instructionsInput.value = instr;
+      const auth = localStorage.getItem('exerciseAuthor'); if (auth) authorInput.value = auth;
+      const yr = localStorage.getItem('exerciseYear'); if (yr) yearInput.value = yr;
+      const cnt = localStorage.getItem('exerciseCount'); if (cnt) exerciseCountEl.value = cnt;
+    });
+
+    // localStorage ukladanie
+    taskInput.addEventListener('input', ()=> localStorage.setItem('exerciseRaw', taskInput.value));
+    titleInput.addEventListener('input', e=> localStorage.setItem('exerciseTitle', e.target.value));
+    instructionsInput.addEventListener('input', e=> localStorage.setItem('exerciseInstr', e.target.value));
+    authorInput.addEventListener('input', e=> localStorage.setItem('exerciseAuthor', e.target.value));
+    yearInput.addEventListener('input', e=> localStorage.setItem('exerciseYear', e.target.value));
+    exerciseCountEl.addEventListener('input', e=> localStorage.setItem('exerciseCount', e.target.value));
+
+    function parseTasks(raw) {
+      return raw
+        .split('\n')
+        .map(l => l.replace(/\r/g,''))
+        .map(l => l.trim())
+        .filter(l => l.length>0)
+        .map(line => {
+          const parts = line.split('\t').map(p => (p||'').trim());
+          const prompt = parts[0] || '';
+          const answers = parts.slice(1).filter(a => a.length>0);
+          return { prompt, answers };
+        })
+        .filter(t => t.prompt && t.answers && t.answers.length>0);
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }); }
+
+    // Pomocná funkcia na bezpečný názov súboru (bez diakritiky, medzery na podčiarkovníky)
+    function sanitizeFilename(str) {
+      if (!str) return '';
+      return str
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // odstráni diakritiku
+        .replace(/[ \(\)\[\]]+/g, "_")                    // medzery a zátvorky na podčiarkovník
+        .replace(/[^a-zA-Z0-9_\-]/g, "");                 // nechá len bezpečné znaky
+    }
+
+    // STIAHNUŤ VYGENEROVANÝ SÚBOR (.HTML)
+    function downloadHtml(){
+      const title = titleInput.value.trim();
+      const instructions = instructionsInput.value.trim();
+      const author = authorInput.value.trim();
+      const year = yearInput.value.trim();
+      const count = parseInt(exerciseCountEl.value, 10) || 1;
+      const raw = taskInput.value;
+      const all = parseTasks(raw);
+
+      if (!title) { alert('Zadaj názov cvičenia.'); return; }
+      if (all.length === 0) { alert('Zadaj aspoň jednu úlohu s aspoň jednou správnou odpoveďou.'); return; }
+
+      localStorage.setItem('exerciseData', JSON.stringify(all));
+
+      let authorInfoHtml = '';
+      if (author || year) {
+        authorInfoHtml = `<b>Autor:</b> ${escapeHtml(author)} ${year ? '(' + escapeHtml(year) + ')' : ''}`;
+      }
+
+      const htmlContent = `<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>${escapeHtml(title)}</title>
+<style>
+  body { font-family: Courier bold, monospace; font-size: 110%; padding: 18px; margin: 0; background-color: #ffffff; }
+  .test-container { max-width: 900px; margin: 0 auto; text-align: center; }
+  
+  .meta { margin-bottom: 20px; }
+  .setup-input-group { margin: 15px auto; max-width: 400px; text-align: left; }
+  .setup-input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+  
+  input[type="text"], input[type="number"] { width: 100%; font-size: 110%; padding: 10px; box-sizing: border-box; text-align: center; border: 1px solid #ccc; border-radius: 4px; }
+  
+  .task { margin: 20px 0; padding: 20px; font-size: 130%; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+  .instructions { font-size: 120%; font-weight: bold; margin-bottom: 20px; }
+  
+  .controls { margin-top: 15px; }
+  
+  #navContainer { margin: 25px auto 10px auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .nav-btn { min-width: 40px; padding: 8px 10px; font-size: 1rem; border: 1px solid #bbb; border-radius: 6px; cursor: pointer; background-color: #e0e0e0; transition: all 0.2s; }
+  .nav-btn:hover { filter: brightness(0.95); }
+  .nav-btn.answered { background-color: #add8e6; border-color: #8cbcd1; }
+  .nav-btn.current { border: 2px solid #333; font-weight: bold; transform: scale(1.1); }
+  
+  #nextBtn { padding: 10px 20px; font-size: 1.1rem; cursor: pointer; border-radius: 6px; border: 1px solid #aaa; background-color: #fff; }
+  #nextBtn:hover { background-color: #eee; }
+  
+  #evalBtn { background-color: #4CAF50; color: white; display: block; margin: 30px auto; padding: 12px 25px; font-size: 1.3rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+  #evalBtn:hover { background-color: #45a049; }
+  
+  #startBtn { padding: 12px 24px; font-size: 1.2rem; cursor: pointer; background-color: #2196F3; color: white; border: none; border-radius: 6px; margin-top: 20px; font-weight: bold; }
+  #startBtn:hover { background-color: #1976D2; }
+
+  .result { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; text-align: left; }
+  .correct { background: #c8e6c9; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
+  .incorrect { background: #ffcdd2; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
+  .row { margin-bottom: 12px; }
+  #answerInput { font-family: Courier bold, monospace; font-size: 1.6rem; line-height: 1.2; padding: 10px; text-align: center; }
+  
+  @media print {
+    header, h1, .meta, .instructions, .controls, #exercise, #navContainer, input, button, #setupScreen { display: none !important; }
+    #result { display: block !important; width: 100% !important; border: none; }
+    body { padding: 0; }
+    .test-container { max-width: 100%; margin: 0; text-align: left; }
+  }
+  .print-button { margin: 20px auto; padding: 10px 15px; font-size: 1.1rem; display: block; }
+</style>
+</head>
+<body>
+  <div class="test-container">
+    <header>
+      <h1>${escapeHtml(title)}</h1>
+    </header>
+
+    <div id="setupScreen">
+      <p class="instructions">${escapeHtml(instructions)}</p>
+      
+      <div class="setup-input-group">
+        <label for="studentName">Meno žiaka:</label>
+        <input id="studentName" type="text" placeholder="Zadajte svoje meno" />
+      </div>
+      
+      <div class="setup-input-group">
+        <label for="userTaskCount">Počet úloh v teste (max ${all.length}):</label>
+        <input id="userTaskCount" type="number" min="1" max="${all.length}" value="${Number(count)}" />
+      </div>
+      
+      <button id="startBtn" onclick="startTest()">Začať test</button>
+    </div>
+
+    <div id="testScreen" style="display:none;">
+      <div id="exercise"></div>
+      
+      <div class="controls">
+        <button id="nextBtn" onclick="goNext()">Ďalej</button>
+      </div>
+
+      <div id="navContainer"></div>
+      
+      <button id="evalBtn" onclick="evaluateTest()" style="display:none;">Vyhodnotiť</button>
+    </div>
+
+    <div id="result" class="result" style="display:none;"></div>
+    <button id="printBtn" class="print-button" style="display:none" onclick="window.print()">Tlačiť výsledky</button>
+
+    <br><br>
+    ${authorInfoHtml}
+    <br><br>
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+    <br><br>
+  </div>
+
+  <script>
+    const tasksAll = ${JSON.stringify(all)};
+    let tasks = [];
+    let answers = [];
+    let currentIndex = 0;
+
+    function pickRandomSubset(allTasks, count){
+      const pool = allTasks.slice();
+      const out = [];
+      const N = Math.max(1, Math.min(count, pool.length));
+      for (let i=0;i<N;i++){
+        const idx = Math.floor(Math.random()*pool.length);
+        out.push(pool.splice(idx,1)[0]);
+      }
+      return out;
+    }
+
+    function isMultipleAnswers(input) { return /[;,\/|]/.test(input); }
+    function normalizePreserveCase(s) {
+      if (!s) return '';
+      s = String(s).trim().replace(/\\s+/g, ' ').replace(/\\s*([!?.,:;])\\s*/g, '$1');
+      return s;
+    }
+
+    function makeFlexibleRegexCaseSensitive(answer) {
+      if (!answer) return null;
+      let esc = String(answer).replace(/[-\\/\\\\^$*+?.()|[\\]{}]/g, '\\\\$&').replace(/\\\\\\.{3,}/g, '.*').replace(/ /g, '\\\\\\\\s+');
+      try { return new RegExp('^' + esc + '$'); } catch (e) { return null; }
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }); }
+
+    // SPUSTENIE TESTU
+    function startTest() {
+      let reqCount = parseInt(document.getElementById('userTaskCount').value, 10);
+      if (isNaN(reqCount) || reqCount < 1) reqCount = 1;
+      if (reqCount > tasksAll.length) reqCount = tasksAll.length;
+
+      tasks = pickRandomSubset(tasksAll, reqCount);
+      answers = new Array(tasks.length).fill('');
+      currentIndex = 0;
+
+      document.getElementById('setupScreen').style.display = 'none';
+      document.getElementById('testScreen').style.display = 'block';
+
+      renderTask(0);
+    }
+
+    // ULOŽENIE AKTUÁLNEJ ODPOVEDE
+    function saveCurrentAnswer() {
+      const inp = document.getElementById('answerInput');
+      if (inp) {
+        answers[currentIndex] = inp.value;
+      }
+    }
+
+    // VYKRESLENIE ÚLOHY
+    function renderTask(index) {
+      currentIndex = index;
+      const task = tasks[currentIndex];
+
+      document.getElementById('exercise').innerHTML = \`
+        <div class="task">
+          <div class="row"><strong>\${escapeHtml(task.prompt)}</strong></div>
+          <div class="row">
+            <input id="answerInput" type="text" autocomplete="off" value="\${escapeHtml(answers[currentIndex])}" />
+          </div>
+        </div>\`;
+      
+      const inp = document.getElementById('answerInput');
+      inp.focus();
+      inp.addEventListener('keydown', function(e){
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          if (currentIndex < tasks.length - 1) goNext(); else evaluateTest();
+        }
+      });
+
+      // Zobrazenie / skrytie tlačidiel Ďalej a Vyhodnotiť
+      if (currentIndex < tasks.length - 1) {
+        document.getElementById('nextBtn').style.display = 'inline-block';
+        document.getElementById('evalBtn').style.display = 'none';
+      } else {
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('evalBtn').style.display = 'block'; // Zelené tlačidlo na poslednej úlohe
+      }
+
+      updateNav();
+    }
+
+    // PRECHOD NA ĎALŠIU ÚLOHU
+    function goNext() {
+      saveCurrentAnswer();
+      if (currentIndex < tasks.length - 1) {
+        renderTask(currentIndex + 1);
+      }
+    }
+
+    // SKOK CEZ NAVIGAČNÉ TLAČIDLO
+    function jumpTo(index) {
+      saveCurrentAnswer();
+      renderTask(index);
+    }
+
+    // AKTUALIZÁCIA NAVIGAČNÝCH TLAČIDIEL
+    function updateNav() {
+      const nav = document.getElementById('navContainer');
+      nav.innerHTML = '';
+      for (let i = 0; i < tasks.length; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i + 1;
+        btn.className = 'nav-btn';
+        
+        // Zvýraznenie aktuálnej úlohy
+        if (i === currentIndex) {
+          btn.classList.add('current');
+        }
+        
+        // Zafarbenie zodpovedaných úloh na modro
+        if (answers[i] && answers[i].trim() !== '') {
+          btn.classList.add('answered');
+        }
+        
+        btn.onclick = () => jumpTo(i);
+        nav.appendChild(btn);
+      }
+    }
+
+    // VYHODNOTENIE TESTU
+    function evaluateTest() {
+      saveCurrentAnswer();
+      
+      document.getElementById('testScreen').style.display = 'none';
+      const resultDiv = document.getElementById('result');
+      resultDiv.style.display = 'block';
+
+      let score = 0; 
+      let summary = '';
+      
+      for (let i = 0; i < tasks.length; i++){
+        const t = tasks[i]; 
+        const aRaw = (answers[i] || '').trim();
+        
+        if (isMultipleAnswers(aRaw)) {
+          const aEsc = escapeHtml(aRaw || '(žiadna odpoveď)');
+          summary += \`<div class="incorrect"><div><strong>\${escapeHtml(t.prompt)}</strong></div><div>Tvoja odpoveď: <em>\${aEsc}</em></div><div>Správne odpovede: <strong>\${escapeHtml(t.answers.join(' | '))}</strong></div><div><strong>Nesprávne ❌ (viac odpovedí)</strong></div></div><br />\`;
+          continue;
+        }
+        
+        const student = normalizePreserveCase(aRaw);
+        const variants = Array.isArray(t.answers) ? t.answers.slice() : [t.answers];
+        let matched = false;
+        
+        for (const cv of variants) {
+          if (!cv) continue;
+          const re = makeFlexibleRegexCaseSensitive(normalizePreserveCase(cv));
+          if (re && re.test(student)) { matched = true; break; }
+        }
+        
+        const aEsc = escapeHtml(aRaw || '(žiadna odpoveď)');
+        if (matched) {
+          score++;
+          summary += \`<div class="correct"><div><strong>\${escapeHtml(t.prompt)}</strong></div><div>Tvoja odpoveď: <em>\${aEsc}</em></div><div>Správne odpovede: <strong>\${escapeHtml(t.answers.join(' | '))}</strong></div><div><strong>Správne ✅</strong></div></div><br />\`;
+        } else {
+          summary += \`<div class="incorrect"><div><strong>\${escapeHtml(t.prompt)}</strong></div><div>Tvoja odpoveď: <em>\${aEsc}</em></div><div>Správne odpovede: <strong>\${escapeHtml(t.answers.join(' | '))}</strong></div><div><strong>Nesprávne ❌</strong></div></div><br />\`;
+        }
+      }
+
+      const percent = Math.round((score / tasks.length) * 100);
+      const now = new Date().toLocaleString();
+      const studentName = document.getElementById('studentName').value.trim();
+
+      resultDiv.innerHTML = \`
+        <p><strong>Názov testu:</strong> \${escapeHtml(document.title)}</p>
+        <p><strong>Meno žiaka:</strong> \${escapeHtml(studentName)}</p>
+        <p><strong>Bodovanie:</strong> \${score} / \${tasks.length} (\${percent}%)</p>
+        <p><strong>Dátum a čas:</strong> \${escapeHtml(now)}</p>
+        <hr />
+        <h3>Vyhodnotenie úloh:</h3>\${summary}\`;
+      
+      document.getElementById('printBtn').style.display = 'block';
+    }
+
+  <\/script>
+</body>
+</html>`;
+
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeTitle = sanitizeFilename(title) || 'cvicenie';
+      a.download = safeTitle + '.html';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // EXPORT JSON
+    function exportSettings() {
+      const data = {
+        title: titleInput.value,
+        instructions: instructionsInput.value,
+        author: authorInput.value,
+        year: yearInput.value,
+        count: exerciseCountEl.value,
+        tasksRaw: taskInput.value
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeTitle = sanitizeFilename(titleInput.value) || 'nastavenia';
+      a.download = safeTitle + '_nastavenia.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // IMPORT JSON
+    importJsonBtn.addEventListener('click', () => importJsonFile.click());
+    importJsonFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if(data.title !== undefined) { titleInput.value = data.title; localStorage.setItem('exerciseTitle', data.title); }
+          if(data.instructions !== undefined) { instructionsInput.value = data.instructions; localStorage.setItem('exerciseInstr', data.instructions); }
+          if(data.author !== undefined) { authorInput.value = data.author; localStorage.setItem('exerciseAuthor', data.author); }
+          if(data.year !== undefined) { yearInput.value = data.year; localStorage.setItem('exerciseYear', data.year); }
+          if(data.count !== undefined) { exerciseCountEl.value = data.count; localStorage.setItem('exerciseCount', data.count); }
+          if(data.tasksRaw !== undefined) { taskInput.value = data.tasksRaw; localStorage.setItem('exerciseRaw', data.tasksRaw); }
+          
+          importJsonFile.value = ''; // Reset pre možnosť opätovného nahratia toho istého súboru
+        } catch (err) {
+          alert('Nepodarilo sa načítať súbor. Skontrolujte, či ide o správny .json formát.');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // LISTENERY
+    downloadBtn.addEventListener('click', downloadHtml);
+    exportJsonBtn.addEventListener('click', exportSettings);
+
+  </script>
+  <br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>
