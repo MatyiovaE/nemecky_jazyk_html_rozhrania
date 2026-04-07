@@ -313,7 +313,7 @@ m/a\chen	robiť
         // 5. Parser vstupných dát
         function parseInputData(data) {
             const tasks = [];
-            const effectiveData = data.replace(/\\t/g, '\t'); 
+            const effectiveData = data; 
             const lines = effectiveData.split('\n').filter(line => line.trim() !== '');
 
             for (const line of lines) {
