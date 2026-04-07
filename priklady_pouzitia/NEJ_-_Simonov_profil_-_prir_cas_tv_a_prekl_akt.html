@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEJ - Simonov profil - priradenie časovaných tvarov a prekladu</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Monaco', monospace; }
+        body { background-color: #f9f9f9; color: #333; max-width: 98%; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; }
+        .meta { text-align: center; margin-bottom: 20px; color: #555; }
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .btn-green { background-color: #4CAF50; color: white; }
+        .btn-green:hover { background-color: #45a049; }
+        .btn-blue { background-color: #2196F3; color: white; }
+        .btn-blue:hover { background-color: #1e88e5; }
+        
+        #init-screen { text-align: center; margin-top: 50px; }
+        #student-name { padding: 10px; font-size: 16px; width: 300px; margin-bottom: 20px; text-align: center;}
+        
+        #exercise-screen { display: none; }
+        .instructions { background: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: center;}
+        
+        .layout { display: flex; gap: 30px; align-items: flex-start; }
+        .table-container { flex: 3; min-width: 0; transition: all 0.3s ease; }
+        .pool-container { flex: 1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); align-self: stretch; transition: all 0.3s ease; display: flex; flex-direction: column; }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: auto; transition: all 0.4s ease; }
+        td { padding: 8px 15px; vertical-align: middle; background: #fff; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; }
+        td:first-child { border-left: 1px solid #ddd; border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+        td:last-child { border-right: 1px solid #ddd; border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+        
+        .forms-cell { min-width: 350px; transition: all 0.4s ease; }
+        .inf-cell { text-align: center; font-weight: bold; font-size: 1.2em; width: 180px; padding: 8px 5px; }
+        .transl-cell { width: 250px; transition: all 0.4s ease; }
+        
+        table.pool-empty .forms-cell { min-width: 150px; width: 55%; }
+        table.pool-empty .transl-cell { width: 45%; }
+
+        .slot-container { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; height: 100%; }
+        
+        .slot { 
+            min-width: 120px; min-height: 50px; border: 2px dashed #ccc; border-radius: 4px; 
+            display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px;
+            background: #fafafa; cursor: pointer; position: relative; padding: 5px;
+        }
+        
+        .transl-slot { flex: 1; min-width: 180px; width: 100%; height: 100%; }
+        .slot .item-btn { width: 100%; height: 100%; min-height: 40px; white-space: normal;}
+        
+        .pool-items { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; flex-grow: 1; align-content: center; }
+        
+        .item-btn { 
+            padding: 12px 15px; border: 1px solid #999; border-radius: 4px; 
+            cursor: pointer; user-select: none; text-align: center; font-size: 18px; font-weight: bold;
+            line-height: 1.3; min-height: 40px; max-width: 100%; word-wrap: break-word;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .item-btn.selected { outline: 3px solid #2196F3; outline-offset: 2px; }
+        .item-form { background-color: #FFF9C4; }
+        .item-transl { background-color: #E0E0E0; }
+        
+        .feedback-symbol { font-size: 22px; font-weight: bold; }
+        .sym-correct { color: #2e7d32; }
+        .sym-wrong { color: #c62828; }
+        .sym-missing { color: #e65100; font-size: 24px; }
+        
+        .correct-ans-box { font-size: 13px; margin-top: 12px; color: #333; font-weight: normal; text-align: left;}
+        .correct-ans-box span { background-color: #C8E6C9; padding: 2px 5px; border-radius: 3px; font-weight: bold;}
+
+        #summary-screen { display: none; margin-top: 40px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center;}
+        #summary-screen h2 { margin-top: 0; }
+        .summary-line { margin-bottom: 10px; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+
+    <div id="init-screen">
+        <h1>NEJ - Simonov profil - priradenie časovaných tvarov a prekladu</h1>
+        <div class="meta">Mgr. Erika Matyiová (2026)</div>
+        <input type="text" id="student-name" placeholder="Meno žiaka"><br>
+        <button class="btn btn-green" onclick="startExercise()">Štart</button>
+    </div>
+
+    <div id="exercise-screen">
+        <h1>NEJ - Simonov profil - priradenie časovaných tvarov a prekladu</h1>
+        <div class="meta">Mgr. Erika Matyiová (2026) | Žiak: <span id="display-name"></span></div>
+        <div class="instructions">Klikaj postupne na položky vpravo a umiestni ich na správne miesto. Ak sa pomýliš, klikni na už umiestnenú položku dvakrát, tým ju vrátiš späť.</div>
+        
+        <div class="layout">
+            <div class="table-container">
+                <table id="ex-table">
+                    </table>
+            </div>
+            <div class="pool-container">
+                <h3 style="text-align:center; margin-top:0;">Slovíčka</h3>
+                <div class="pool-items" id="pool"></div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px;">
+            <button class="btn btn-green" id="eval-btn" onclick="evaluateExercise()">Vyhodnotiť</button>
+            <button class="btn btn-blue" id="show-solution-btn" style="display: none; margin-top: 15px;" onclick="showCorrectSolution()">Zobrazenie správneho riešenia v tabuľke</button>
+        </div>
+    </div>
+
+    <div id="summary-screen">
+        <h2>Výsledky</h2>
+        <div class="summary-line"><strong>Meno žiaka:</strong> <span id="sum-name"></span></div>
+        <div class="summary-line"><strong>Hodnotenie:</strong> <span id="sum-score"></span></div>
+        <div class="summary-line"><strong>Dátum a čas:</strong> <span id="sum-date"></span></div>
+        <button class="btn btn-blue" style="margin-top: 15px;" onclick="showDetailedResults()">Zobraziť detailné výsledky</button>
+    </div>
+
+    <script>
+        const exData = [{"forms":["bin","ist"],"infinitive":"sein","translation":"byť"},{"forms":["spielt","spielen"],"infinitive":"spielen","translation":"hrať (sa)"},{"forms":["spricht"],"infinitive":"sprechen","translation":"hovoriť, rozprávať"},{"forms":["hasst"],"infinitive":"hassen","translation":"nenávidieť"},{"forms":["liebt"],"infinitive":"lieben","translation":"milovať"},{"forms":["klettern"],"infinitive":"klettern","translation":"liezť, loziť"},{"forms":["finde","findet"],"infinitive":"finden","translation":"považovať niečo za nejaké"},{"forms":["übt"],"infinitive":"üben","translation":"cvičiť, precvičovať"},{"forms":["hat"],"infinitive":"haben","translation":"mať"}];
+        let isEvaluated = false;
+        let selectedItem = null;
+        let detailData = [];
+        let finalScore = { points: 0, total: 0, perc: 0 };
+        let finalDate = "";
+
+        function startExercise() {
+            let name = document.getElementById('student-name').value.trim();
+            if(!name) name = "XY";
+            document.getElementById('display-name').innerText = name;
+            document.getElementById('sum-name').innerText = name;
+            
+            document.getElementById('init-screen').style.display = 'none';
+            document.getElementById('exercise-screen').style.display = 'block';
+            
+            renderExercise();
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function renderExercise() {
+            let table = document.getElementById('ex-table');
+            let pool = document.getElementById('pool');
+            let poolItems = [];
+
+            exData.forEach((row, rIdx) => {
+                let tr = document.createElement('tr');
+                tr.dataset.rIdx = rIdx;
+                
+                // Left slots (Forms)
+                let tdLeft = document.createElement('td');
+                tdLeft.className = 'forms-cell';
+                let leftContainer = document.createElement('div');
+                leftContainer.className = 'slot-container';
+                row.forms.forEach((f, fIdx) => {
+                    let slot = document.createElement('div');
+                    slot.className = 'slot form-slot';
+                    leftContainer.appendChild(slot);
+                    
+                    // Add to pool
+                    let btn = document.createElement('div');
+                    btn.className = 'item-btn item-form';
+                    btn.innerText = f;
+                    poolItems.push(btn);
+                });
+                tdLeft.appendChild(leftContainer);
+                
+                // Middle (Infinitive)
+                let tdMid = document.createElement('td');
+                tdMid.className = 'inf-cell';
+                tdMid.innerText = row.infinitive;
+                
+                // Right slots (Translation)
+                let tdRight = document.createElement('td');
+                tdRight.className = 'transl-cell';
+                let rightContainer = document.createElement('div');
+                rightContainer.className = 'slot-container';
+                let transSlot = document.createElement('div');
+                transSlot.className = 'slot transl-slot';
+                rightContainer.appendChild(transSlot);
+                tdRight.appendChild(rightContainer);
+                
+                // Add trans to pool
+                let btnT = document.createElement('div');
+                btnT.className = 'item-btn item-transl';
+                btnT.innerText = row.translation;
+                poolItems.push(btnT);
+                
+                tr.appendChild(tdLeft);
+                tr.appendChild(tdMid);
+                tr.appendChild(tdRight);
+                table.appendChild(tr);
+            });
+
+            // Append shuffled items to pool
+            shuffle(poolItems).forEach(item => pool.appendChild(item));
+        }
+        
+        function updatePoolVisibility() {
+            let pool = document.getElementById('pool');
+            let poolContainer = document.querySelector('.pool-container');
+            let table = document.getElementById('ex-table');
+            if (pool.children.length === 0) {
+                poolContainer.style.display = 'none';
+                table.classList.add('pool-empty'); 
+            } else {
+                poolContainer.style.display = '';
+                table.classList.remove('pool-empty'); 
+            }
+        }
+
+        // Interaction logic
+        document.addEventListener('click', e => {
+            if(isEvaluated) return;
+            
+            // Click on an item in the pool
+            if(e.target.classList.contains('item-btn') && e.target.parentElement.id === 'pool') {
+                if(selectedItem) selectedItem.classList.remove('selected');
+                selectedItem = e.target;
+                selectedItem.classList.add('selected');
+            }
+            // Click on a slot
+            else if((e.target.classList.contains('slot') || e.target.closest('.slot')) && selectedItem) {
+                let targetSlot = e.target.classList.contains('slot') ? e.target : e.target.closest('.slot');
+                // Check if empty
+                if(targetSlot.querySelectorAll('.item-btn').length === 0) {
+                    selectedItem.classList.remove('selected');
+                    targetSlot.appendChild(selectedItem);
+                    selectedItem = null;
+                    updatePoolVisibility();
+                }
+            }
+        });
+
+        // Double click to remove from slot
+        document.addEventListener('dblclick', e => {
+            if(isEvaluated) return;
+            if(e.target.classList.contains('item-btn') && e.target.parentElement.classList.contains('slot')) {
+                document.getElementById('pool').appendChild(e.target);
+                updatePoolVisibility();
+            }
+        });
+
+        function evaluateExercise() {
+            if(isEvaluated) return;
+            isEvaluated = true;
+            document.getElementById('eval-btn').style.display = 'none';
+            document.getElementById('show-solution-btn').style.display = 'inline-block';
+
+            let tableRows = document.querySelectorAll('#ex-table tr');
+            
+            tableRows.forEach(tr => {
+                let rIdx = tr.dataset.rIdx;
+                let data = exData[rIdx];
+                
+                let formSlots = tr.querySelectorAll('.form-slot');
+                let translSlot = tr.querySelector('.transl-slot');
+                
+                let neededForms = [...data.forms];
+                let rowFormsDetail = [];
+                let formsMissedOrWrong = false;
+
+                formSlots.forEach(slot => {
+                    finalScore.total++;
+                    let item = slot.querySelector('.item-btn');
+                    if(!item) {
+                        slot.style.backgroundColor = '#FFE0B2'; 
+                        addSymbol(slot, "!", "sym-missing");
+                        rowFormsDetail.push("- (!)");
+                        formsMissedOrWrong = true;
+                    } else {
+                        let val = item.innerText.trim();
+                        let matchIdx = neededForms.indexOf(val);
+                        if(matchIdx > -1) {
+                            slot.style.backgroundColor = '#C8E6C9'; 
+                            addSymbol(slot, "✔", "sym-correct");
+                            neededForms.splice(matchIdx, 1);
+                            finalScore.points++;
+                            rowFormsDetail.push(val + " (✔)");
+                        } else {
+                            slot.style.backgroundColor = '#FFCDD2'; 
+                            addSymbol(slot, "✘", "sym-wrong");
+                            rowFormsDetail.push(val + " (✘)");
+                            formsMissedOrWrong = true;
+                        }
+                    }
+                });
+
+                // Trans slot
+                finalScore.total++;
+                let tItem = translSlot.querySelector('.item-btn');
+                let tMissedOrWrong = false;
+                let translDetail = "";
+
+                if(!tItem) {
+                    translSlot.style.backgroundColor = '#FFE0B2';
+                    addSymbol(translSlot, "!", "sym-missing");
+                    translDetail = "- (!)";
+                    tMissedOrWrong = true;
+                } else {
+                    let val = tItem.innerText.trim();
+                    if(val === data.translation) {
+                        translSlot.style.backgroundColor = '#C8E6C9';
+                        addSymbol(translSlot, "✔", "sym-correct");
+                        finalScore.points++;
+                        translDetail = val + " (✔)";
+                    } else {
+                        translSlot.style.backgroundColor = '#FFCDD2';
+                        addSymbol(translSlot, "✘", "sym-wrong");
+                        translDetail = val + " (✘)";
+                        tMissedOrWrong = true;
+                    }
+                }
+
+                // Append correct answers if something was wrong/missing
+                if(formsMissedOrWrong || tMissedOrWrong) {
+                    let tdMid = tr.querySelector('.inf-cell');
+                    let corrBox = document.createElement('div');
+                    corrBox.className = 'correct-ans-box';
+                    if(formsMissedOrWrong) {
+                        corrBox.innerHTML += `<div>Správne tvary: <span>${data.forms.join(', ')}</span></div>`;
+                    }
+                    if(tMissedOrWrong) {
+                        corrBox.innerHTML += `<div style="margin-top:4px;">Správny preklad: <span>${data.translation}</span></div>`;
+                    }
+                    tdMid.appendChild(corrBox);
+                }
+
+                // Store detail data
+                detailData.push({
+                    infinitive: data.infinitive,
+                    correctForms: data.forms.join(', '),
+                    correctTransl: data.translation,
+                    userForms: rowFormsDetail.join(', '),
+                    userTransl: translDetail
+                });
+            });
+
+            finalScore.perc = Math.round((finalScore.points / finalScore.total) * 100);
+            
+            let d = new Date();
+            let pad = (n) => n < 10 ? '0'+n : n;
+            finalDate = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear().toString().slice(-2)}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            
+            document.getElementById('sum-score').innerText = `${finalScore.points} / ${finalScore.total} (${finalScore.perc}%)`;
+            document.getElementById('sum-date').innerText = finalDate;
+            document.getElementById('summary-screen').style.display = 'block';
+        }
+
+        function addSymbol(slot, symbol, className) {
+            let span = document.createElement('span');
+            span.className = 'feedback-symbol ' + className;
+            span.innerText = symbol;
+            slot.appendChild(span);
+        }
+
+        function showDetailedResults() {
+            let name = document.getElementById('sum-name').innerText;
+            let w = window.open('', '_blank');
+            let html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Detailné výsledky</title>
+                <style>
+                    body { font-family: 'Monaco', monospace; padding: 20px; line-height: 1.5; color: #333;}
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; vertical-align: top; }
+                    th { background: #f0f0f0; }
+                    .header-info { margin-bottom: 20px; }
+                    .print-btn { padding: 10px 20px; background: #2196F3; color: white; border: none; cursor: pointer; border-radius: 4px; font-family: 'Monaco', monospace;}
+                    @media print {
+                        .print-btn { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header-info">
+                    <h2>${'NEJ - Simonov profil - priradenie časovaných tvarov a prekladu'}</h2>
+                    <div><strong>Meno žiaka:</strong> ${name}</div>
+                    <div><strong>Bodové a percentuálne hodnotenie:</strong> ${finalScore.points} / ${finalScore.total} (${finalScore.perc}%)</div>
+                    <div><strong>Dátum a čas:</strong> ${finalDate}</div>
+                </div>
+                
+                <button class="print-btn" onclick="window.print()">Vytlačiť (Ctrl + P)</button>
+
+                <h3>Detailný prehľad</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Znenie úlohy a správne odpovede</th>
+                            <th>Odpovede žiaka s hodnotením</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            detailData.forEach(row => {
+                html += `
+                    <tr>
+                        <td>
+                            <strong>Neurčitok:</strong> ${row.infinitive}<br>
+                            <strong>Správne tvary:</strong> ${row.correctForms}<br>
+                            <strong>Správny preklad:</strong> ${row.correctTransl}
+                        </td>
+                        <td>
+                            <strong>Tvary:</strong> ${row.userForms}<br>
+                            <strong>Preklad:</strong> ${row.userTransl}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 20px; font-size: 0.9em; color: #555;">
+                    <strong>Vysvetlivky symbolov:</strong><br>
+                    ✔ = správna odpoveď<br>
+                    ✘ = nesprávna odpoveď<br>
+                    - (!) = neoznačená odpoveď
+                </div>
+            </body>
+            </html>
+            `;
+            
+            w.document.write(html);
+            w.document.close();
+        }
+
+        function showCorrectSolution() {
+            let w = window.open('', '_blank');
+            let html = `
+            <!DOCTYPE html>
+            <html lang="sk">
+            <head>
+                <meta charset="UTF-8">
+                <title>Správne riešenie</title>
+                <style>
+                    body { font-family: 'Monaco', monospace; padding: 20px; color: #000; }
+                    h2 { text-align: center; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #000; padding: 10px; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                    .print-hint { text-align: center; margin-top: 20px; font-size: 0.9em; color: #555; }
+                    @media print {
+                        @page { size: A4; margin: 20mm; }
+                        body { margin: 0; padding: 0; }
+                        .print-hint { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <h2>Správne riešenie cvičenia</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Časované tvary</th>
+                            <th>Neurčitok</th>
+                            <th>Preklad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            exData.forEach(row => {
+                html += `
+                    <tr>
+                        <td>${row.forms.join(', ')}</td>
+                        <td><strong>${row.infinitive}</strong></td>
+                        <td>${row.translation}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+                <p class="print-hint">Pre export tohto riešenia do PDF vo formáte A4 stlačte <strong>CTRL + P</strong> (alebo CMD + P).</p>
+            </body>
+            </html>
+            `;
+            
+            w.document.write(html);
+            w.document.close();
+        }
+    </script>
+</body>
+</html>

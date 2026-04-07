@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Priradenie osobného zámena k časovanému tvaru slovesa</title>
+<style>
+  :root {
+    --border: #d0d7de; --bg: #ffffff; --muted: #6b7280; --primary: #1f2937; --accent: #2563eb;
+    --ok: #d1fae5; --missed: #ecfdf5; --bad: #fee2e2;
+  }
+  body { font-family: Courier bold, monospace; background:#f8fafc; margin:0; padding:24px; color:var(--primary); }
+  h1,h2 { margin:0 0 12px 0; }
+  .card { background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px; }
+  label { display:block; margin-top:8px; font-weight:600; }
+  input { width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:15px; }
+  .btnbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  button { padding:10px 14px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-weight:600; background:#fff; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  table { width:100%; border-collapse:collapse; background:#fff; margin-top:12px; }
+  th,td { border:1px solid var(--border); padding:8px; text-align:center; vertical-align:middle; }
+  td.clickable { cursor:pointer; user-select:none; }
+  .xmark { font-weight:900; font-size:18px; }
+  td.state-correct{background:var(--ok);} td.state-wrong{background:var(--bad);} td.state-missed{background:var(--missed);}
+  .result{margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;background:#f9fafb}
+  .legend{margin-top:12px;font-size:14px}
+  .legend-item{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .sym{display:inline-block;width:28px;text-align:center;font-weight:700;font-size:16px;border:1px solid var(--border);border-radius:6px;padding:4px;background:#fff}
+  .hidden{display:none}
+  @media print {
+    body { background:#fff; }
+    .card { border-color:#000; }
+    table, th, td { border-color:#000; }
+    td { background:#fff !important; color:#000 !important; }
+    td.state-correct, td.state-wrong, td.state-missed { background:#fff !important; }
+    .xmark { display:none !important; }
+    td.state-correct.marked::after { content:"✓"; font-weight:700; }
+    td.state-wrong.marked::after   { content:"✕"; font-weight:700; }
+    td.state-missed.unmarked::after{ content:"○"; font-weight:700; }
+    .btnbar { display:none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="exerciseHost" class="card"></div>
+<script>
+const columns = ["ja","ty","on/ona/ono","my","vy","oni/ony"];
+const rawData = "som\tja\nsi\tty\nje\ton/ona/ono\nsme\tmy\nste\tvy\nsú\toni/ony\npíšem\tja\npíšeš\tty\npíše\ton/ona/ono\npíšeme\tmy\npíšete\tvy\npíšu\toni/ony\n";
+
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function parseInput(raw){
+  return raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(line=>{
+    const parts = line.split('\t').map(s=>s.trim()).filter(Boolean);
+    return { item: parts[0], correctSet: new Set(parts.slice(1)) };
+  }).filter(r=>r.item);
+}
+function shuffleArray(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function renderExercise({title, columns, rows}, host){
+  host.innerHTML = '';
+  const h1 = document.createElement('h1'); h1.textContent = title || 'Cvičenie'; host.appendChild(h1);
+  host.innerHTML += '<div><label>Meno žiaka</label><input type="text" id="studentName" placeholder="Zadajte meno."></div>' +
+    '<div class="card" style="background:#f9fafb;margin-top:12px;"><b>Pokyny</b>: Kliknutím označ správne bunky. Potom klikni na "Vyhodnotiť".</div>';
+  const table = document.createElement('table'); const thead = document.createElement('thead'); const thr = document.createElement('tr');
+  thr.innerHTML = '<th>Zadanie</th>' + columns.map(p=>'<th>'+escapeHtml(p)+'</th>').join('');
+  thead.appendChild(thr); table.appendChild(thead);
+  const tbody = document.createElement('tbody'); table.appendChild(tbody);
+  const studentMarks = new Map();
+  rows.forEach((row, rIdx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td style="text-align:left;padding:10px 8px">'+escapeHtml(row.item)+'</td>';
+    columns.forEach(col => {
+      const td = document.createElement('td');
+      td.className = 'clickable';
+      td.onclick = () => {
+        const set = studentMarks.get(rIdx) || new Set();
+        if (set.has(col)) { set.delete(col); td.innerHTML = ''; }
+        else { set.add(col); td.innerHTML = '<span class="xmark">✕</span>'; }
+        studentMarks.set(rIdx, set);
+      };
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  host.appendChild(table);
+  const controls = document.createElement('div'); controls.className = 'btnbar';
+  const evalBtn = document.createElement('button'); evalBtn.className = 'primary'; evalBtn.textContent = 'Vyhodnotiť';
+  const resetBtn = document.createElement('button'); resetBtn.textContent = 'Opakovať pokus';
+  const printBtn = document.createElement('button'); printBtn.textContent = 'Tlačiť'; printBtn.style.display = 'none';
+  controls.append(evalBtn, resetBtn, printBtn); host.appendChild(controls);
+  const result = document.createElement('div'); result.className = 'result hidden'; host.appendChild(result);
+  evalBtn.onclick = () => {
+    let total = 0, score = 0;
+    rows.forEach((row, rIdx) => {
+      const student = studentMarks.get(rIdx) || new Set();
+      total += row.correctSet.size;
+      columns.forEach((col, cIdx) => {
+        const td = tbody.rows[rIdx].cells[cIdx + 1];
+        td.classList.remove('state-correct', 'state-wrong', 'state-missed', 'marked', 'unmarked');
+        const good = row.correctSet.has(col), mark = student.has(col);
+        if (mark && good) { td.classList.add('state-correct'); score++; }
+        else if (mark && !good) { td.classList.add('state-wrong'); }
+        else if (!mark && good) { td.classList.add('state-missed'); }
+        td.classList.add(mark ? 'marked' : 'unmarked');
+      });
+    });
+    const percent = total ? Math.round(score / total * 100) : 0;
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    result.classList.remove('hidden');
+    result.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">' +
+      '<div><strong>Názov testu</strong><br>'+escapeHtml(title||'')+'</div>' +
+      '<div><strong>Meno žiaka</strong><br>'+escapeHtml(document.getElementById('studentName').value||'')+'</div>' +
+      '<div><strong>Výsledok</strong><br>'+score+' / '+total+' ('+percent+'%)</div>' +
+      '</div><div style="margin-top:8px"><strong>Dátum a čas</strong>: '+dd+'.'+mm+'.'+yyyy+' '+hh+':'+min+'</div>' +
+      '<div class="legend" style="margin-top:12px">' +
+      '<div style="margin-top:6px"><strong>Vysvetlivky symbolov</strong></div>' +
+      '<div class="legend-item"><span class="sym">✓</span><div>Správne označené — žiak označil bunku a bunka bola správna.</div></div>' +
+      '<div class="legend-item"><span class="sym">✕</span><div>Nesprávne označené — žiak označil bunku, ktorá nebola správna.</div></div>' +
+      '<div class="legend-item"><span class="sym">○</span><div>Správna, ale neoznačená — bunka bola správna, ale žiak ju neoznačil.</div></div>' +
+      '</div>';
+    printBtn.style.display = '';
+  };
+
+  // Opakovať pokus: nové náhodné poradie
+  resetBtn.onclick = () => start();
+
+  printBtn.onclick = () => window.print();
+}
+
+// Základné riadky z raw vstupu; start() zaručí miešanie pri načítaní
+let baseRows = parseInput(rawData);
+function start() {
+  const shuffled = shuffleArray([...baseRows]);
+  renderExercise({title: "Priradenie osobného zámena k časovanému tvaru slovesa", columns, rows: shuffled}, document.getElementById('exerciseHost'));
+}
+start();
+</script>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Písmenové reťazce</title>
+    <style>
+        body { font-family: Courier bold, monospace; padding: 20px; background: #fafafa; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .header { border-bottom: 3px solid #3498db; margin-bottom: 30px; padding-bottom: 10px; }
+        .task-unit { margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        .task-label { font-weight: bold; font-size: 1.3rem; color: #2c3e50; margin-bottom: 10px; }
+        .chain-box { font-family: 'Courier bold', Consolas, monospace; font-size: 1.6rem; letter-spacing: 4px; background: #f0f0f0; padding: 15px; border-radius: 8px; cursor: crosshair; user-select: text; width: 100%; box-sizing: border-box; line-height: 1.5; word-wrap: break-word; }
+        .highlight { background-color: #ffff00; font-weight: bold; }
+        .found-line { margin-top: 15px; min-height: 30px; font-weight: bold; color: #2980b9; }
+        .btn-eval { background: #27ae60; color: white; padding: 15px; width: 100%; border: none; border-radius: 8px; font-size: 1.2rem; cursor: pointer; }
+        .btn-reset { background: #3498db; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-reset:hover { background: #2980b9; }
+        .eval-box { display: none; margin-top: 30px; padding: 20px; border: 2px solid #3498db; border-radius: 10px; background: #eef2f7; }
+        .c-word { background: #d4edda; padding: 2px 4px; margin: 0 3px; border-radius: 3px; }
+        .i-word { background: #f8d7da; padding: 2px 4px; margin: 0 3px; border-radius: 3px; }
+        .m-word { color: #d35400; font-weight: bold; text-decoration: underline; margin: 0 3px; }
+        .inputs-row { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; margin-bottom: 10px; }
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Písmenové reťazce</h1>
+            <p>Autor: Mgr. Erika Matyiová</p>
+            <div class="inputs-row no-print">
+                <label>Meno žiaka: <input type="text" id="sName" placeholder="Zadajte meno..."></label>
+                <div style="border-left: 1px solid #ccc; padding-left: 20px;">
+                    <label>Počet úloh na riešenie: <input type="number" id="taskLimit" style="width: 60px; padding: 5px;" min="1"></label>
+                    <button class="btn-reset" onclick="init()">Nové zadanie</button>
+                </div>
+            </div>
+        </div>
+<span style="font-size: 110%; font-weight: bold;">Pokyny:</span><br><span style="font-size: 110%; ">Označ myšou slová v písmenových reťazcoch. Označené slová sa zobrazia v prázdnom riadku (Nájdené) modrou farbou.<br>Ak chceš svoju voľbu zmazať, klikni na dané slovo, ktoré sa zobrazilo modrou farbou, dvakrát.</span><br><br>
+        <div id="gameboard"></div>
+
+        <button class="btn-eval no-print" onclick="evaluateGame()">Vyhodnotiť</button>
+
+        <div id="evalBox" class="eval-box"></div>
+        <button id="btnDetail" class="no-print" style="display:none; margin-top:15px; padding:10px 20px;" onclick="showDetail()">Detailné výsledky</button>
+    </div>
+
+    <script>
+        const rawTasks = [["pes","mačka","kôň"],["žirafa","slon","antilopa","hroch"],["medveď","rys","zajac","syseľ"],["kapor","šťuka","úhor","žaba"],["ruža","klinček","narcis","ľalia"],["púpava","zvonček","konvalinka","fialka"],["ceruzka","pero","guma","farbička"],["tanier","lyžica","pohár","vidlička","nôž"],["soľ","cukor","múka","olej"],["citrón","pomaranč","mandarínka","ananás"]];
+        const alphabetType = "sk-low";
+        let activeTasks = [];
+        let userAnswers = [];
+
+        const alphabets = {
+            'sk-low': 'aáäbcčdďeéfghiíjklĺľmnňoóôpqrŕssštťuúvwxyýzž',
+            'sk-up': 'AÁÄBCČDĎEÉFGHIÍJKLĹĽMNŇOÓÔPQRŔSŠTŤUÚVWXYÝZŽ',
+            'en-low': 'abcdefghijklmnopqrstuvwxyz',
+            'en-up': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            'de-low': 'abcdefghijklmnopqrstuvwxyzäöüß',
+            'de-up': 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ'
+        };
+
+        function getRandomChar() {
+            const chars = alphabets[alphabetType] || alphabets['en-low'];
+            return chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        function createChain(words) {
+            let chain = "";
+            const getFiller = () => {
+                let f = "";
+                let len = Math.floor(Math.random() * 6) + 3;
+                for(let i=0; i<len; i++) f += getRandomChar();
+                return f;
+            };
+            chain += getFiller();
+            words.forEach(w => { chain += w + getFiller(); });
+            return chain;
+        }
+
+        // Štart: Pomiešanie úloh a generovanie reťazcov podla limitu
+        function init() {
+            // 1. Zistenie limitu
+            const limitInput = document.getElementById('taskLimit');
+            let limit = parseInt(limitInput.value);
+            const max = rawTasks.length;
+
+            if (isNaN(limit) || limit < 1 || limit > max) {
+                limit = max;
+                limitInput.value = max; // Aktualizácia UI
+            }
+
+            // 2. Reset zobrazenia hodnotenia
+            document.getElementById('evalBox').style.display = 'none';
+            document.getElementById('btnDetail').style.display = 'none';
+            document.getElementById('evalBox').innerHTML = '';
+
+            // 3. Výber úloh
+            let pool = [...rawTasks]; // Kópia poľa
+            pool.sort(() => Math.random() - 0.5); // Pomiešanie poradia
+            const selected = pool.slice(0, limit); // Orezanie podľa počtu
+
+            // 4. Generovanie reťazcov
+            activeTasks = selected.map(w => ({ words: w, chain: createChain(w) }));
+            userAnswers = activeTasks.map(() => []);
+            
+            render();
+        }
+
+        function render() {
+            const board = document.getElementById('gameboard');
+            board.innerHTML = "";
+            activeTasks.forEach((t, i) => {
+                const letter = String.fromCharCode(65 + i);
+                const div = document.createElement('div');
+                div.className = 'task-unit';
+                div.innerHTML = `
+                    <div class="task-label">${letter}. Nájdi slová (${t.words.length}):</div>
+                    <div class="chain-box" onmouseup="doSelect(${i})" id="cb-${i}">${t.chain}</div>
+                    <div class="found-line" id="fl-${i}">Nájdené: </div>
+                `;
+                board.appendChild(div);
+            });
+        }
+
+        function doSelect(idx) {
+            const sel = window.getSelection().toString().trim();
+            if(sel && !userAnswers[idx].includes(sel)) {
+                userAnswers[idx].push(sel);
+                updateRow(idx);
+            }
+        }
+
+        function updateRow(idx) {
+            // Textová riadka
+            const fl = document.getElementById('fl-' + idx);
+            fl.innerHTML = 'Nájdené: ' + userAnswers[idx].map((w, wi) => 
+                `<span style="cursor:pointer" onclick="removeW(${idx},${wi})">${w}</span>`
+            ).join(', ');
+
+            // Zvýraznenie v reťazci
+            const cb = document.getElementById('cb-' + idx);
+            let txt = activeTasks[idx].chain;
+            const sorted = [...userAnswers[idx]].sort((a,b) => b.length - a.length);
+            sorted.forEach(w => {
+                const regex = new RegExp(w, 'g');
+                txt = txt.replace(regex, `<span class="highlight">${w}</span>`);
+            });
+            cb.innerHTML = txt;
+        }
+
+        function removeW(tIdx, wIdx) {
+            userAnswers[tIdx].splice(wIdx, 1);
+            updateRow(tIdx);
+        }
+
+        let evalState = null;
+
+        function evaluateGame() {
+            let score = 0, total = 0;
+            const details = [];
+
+            activeTasks.forEach((t, i) => {
+                const ans = userAnswers[i];
+                const res = { chain: t.chain, expected: t.words, actual: ans, c: [], inc: [], mis: [] };
+                
+                t.words.forEach(w => {
+                    total++;
+                    if(ans.includes(w)) { score++; res.c.push(w); }
+                    else { res.mis.push(w); }
+                });
+                ans.forEach(w => { if(!t.words.includes(w)) res.inc.push(w); });
+                details.push(res);
+
+                // Vizuál v riadku
+                let html = 'Výsledok: ';
+                res.c.forEach(w => html += `<span class="c-word">${w}</span>`);
+                res.inc.forEach(w => html += `<span class="i-word">${w}</span>`);
+                res.mis.forEach(w => html += `<span class="m-word">${w}</span>`);
+                document.getElementById('fl-'+i).innerHTML = html;
+            });
+
+            const name = document.getElementById('sName').value || 'XY';
+            const perc = total > 0 ? ((score/total)*100).toFixed(2) : 0;
+            const dt = new Date().toLocaleString('sk-SK');
+            evalState = { name, score, total, perc, dt, details };
+
+            const eb = document.getElementById('evalBox');
+            eb.style.display = 'block';
+            eb.innerHTML = `
+                <h3>Celkový prehľad</h3>
+                <p><strong>Meno žiaka:</strong> ${name}</p>
+                <p><strong>Hodnotenie:</strong> ${score} / ${total} (${perc}%)</p>
+                <p><strong>Čas:</strong> ${dt}</p>
+            `;
+            document.getElementById('btnDetail').style.display = 'inline-block';
+        }
+
+        function showDetail() {
+            const w = window.open('', '_blank');
+            let rows = "";
+            evalState.details.forEach(d => {
+                let ansHtml = "";
+                // Každé slovo má svoj symbol
+                d.c.forEach(word => ansHtml += word + " ✅, ");
+                d.inc.forEach(word => ansHtml += word + " ❌, ");
+                d.mis.forEach(word => ansHtml += `<span style="color:#d35400; font-weight:bold">${word} (chýba) ❗</span>, `);
+                ansHtml = ansHtml.replace(/, $/, "");
+
+                rows += `<tr>
+                    <td>${d.chain}<br><small>Správne: ${d.expected.join(', ')}</small></td>
+                    <td>${ansHtml || '---'}</td>
+                </tr>`;
+            });
+
+            w.document.write(`
+                <html><head><title>Detailný prehľad</title>
+                <style>
+                    body { font-family: sans-serif; padding: 30px; }
+                    table { width:100%; border-collapse: collapse; margin-top:20px; }
+                    th, td { border: 1px solid black; padding: 10px; text-align: left; }
+                </style></head>
+                <body>
+                    <h2>Detailný prehľad výsledkov</h2>
+                    <p><strong>Cvičenie:</strong> Písmenové reťazce</p>
+                    <p><strong>Žiak:</strong> ${evalState.name}</p>
+                    <p><strong>Výsledok:</strong> ${evalState.score}/${evalState.total} (${evalState.perc}%)</p>
+                    <table>
+                        <thead><tr><th>Zadanie</th><th>Odpovede žiaka</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                    <p><small>Vysvetlivky: ✅ = Správne | ❌ = Nesprávne navyše | ❗ = Nenájdené</small></p>
+                </body></html>
+            `);
+            w.document.close();
+        }
+
+        // Prednastavenie limitu a prvé spustenie
+        document.getElementById('taskLimit').value = rawTasks.length;
+        init();
+    </script>
+</body>
+</html>

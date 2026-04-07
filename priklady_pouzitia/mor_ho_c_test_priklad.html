@@ -1,0 +1,74 @@
+<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>Doplňovacie cvičenie</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+    body { font-family: Courier bold, monospace; margin: 20px; }
+    h2 { margin-top: 0; }
+
+    .panel { margin: 12px 0; }
+    .hint { color: #666; font-size: 0.92em; }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      font-family: monospace;
+	  font-size: 120%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-right: 8px;
+      padding: 6px 10px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    .word, .punc { cursor: pointer; padding: 0 2px; border-radius: 3px; }
+    .word.marked, .punc.marked { background: #ffe58f; }
+
+    .gap {
+      display: inline-block;
+      cursor: pointer;
+      margin: 0 4px;
+      padding: 1px 2px;
+      border-radius: 4px;
+      font-family: monospace;
+      letter-spacing: 0.3em;
+      color: #0b3d91;
+      font-weight: bold;
+    }
+    .gap.selected   { background-color: #cceeff; }
+    .gap.correct    { background: #e6ffed; border: 1px solid #34c759; color: #065f46; }
+    .gap.incorrect  { background: #ffecec; border: 1px solid #ff3b30; color: #7a0010; }
+
+    .choice {
+      display: inline-block;
+      margin: 5px 6px 0 0;
+      padding: 5px 10px;
+      background-color: #eee;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .choice:hover { background-color: #ddd; }
+
+    .result { margin-top: 16px; font-weight: bold; }
+    #solutionsArea h3 { margin: 8px 0; }
+    #solutionsArea ol { margin: 6px 0 0 20px; }
+
+    #toolbar button {
+      margin-right: 8px;
+      padding: 4px 8px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    /* zachovávanie viacnásobných medzier a zalamovanie */
+    #testArea {
+      white-space: pre-wrap;
+      outline: 1px solid #ccc;
+      padding: 8px;
+      min-height: 120px;
+    }
+   body, #testArea, #choicesArea, .choice, .gap { font-size: 18px; }</style></head><body><h2>🧩 Doplňovacie cvičenie</h2><p style="font-weight: bold;">Klikni na miesto, kde niečo chýba a potom klikni na niektorú z položiek.<br>Ak si to rozmyslíš, klikni na uvedenú položku dvakrát a tá sa vráti na miesto.</p><div class="panel"><div id="testArea" contenteditable="true">Zleteli <span class="gap" data-gap="1" data-correct-len="4">____(1)</span> z <span class="gap" data-gap="2" data-correct-len="5">_____(2)</span>, tiahnu na <span class="gap" data-gap="3" data-correct-len="7">_______(3)</span>, 
+ponad vysoké <span class="gap" data-gap="4" data-correct-len="4">____(4)</span>, ponad <span class="gap" data-gap="5" data-correct-len="5">_____(5)</span> polia 
+<span class="gap" data-gap="6" data-correct-len="9">_________(6)</span> cez Dunaj, <span class="gap" data-gap="7" data-correct-len="3">___(7)</span> tú <span class="gap" data-gap="8" data-correct-len="4">____(8)</span> vodu, 
+<span class="gap" data-gap="9" data-correct-len="5">_____(9)</span> tam za <span class="gap" data-gap="10" data-correct-len="8">________(10)</span> slovenského rodu.</div></div><div class="panel"><div id="choicesArea"><h3>Slová na doplnenie</h3><span class="choice">preleteli</span><span class="choice">orly</span><span class="choice">cez</span><span class="choice">hory</span><span class="choice">pomedzím</span><span class="choice">podolia</span><span class="choice">rovné</span><span class="choice">Tatry</span><span class="choice">sadli</span><span class="choice">šíru</span></div></div><div id="result" class="result"></div><div id="solutionsArea" class="panel"></div><div class="panel"><button id="btnEvaluate">Vyhodnotiť</button></div><br><br><b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)<br><br><script>var correctAnswers = {"1":{"correct":"orly","correctLen":4},"2":{"correct":"Tatry","correctLen":5},"3":{"correct":"podolia","correctLen":7},"4":{"correct":"hory","correctLen":4},"5":{"correct":"rovné","correctLen":5},"6":{"correct":"preleteli","correctLen":9},"7":{"correct":"cez","correctLen":3},"8":{"correct":"šíru","correctLen":4},"9":{"correct":"sadli","correctLen":5},"10":{"correct":"pomedzím","correctLen":8}};function codePointLen(s){return [...(s||"")].length;}function shuffleArray(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }function shuffleChoices(){ var container = document.getElementById("choicesArea"); if(!container) return; var choices = Array.from(container.querySelectorAll(".choice")); if(choices.length<=1) return; var shuffled = shuffleArray(choices.slice()); shuffled.forEach(function(node){ container.appendChild(node); }); }document.addEventListener("DOMContentLoaded", function(){ setTimeout(function(){ shuffleChoices(); },0); var testArea = document.getElementById("testArea"); testArea.addEventListener("click", function(e){ var g = e.target.closest(".gap"); if(!g) return; document.querySelectorAll(".gap").forEach(function(x){ x.classList.remove("selected"); }); g.classList.add("selected"); }); testArea.ondblclick = function(e){ var g = e.target.closest(".gap"); if(!g) return; var num = g.dataset.gap; if(g.dataset.user){ var back = document.createElement("span"); back.className = "choice"; back.textContent = g.dataset.user; document.getElementById("choicesArea").appendChild(back); delete g.dataset.user; } var clen = g.dataset.correctLen; g.textContent = "_".repeat(clen) + "(" + num + ")"; g.classList.remove("selected","correct","incorrect"); }; var choicesArea = document.getElementById("choicesArea"); choicesArea.addEventListener("click", function(e){ var c = e.target.closest(".choice"); if(!c) return; var sel = document.querySelector(".gap.selected"); if(!sel){ alert("Najprv kliknite na medzeru."); return; } var num = sel.dataset.gap; if(sel.dataset.user){ var back = document.createElement("span"); back.className = "choice"; back.textContent = sel.dataset.user; document.getElementById("choicesArea").appendChild(back); } sel.textContent = c.textContent + "(" + num + ")"; sel.dataset.user = c.textContent; c.remove(); sel.classList.remove("selected"); }); document.getElementById("btnEvaluate").addEventListener("click", function(){ var keys = Object.keys(correctAnswers); if(keys.length===0){ document.getElementById("result").textContent = "Žiadne skryté položky."; return; } keys.sort(function(a,b){ return a-b; }); document.querySelectorAll(".gap").forEach(function(g){ g.classList.remove("correct","incorrect"); var num = g.dataset.gap; var meta = correctAnswers[num]; var correct = meta.correct||""; var clen = Number(meta.correctLen||g.dataset.correctLen||0); var user = g.dataset.user||""; var ulen = codePointLen(user); var miss = Math.max(0, clen-ulen); g.textContent = (user||"") + "_".repeat(miss) + "(" + num + ")"; if(user===correct) g.classList.add("correct"); else g.classList.add("incorrect"); }); var ok = document.querySelectorAll(".gap.correct").length; var total = keys.length; var pct = Math.round(ok/total*100); document.getElementById("result").textContent = "✅ Správne: " + ok + "/" + total + " (" + pct + "%)"; var solH3 = document.createElement("h3"); solH3.textContent = "Správne odpovede:"; var ol = document.createElement("ol"); keys.forEach(function(n){ var li = document.createElement("li"); li.textContent = correctAnswers[n].correct; ol.appendChild(li); }); var solArea = document.getElementById("solutionsArea"); solArea.innerHTML = ""; solArea.appendChild(solH3); solArea.appendChild(ol); }); });</script></body></html>

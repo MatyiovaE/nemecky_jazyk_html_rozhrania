@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>NEJ - Rodina - opakovanie (VII.C)</title>
+    <style>
+        body { font-family: 'Comic Sans MS', cursive; text-align: center; background: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .meta { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+        #startBtn { background: #27ae60; color: white; border: none; padding: 15px 40px; border-radius: 5px; cursor: pointer; font-size: 1.3em; margin-top: 30px; font-family: 'Comic Sans MS', cursive; font-weight: bold; }
+        #startBtn:hover { background: #2ecc71; }
+        
+        #wheel-ui { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 1000px; }
+        .wheel-box { position: relative; display: flex; align-items: center; justify-content: center; margin: 20px; }
+        .arrow {
+            width: 0; height: 0;
+            border-top: 25px solid transparent; border-bottom: 25px solid transparent;
+            border-left: 50px solid #27ae60; margin-right: -10px; z-index: 5;
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.2));
+        }
+
+        /* Sekcia zobrazovaca uloh */
+        #task-view { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 1000px; margin-top: 20px; font-family: 'Monaco', monospace; color: darkgreen; }
+        
+        #winner-text { font-size: 2.5em; font-weight: bold; background: #f1f8e9; padding: 15px 40px; border-radius: 10px; border: 3px dashed darkgreen; margin-bottom: 20px; display: inline-block; font-family: 'Comic Sans MS', cursive; }
+        
+        #btn-koleso, #btn-hotovo { background: #27ae60; color: white; border: none; padding: 15px 40px; border-radius: 5px; cursor: pointer; font-size: 1.3em; margin-bottom: 30px; font-family: 'Monaco', monospace; font-weight: bold; }
+        #btn-koleso:hover, #btn-hotovo:hover { background: #2ecc71; }
+        
+        #task-container { width: 100%; display: flex; flex-direction: column; align-items: center; }
+        
+        .active-item {
+            font-size: 3em;
+            text-align: center;
+            line-height: 1.3;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 3px solid darkgreen;
+            background-color: #f1f8e9;
+            border-radius: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .upcoming-item {
+            font-size: 2.1em;
+            text-align: center;
+            opacity: 0.8;
+            margin-top: 20px;
+            padding: 10px;
+            border-bottom: 1px dotted darkgreen;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div id="intro">
+        <h1>NEJ - Rodina - opakovanie (VII.C)</h1>
+        <div class="meta">Mgr. Erika Matyiová 2026</div>
+        <button id="startBtn" onclick="initGame()">Štart</button>
+    </div>
+
+    <div id="task-view">
+        <div id="winner-text" style="display:none;"></div>
+        <button id="btn-koleso" onclick="goToWheel()">Koleso</button>
+        <button id="btn-hotovo" onclick="removeAndReset()" style="display:none;">Hotovo</button>
+        <div id="task-container"></div>
+    </div>
+
+    <div id="wheel-ui">
+        <div id="instruction-text" style="font-size: 1.2em; font-weight: bold; margin-bottom: 15px;">Klikni na stred kruhu.</div>
+        <div class="wheel-box">
+            <div class="arrow"></div>
+            <canvas id="canvas" width="700" height="700"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let items = ["Adam Múdry","Igor Šikovný","Ján Zvedavý","Anna Mrkvičková","Klára Hrašková","Melánia Tichá","Jozef Bádavý","Ján Kováč","Eva Malá","Júlia Veľká"];
+        let tasks = ["rodina","manželka","manžel","rodičia","nevlastní rodičia","otec","nevlastný otec","matka","nevlastná matka","syn","nevlastný syn","dcéra","nevlastná dcéra","nevlastní súrodenci","brat","nevlastný brat","sestra","nevlastná sestra","teta","strýko","krstný otec","krstná mama","krstní rodičia","starí rodičia","starý otec","dedko","stará mama","babka","dieťa","nevlastné dieťa","krstňa","partner","partnerka","svokra","svokor","svokrovci","nevesta","zať","švagor","švagriná","bratranec","sesternica","synovec","neter","vnuk","vnučka","vnúčatá"];
+        let colors = [];
+        let angle = 0;
+        let spinning = false;
+        let winnerIdx = -1;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const CENTER = 350;
+        const RADIUS = 330;
+        const BTN_RADIUS = 55;
+
+        // Funkcia na pomiesanie uloh (Fisher-Yates)
+        function shuffleTasks() {
+            for (let i = tasks.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [tasks[i], tasks[j]] = [tasks[j], tasks[i]];
+            }
+        }
+
+        // Funkcia na vyparsovanie spanu s farbou
+        function parseHtmlText(htmlStr) {
+            const spanRegex = /<span[^>]*style=["'](?:[^"']*;)?\s*color:\s*([^;"'>]+)[^>]*>(.*?)<\/span>/i;
+            const match = htmlStr.match(spanRegex);
+            if (match) {
+                return { color: match[1].trim(), text: match[2].trim() };
+            }
+            const cleanText = htmlStr.replace(/<[^>]*>?/gm, '');
+            return { color: "darkgreen", text: cleanText.trim() }; // Predvolena je tmavozelena namiesto tmavej modrej
+        }
+
+        function initGame() {
+            document.getElementById('intro').style.display = 'none';
+            shuffleTasks(); // Ulohy sa pomiesaju IBA RAZ pri starte
+            generateColors();
+            showTaskView(false); // Zobrazime ulohy, ale bez vyhercu (este sa netocilo)
+        }
+
+        // Zobrazenie úloh (s vyhercom alebo bez)
+        function showTaskView(hasWinner) {
+            document.getElementById('wheel-ui').style.display = 'none';
+            document.getElementById('task-view').style.display = 'flex';
+            
+            if(hasWinner && winnerIdx !== -1) {
+                const parsedWinner = parseHtmlText(items[winnerIdx]);
+                const winnerDiv = document.getElementById('winner-text');
+                winnerDiv.innerText = parsedWinner.text;
+                winnerDiv.style.color = parsedWinner.color === "darkgreen" ? "darkgreen" : parsedWinner.color;
+                winnerDiv.style.borderColor = winnerDiv.style.color;
+                
+                winnerDiv.style.display = 'inline-block';
+                document.getElementById('btn-koleso').style.display = 'none';
+                document.getElementById('btn-hotovo').style.display = 'block';
+            } else {
+                document.getElementById('winner-text').style.display = 'none';
+                document.getElementById('btn-koleso').style.display = 'block';
+                document.getElementById('btn-hotovo').style.display = 'none';
+            }
+
+            // Vykreslenie uloh
+            const taskDiv = document.getElementById('task-container');
+            let htmlContent = '';
+            
+            if (tasks.length > 0) {
+                let activeTask = tasks[0].replace(/\|/g, '<br>');
+                htmlContent += '<div class="active-item">' + activeTask + '</div>';
+                
+                for(let i = 1; i < tasks.length; i++) {
+                    let upcomingTask = tasks[i].replace(/\|/g, '<br>');
+                    htmlContent += '<div class="upcoming-item">' + upcomingTask + '</div>';
+                }
+            } else {
+                htmlContent = "<span style='color: #7f8c8d; font-size: 1.2em;'><i>Žiadne ďalšie úlohy nie sú k dispozícii.</i></span>";
+            }
+            taskDiv.innerHTML = htmlContent;
+        }
+
+        // Prechod na koleso
+        function goToWheel() {
+            document.getElementById('task-view').style.display = 'none';
+            document.getElementById('wheel-ui').style.display = 'flex';
+            draw();
+        }
+
+        function generateColors() {
+            colors = [];
+            for(let i=0; i<items.length; i++) {
+                let h = (i * (360 / items.length) + Math.random() * 20) % 360;
+                colors.push('hsl(' + h + ', 75%, 93%)');
+            }
+        }
+
+        function draw() {
+            const n = items.length;
+            const arc = (Math.PI * 2) / n;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            items.forEach((itemHtml, i) => {
+                const parsed = parseHtmlText(itemHtml);
+                
+                const start = angle + i * arc;
+                ctx.fillStyle = colors[i];
+                ctx.beginPath();
+                ctx.moveTo(CENTER, CENTER);
+                ctx.arc(CENTER, CENTER, RADIUS, start, start + arc);
+                ctx.fill();
+                
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)'; 
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(CENTER, CENTER);
+                ctx.rotate(start + arc / 2 + Math.PI); 
+                
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle"; 
+                // Pouzitie vyparsovanej farby, ak chybajuca, pre text kolesa zvolime tmavu farbu (napr. povodnu #2c3e50 pre lepsiu citatelnost na kolese)
+                ctx.fillStyle = parsed.color === "darkgreen" && !itemHtml.includes("color") ? "#2c3e50" : parsed.color;
+                
+                let fontSize = Math.min(30, (RADIUS * 2 * arc) / (Math.max(1, parsed.text.length) * 0.55));
+                ctx.font = fontSize + "px 'Comic Sans MS'";
+                
+                let displayText = parsed.text;
+                const maxTextWidth = 240; // Max šírka textu (310 od okraja - 70 aby sa nedotklo stredu 55) = 240px
+                
+                // Zmenšenie veľkosti písma, ak je text vizuálne širší ako maxTextWidth
+                let textWidth = ctx.measureText(displayText).width;
+                if(textWidth > maxTextWidth) {
+                    fontSize = fontSize * (maxTextWidth / textWidth);
+                }
+                
+                // Nastavenie minimálnej veľkosti
+                if(fontSize < 12) {
+                    fontSize = 12;
+                }
+                ctx.font = fontSize + "px 'Comic Sans MS'";
+                
+                // Ak je text aj pri min. veľkosti stále dlhý, tak ho skrátime s bodkami
+                if(ctx.measureText(displayText).width > maxTextWidth) {
+                   while(ctx.measureText(displayText + "...").width > maxTextWidth && displayText.length > 0) {
+                       displayText = displayText.slice(0, -1);
+                   }
+                   displayText += "...";
+                }
+
+                ctx.fillText(displayText, -310, 2);
+                ctx.restore();
+            });
+
+            let g = ctx.createRadialGradient(CENTER, CENTER, RADIUS/2, CENTER, CENTER, RADIUS);
+            g.addColorStop(0, 'rgba(255,255,255,0)');
+            g.addColorStop(1, 'rgba(0,0,0,0.04)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(CENTER, CENTER, RADIUS, 0, Math.PI*2); ctx.fill();
+
+            ctx.beginPath(); ctx.arc(CENTER, CENTER, BTN_RADIUS, 0, Math.PI*2);
+            ctx.fillStyle = "#39ff14"; ctx.fill();
+            ctx.strokeStyle = "#27ae60"; ctx.lineWidth = 3; ctx.stroke();
+            ctx.fillStyle = "#000"; ctx.font = "bold 20px 'Comic Sans MS'";
+            ctx.textAlign = "center"; ctx.fillText("Toč 🙂", CENTER, CENTER + 6);
+        }
+
+        canvas.onclick = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left - CENTER;
+            const y = e.clientY - rect.top - CENTER;
+            if(Math.sqrt(x*x + y*y) < BTN_RADIUS && !spinning && items.length > 0) {
+                spin();
+            }
+        };
+
+        function spin() {
+            spinning = true;
+            let speed = 0.35 + Math.random() * 0.15;
+            function animate() {
+                angle += speed;
+                speed *= 0.986;
+                draw();
+                if(speed > 0.002) requestAnimationFrame(animate);
+                else {
+                    spinning = false;
+                    const n = items.length;
+                    const arc = (Math.PI * 2) / n;
+                    let norm = (Math.PI - (angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                    winnerIdx = Math.floor(norm / arc);
+                    
+                    showResult();
+                }
+            }
+            animate();
+        }
+
+        function showResult() {
+            // Skryjeme koleso a zobrazime ulohy uz aj s vyhercom
+            showTaskView(true);
+        }
+
+        function removeAndReset() {
+            // Odstranime ziaka z pola
+            items.splice(winnerIdx, 1);
+            colors.splice(winnerIdx, 1);
+            
+            // Odstranime ulohu z pola (tu ktora bola prave na rade - cize prvu)
+            if(tasks.length > 0) {
+                tasks.shift();
+            }
+            
+            winnerIdx = -1;
+            
+            if (items.length > 0) {
+                // Pokracujeme rovno na koleso
+                goToWheel();
+            } else {
+                // Koniec hry
+                document.getElementById('task-view').style.display = 'none';
+                document.getElementById('wheel-ui').style.display = 'flex';
+                document.getElementById('wheel-ui').innerHTML = "<h2 style='color:#27ae60; font-size: 2em; margin-top: 50px; font-family: Monaco, monospace;'>Koniec! Všetky mená boli vyžrebované.</h2>";
+            }
+        }
+    </script>
+</body>
+</html>

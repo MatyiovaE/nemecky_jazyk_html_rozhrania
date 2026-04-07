@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Náhodné úlohy</title>
+<style>
+  body{font-family: Courier bold, monospace; display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:30px;}
+  .card{width:100%;max-width:1300px;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;padding:20px;box-sizing:border-box;border:1px solid #ddd;background:#fff;}
+  .item{font-size:440%;text-align:center;margin-bottom:18px;word-break:break-word;}
+  .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .arrow{font-size:28px;padding:6px 12px;border-radius:6px;border:1px solid #ccc;background:#f8f8f8;cursor:default;user-select:none;}
+  .hidden{visibility:hidden;}
+  .message{margin-top:16px;font-weight:700;}
+  button {padding:8px 12px;font-size:1rem;cursor:pointer;}
+</style>
+</head>
+<body>
+<h1>Odpovedz na otázky.</h1>
+<span style="font-size: 150%;">Po zodpovedaní otázky klikni na pravú šípku.</span>
+  <div class="card">
+    <div id="display" class="item"></div>
+    <div id="arrowRow" class="controls">
+      <div id="left" class="arrow hidden">&larr;</div>
+      <div id="right" class="arrow">&rarr;</div>
+    </div>
+    <div id="numberButtons" class="controls" style="margin-top:12px; flex-wrap:wrap;"></div>
+    <div id="endMessage" class="message" style="display:none;">Koniec zoznamu úloh</div>
+    <div id="againRow" style="margin-top:12px;display:none;"><button id="againBtn">Znova</button></div>
+  </div>
+
+  <script>
+    const DB = [`Aký je dnes deň?`,`Čo si robil včera večer?`,`Čo si dnes raňajkoval?`,`Aká je tvoja obľúbená farba?`,`Hráš rád/rada karty?`,`Čo chceš robiť dnes poobede?`];
+    const TARGET_COUNT = 6;
+    function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+    function pickRandomItems(db, n){
+      const copy = db.slice();
+      shuffle(copy);
+      return copy.slice(0,n);
+    }
+
+    let sequence = pickRandomItems(DB, Math.min(TARGET_COUNT, DB.length));
+    let index = 0;
+
+    const display = document.getElementById('display');
+    const left = document.getElementById('left');
+    const right = document.getElementById('right');
+    const endMessage = document.getElementById('endMessage');
+    const againRow = document.getElementById('againRow');
+    const numberButtons = document.getElementById('numberButtons');
+
+    function updateUI(){
+      if(index < sequence.length){
+        display.textContent = (index+1) + ". " + sequence[index];
+        right.classList.toggle('hidden', false);
+        left.classList.toggle('hidden', index < 1);
+        endMessage.style.display = 'none';
+        againRow.style.display = 'none';
+      } else {
+        display.textContent = '';
+        left.classList.add('hidden');
+        right.classList.add('hidden');
+        endMessage.style.display = 'block';
+        againRow.style.display = 'block';
+      }
+    }
+
+    function renderNumberButtons(){
+      numberButtons.innerHTML = '';
+      sequence.forEach((_, i) => {
+        const btn = document.createElement('button');
+        btn.textContent = (i+1);
+        btn.addEventListener('click', () => {
+          index = i;
+          updateUI();
+        });
+        numberButtons.appendChild(btn);
+      });
+    }
+
+    right.addEventListener('click', function(){
+      index++;
+      updateUI();
+    });
+
+    left.addEventListener('click', function(){
+      if(index > 0) index--;
+      updateUI();
+    });
+
+    document.getElementById('againBtn').addEventListener('click', function(){
+      sequence = pickRandomItems(DB, Math.min(TARGET_COUNT, DB.length));
+      index = 0;
+      renderNumberButtons();
+      updateUI();
+    });
+
+    renderNumberButtons();
+    updateUI();
+  </script>
+  <br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>

@@ -1,0 +1,263 @@
+
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="author" content="Mgr. Erika Matyiová">
+  <meta name="year" content="2026">
+  <title>NEJ - Základné frázy</title>
+  <style>
+    body { font-family: Courier bold, monospace; padding: 2rem; max-width: 900px; margin: auto; }
+    header { border-bottom: 2px solid #333; padding-bottom: 1rem; margin-bottom: 2rem; }
+    .meta-info { color: #555; font-size: 0.9rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    td { padding: 0.5rem; border-bottom: 1px solid #ccc; vertical-align: middle; }
+    .bold { font-weight: bold; }
+    .icon { cursor: pointer; margin-right: 0.5rem; color: #0077cc; }
+    .controls { margin-top: 1rem; background: #f9f9f9; padding: 1rem; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>NEJ - Základné frázy</h1>
+    <div class="meta-info"><b>Autor:</b> Mgr. Erika Matyiová | <b>Rok:</b> 2026</div>
+  </header>
+
+  <div class="controls">
+    <label>Rýchlosť: <input type="range" id="rate" min="0.6" max="1.4" step="0.1" value="1"> <span id="rateVal">1</span></label>
+    &nbsp;&nbsp;&nbsp;
+    <label>Výška: <input type="range" id="pitch" min="0.8" max="1.4" step="0.1" value="1"> <span id="pitchVal">1</span></label>
+  </div>
+  
+  <table id="table">
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Wie geht es dir?', 'de-AT')">🔊</span>
+          <span class="bold">Wie geht es dir?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Ako sa máš?', 'sk-SK')">🔊</span>
+          <span class="">Ako sa máš?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Mir geht es gut, danke.', 'de-AT')">🔊</span>
+          <span class="bold">Mir geht es gut, danke.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Mám sa dobre, ďakujem.', 'sk-SK')">🔊</span>
+          <span class="">Mám sa dobre, ďakujem.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Wie heißt du?', 'de-AT')">🔊</span>
+          <span class="bold">Wie heißt du?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Ako sa voláš?', 'sk-SK')">🔊</span>
+          <span class="">Ako sa voláš?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Mein Name ist…', 'de-AT')">🔊</span>
+          <span class="bold">Mein Name ist…</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Volám sa…', 'sk-SK')">🔊</span>
+          <span class="">Volám sa…</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Freut mich.', 'de-AT')">🔊</span>
+          <span class="bold">Freut mich.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Teší ma.', 'sk-SK')">🔊</span>
+          <span class="">Teší ma.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Woher kommst du?', 'de-AT')">🔊</span>
+          <span class="bold">Woher kommst du?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Odkiaľ si?', 'sk-SK')">🔊</span>
+          <span class="">Odkiaľ si?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Ich komme aus der Slowakei.', 'de-AT')">🔊</span>
+          <span class="bold">Ich komme aus der Slowakei.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Som zo Slovenska.', 'sk-SK')">🔊</span>
+          <span class="">Som zo Slovenska.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Wie alt bist du?', 'de-AT')">🔊</span>
+          <span class="bold">Wie alt bist du?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Koľko máš rokov?', 'sk-SK')">🔊</span>
+          <span class="">Koľko máš rokov?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Ich verstehe nicht.', 'de-AT')">🔊</span>
+          <span class="bold">Ich verstehe nicht.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Nerozumiem.', 'sk-SK')">🔊</span>
+          <span class="">Nerozumiem.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Kannst du das wiederholen, bitte?', 'de-AT')">🔊</span>
+          <span class="bold">Kannst du das wiederholen, bitte?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Môžeš to zopakovať, prosím?', 'sk-SK')">🔊</span>
+          <span class="">Môžeš to zopakovať, prosím?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Wie spät ist es?', 'de-AT')">🔊</span>
+          <span class="bold">Wie spät ist es?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Koľko je hodín?', 'sk-SK')">🔊</span>
+          <span class="">Koľko je hodín?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Was kostet das?', 'de-AT')">🔊</span>
+          <span class="bold">Was kostet das?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Koľko to stojí?', 'sk-SK')">🔊</span>
+          <span class="">Koľko to stojí?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Kannst du mir helfen?', 'de-AT')">🔊</span>
+          <span class="bold">Kannst du mir helfen?</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Môžeš mi pomôcť?', 'sk-SK')">🔊</span>
+          <span class="">Môžeš mi pomôcť?</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Entschuldigung.', 'de-AT')">🔊</span>
+          <span class="bold">Entschuldigung.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Prepáč.', 'sk-SK')">🔊</span>
+          <span class="">Prepáč.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Vielen Dank.', 'de-AT')">🔊</span>
+          <span class="bold">Vielen Dank.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Ďakujem pekne.', 'sk-SK')">🔊</span>
+          <span class="">Ďakujem pekne.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Gern geschehen.', 'de-AT')">🔊</span>
+          <span class="bold">Gern geschehen.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Nemáš za čo.', 'sk-SK')">🔊</span>
+          <span class="">Nemáš za čo.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Bis später.', 'de-AT')">🔊</span>
+          <span class="bold">Bis später.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Uvidíme sa neskôr.', 'sk-SK')">🔊</span>
+          <span class="">Uvidíme sa neskôr.</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Viel Glück!', 'de-AT')">🔊</span>
+          <span class="bold">Viel Glück!</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Veľa šťastia!', 'sk-SK')">🔊</span>
+          <span class="">Veľa šťastia!</span>
+        </td>
+      </tr>
+    
+      <tr>
+        <td>
+          <span class="icon" onclick="speak('Einen schönen Tag noch.', 'de-AT')">🔊</span>
+          <span class="bold">Einen schönen Tag noch.</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('Prajem pekný deň.', 'sk-SK')">🔊</span>
+          <span class="">Prajem pekný deň.</span>
+        </td>
+      </tr>
+    
+  </table>
+
+  <script>
+    document.getElementById('rate').addEventListener('input', e => {
+      document.getElementById('rateVal').textContent = e.target.value;
+    });
+    document.getElementById('pitch').addEventListener('input', e => {
+      document.getElementById('pitchVal').textContent = e.target.value;
+    });
+
+    function speak(text, lang) {
+      if (!text) return;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = lang;
+      utter.rate = parseFloat(document.getElementById('rate').value);
+      utter.pitch = parseFloat(document.getElementById('pitch').value);
+      speechSynthesis.speak(utter);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html><html lang="sk"><head><meta charset="utf-8"/>
+<title>Osobnosť a dielo Ľudovíta Štúra - kvíz</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+:root{--accent:#2563eb;--true:#16a34a;--false:#db2777;}
+body{font-family:Inter,system-ui,Arial;margin:0;padding:16px;background:#f8fafc;color:#0f172a;}
+.board{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.col-header{background:#0f172a;color:#fff;padding:12px;text-align:center;font-weight:700;border-radius:8px;}
+.cell{background:#111827;color:#fff;display:flex;align-items:center;justify-content:center;height:84px;font-size:20px;font-weight:700;border-radius:8px;cursor:pointer;}
+.cell.used{opacity:0.28;pointer-events:none;}
+.controls{display:flex;gap:8px;align-items:center;margin-bottom:12px;}
+.teams{display:flex;gap:8px;flex-wrap:wrap;}
+.team-btn{padding:8px 10px;border-radius:8px;border:1px solid #e6eefc;background:#fff;cursor:pointer;}
+.team-btn.active{outline:3px solid rgba(37,99,235,0.18);transform:translateY(-2px);}
+.scoreboard{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;}
+.score-card{background:#fff;padding:10px;border-radius:8px;border:1px solid #eef2ff;min-width:150px;}
+.overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;background:rgba(0,0,0,0.86);}
+.overlay.show{display:flex;}
+.question-card{width:min(1200px,94%);max-height:94%;overflow:auto;background:#fff;border-radius:12px;padding:28px;box-shadow:0 20px 60px rgba(2,6,23,0.6);text-align:center;}
+.q-text{font-size:40px;font-weight:800;margin-bottom:24px;}
+.answers{display:flex;flex-direction:column;gap:12px;align-items:center;}
+.ans-btn{width:min(780px,92%);padding:16px 20px;border-radius:10px;font-size:20px;font-weight:700;border:2px solid transparent;cursor:pointer;}
+.ans-true{background:var(--true);color:#fff;}
+.ans-false{background:var(--false);color:#fff;}
+.ans-neutral{background:#f3f4f6;color:#111;border-color:#e5e7eb;text-align:left;padding-left:18px;}
+.close-x{position:absolute;right:18px;top:14px;color:#fff;font-weight:700;cursor:pointer;}
+.final-overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:10000;background:rgba(2,6,23,0.8);color:#fff;}
+.final-overlay.show{display:flex;}
+.final-card{background:#0b1220;color:#fff;padding:28px;border-radius:12px;min-width:320px;max-width:760px;}
+.ranking{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+.rank-row{display:flex;justify-content:space-between;padding:12px;border-radius:8px;background:linear-gradient(90deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));}
+</style></head><body>
+<h1>Osobnosť a dielo Ľudovíta Štúra - kvíz</h1>
+<div class="panel" id="gameArea">
+  <div class="controls">
+    <div class="teams" id="teamsBar"></div>
+    <div style="margin-left:auto"><button id="endGameBtn" style="padding:8px 12px;border-radius:8px;background:#f97316;color:#fff;border:none;font-weight:700;cursor:pointer;">Ukončiť a vyhodnotiť</button></div>
+  </div>
+  <div id="boardWrapper"><div class="board" id="board"></div></div>
+  <div class="scoreboard" id="scoreboard"></div>
+</div>
+<div class="overlay" id="overlay"><div class="question-card" id="questionCard"><div style="position:relative;"><div class="close-x" id="closeOverlay">x</div></div><div class="q-text" id="qText"></div><div class="answers" id="answers"></div></div></div>
+<div class="final-overlay" id="finalOverlay"><div class="final-card"><h3>Vyhodnotenie</h3><div id="finalScores" class="ranking"></div><div style="text-align:right;margin-top:14px;"><button id="finalClose" style="padding:8px 12px;border-radius:8px;background:#fff;color:#0f172a;border:none;font-weight:700;cursor:pointer;">Zavrieť</button></div></div></div>
+
+<script>
+(function(){
+  const POINTS=[100,200,300,400,500];
+  const quizData={"categories":[{"title":"Základný životopis","questions":[{"text":"Ľudovít Štúr sa narodil v Modre.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":false},{"text":"V ktorom roku sa narodil Ľudovít Štúr?","type":"mc","choices":["1815","1820","1856"],"correct":0},{"text":"V ktorom roku zomrel Ľudovít Štúr?","type":"mc","choices":["1815","1856","1848"],"correct":1},{"text":"Na ktorom lýceu pôsobil Ľudovít Štúr ako učiteľ?","type":"mc","choices":["na Bratislavskom evanjelickom lýceu","na Kežmarskom lýceu","na Nitrianskom lýceu"],"correct":0},{"text":"Kde študoval Ľudovít Štúr v zahraničí?","type":"mc","choices":["v Paríži","v Prahe","v Halle"],"correct":2}]},{"title":"Literárne dielo","questions":[{"text":"Ľudovít Štúr bol autorom básnickej skladby „Mor ho!“.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":false},{"text":"Dielo „Slovanstvo a svet budúcnosti“ napísal Ľudovít Štúr po nemecky.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":true},{"text":"Dielo „Nárečja slovenskuo alebo potreba písanja v tomto nárečí“ je programovým textom o spisovnej slovenčine.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":true},{"text":"Štúr sa nevenoval prekladateľskej činnosti.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":false},{"text":"Zbierka básní Ľudovíta Štúra má názov:","type":"mc","choices":["Piesne a spevy","Spevy a piesne","Spevy a básne"],"correct":1}]},{"title":"Spisovná slovenčina","questions":[{"text":"Štúrovská slovenčina bola založená na západoslovenskom nárečí.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":false},{"text":"Princíp „píš ako počuješ“ bol základom štúrovskej ortografie.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":true},{"text":"Pred Štúrom sa v kultúrnom prostredí používala najmä čeština.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":true},{"text":"V ktorom roku kodifikoval Ľudovít Štúr spisovnú slovenčinu?","type":"mc","choices":["1856","1848","1843"],"correct":2},{"text":"Kto spolu s Ľudovítom Štúrom kodifikoval slovenčinu?","type":"mc","choices":["Jozef Miloslav Hurban a Michal Miloslav Hodža","Andrej Sládkovič a Samo Chalupka","Ján Kollár a Pavol Jozef Šafárik"],"correct":0}]},{"title":"Politika a revolúcia v. 1848","questions":[{"text":"Štúr sa počas revolúcie 1848/49 postavil na stranu maďarskej vlády.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":false},{"text":"Štúr sa počas revolúcie vzdal verejného života a odišiel do ústrania. ","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":false},{"text":"Dokument „Žiadosti slovenského národa“ bol prijatý v Liptovskom Mikuláši.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":true},{"text":"Kto boli hlavní spolupracovníci Ľudovíta Štúra v revolučnom hnutí?","type":"mc","choices":["Ján Kollár a Samo Chalupka","Jozef Miloslav Hurban a Michal Miloslav Hodža","Andrej Sládkovič a Pavol Jozef Šafárik"],"correct":1},{"text":"Kde proklamoval Ľudovít Štúr v mene Slovenskej národnej rady samostatnosť Slovenska?","type":"mc","choices":["v Myjave","v Bratislave","v Liptovskom Mikuláši"],"correct":0}]},{"title":"Slovenské národné noviny","questions":[{"text":"Kedy začali vychádzať Slovenskje národňje novini?","type":"mc","choices":["1848","1843","1845"],"correct":2},{"text":"Prečo sa v roku 1848 prestali vydávať Slovenskje národňje novini?","type":"mc","choices":["pre revolučný obsah a politickú angažovanosť","pre nedostatok financií","pre nezáujem čitateľov"],"correct":0},{"text":"Ľudovít Štúr bol hlavným redaktorom novín Slovenskje národňje novini.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":true},{"text":"Literárnou prílohou Slovenskje národňje novini bol „Orol tatránski“.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":true},{"text":"Slovenskje národňje novini boli vydávané v Martine.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":false}]},{"title":"Štúr a Viedeň","questions":[{"text":"Aký bol postoj Ľudovíta Štúra k Viedni počas revolúcie 1848/49?","type":"mc","choices":["vnímal Viedeň ako protiváhu voči maďarskej vláde","bol proti Viedni","bol neutrálny"],"correct":0},{"text":"Štúr sa počas revolúcie osobne zúčastnil rokovaní vo Viedni.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":true},{"text":"Prečo Ľudovít Štúr a jeho spolupracovníci orientovali svoje nádeje na Viedeň?","type":"mc","choices":["pretože Viedeň bola bližšie ako Pešť","pretože cisár bol Slovák","pretože maďarská vláda odmietala slovenské požiadavky"],"correct":2},{"text":"Aký bol výsledok Štúrových rokovaní vo Viedni?","type":"mc","choices":["úplné uznanie slovenských práv","len obmedzená podpora proti Maďarom","žiadna reakcia"],"correct":1},{"text":"Ľudovít Štúr spolu s Jozefom Miloslavom Hurbanom a Michalom Miloslavom Hodžom založili Slovenskú národnú radu vo Viedni.","type":"tf","choices":["Možnosť A","Možnosť B","Možnosť C"],"correct":true}]}],"teams":[{"name":"Skupina 1","score":0,"id":0},{"name":"Skupina 2","score":0,"id":1},{"name":"Skupina 3","score":0,"id":2}]};
+  let teams=quizData.teams.map(t=>({name:t.name,score:0}));
+  let activeTeam=0;
+
+  function shuffleArray(a){const arr=a.slice();for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+  const board=document.getElementById('board'),teamsBar=document.getElementById('teamsBar'),scoreboard=document.getElementById('scoreboard');
+
+  function renderTeamsBar(){
+    teamsBar.innerHTML='';
+    teams.forEach((t,i)=>{
+      const b=document.createElement('button');
+      b.className='team-btn'+(i===activeTeam?' active':'');
+      b.textContent=t.name+' ('+t.score+')';
+      b.onclick=()=>{activeTeam=i;renderTeamsBar();};
+      teamsBar.appendChild(b);
+    });
+  }
+
+  function renderScoreboard(){
+    scoreboard.innerHTML='';
+    teams.forEach(t=>{
+      const card=document.createElement('div');
+      card.className='score-card';
+      card.innerHTML='<div style="font-weight:700">'+t.name+'</div><div style="font-size:20px;margin-top:6px)">'+t.score+' b</div>';
+      scoreboard.appendChild(card);
+    });
+  }
+
+  function renderBoard(){
+    board.innerHTML='';
+    quizData.categories.forEach(cat=>{
+      const hd=document.createElement('div');hd.className='col-header';hd.textContent=cat.title;board.appendChild(hd);
+    });
+    for(let r=0;r<POINTS.length;r++){
+      for(let c=0;c<quizData.categories.length;c++){
+        const cell=document.createElement('div');
+        cell.className='cell';
+        cell.dataset.cat=c;cell.dataset.qidx=r;cell.dataset.points=POINTS[r];
+        cell.textContent=POINTS[r];
+        cell.addEventListener('click',onCellClick);
+        board.appendChild(cell);
+      }
+    }
+  }
+
+  const overlay=document.getElementById('overlay'),qText=document.getElementById('qText'),answers=document.getElementById('answers'),close=document.getElementById('closeOverlay');
+  let current=null;
+
+  function onCellClick(e){
+    const el=e.currentTarget,cat=parseInt(el.dataset.cat,10),qidx=parseInt(el.dataset.qidx,10);
+    const q=quizData.categories[cat].questions[qidx];
+    current={cat,qidx,points:POINTS[qidx],cellEl:el,shuffledMap:null};
+    qText.textContent=q.text||'(bez textu)';
+    answers.innerHTML='';
+    if(q.type==='mc'){
+      const map=(q.choices||["","",""]).map((ch,idx)=>({text:ch||('Možnosť '+(idx+1)),idx}));
+      const sh=shuffleArray(map);current.shuffledMap=sh;
+      sh.forEach((it,pos)=>{
+        const btn=document.createElement('button');
+        btn.className='ans-btn ans-neutral';
+        btn.textContent=it.text;
+        btn.addEventListener('click',()=>answer(pos));
+        answers.appendChild(btn);
+      });
+    } else {
+      const t=document.createElement('button');t.className='ans-btn ans-true';t.textContent='Pravda';t.addEventListener('click',()=>answer(true));
+      const f=document.createElement('button');f.className='ans-btn ans-false';f.textContent='Nepravda';f.addEventListener('click',()=>answer(false));
+      answers.appendChild(t);answers.appendChild(f);
+    }
+    overlay.classList.add('show');
+  }
+
+  function answer(sel){
+    const {cat,qidx,points,cellEl,shuffledMap}=current;
+    const q=quizData.categories[cat].questions[qidx];
+    let correct=false;
+    if(q.type==='mc'){
+      const chosenOriginalIdx=shuffledMap&&shuffledMap[sel]?shuffledMap[sel].idx:null;
+      correct=(chosenOriginalIdx===Number(q.correct));
+    } else {
+      correct=(sel===(q.correct===true||q.correct==='true'));
+    }
+    const delta=correct?points:-points;
+    teams[activeTeam].score+=delta;
+    cellEl.classList.add('used');
+    overlay.classList.remove('show');
+    renderTeamsBar();renderScoreboard();
+    current=null;
+  }
+
+  close.addEventListener('click',()=>{overlay.classList.remove('show');current=null;});
+  document.getElementById('endGameBtn').addEventListener('click',()=>{
+    const ranked=[...teams].sort((a,b)=>b.score-a.score);
+    const final=document.getElementById('finalScores');
+    final.innerHTML='';
+    ranked.forEach((t,i)=>{
+      const row=document.createElement('div');
+      row.className='rank-row';
+      row.innerHTML='<div style="font-weight:700">'+(i+1)+'. '+t.name+'</div><div style="font-weight:700">'+t.score+' b</div>';
+      final.appendChild(row);
+    });
+    document.getElementById('finalOverlay').classList.add('show');
+  });
+  document.getElementById('finalClose').addEventListener('click',()=>{document.getElementById('finalOverlay').classList.remove('show');});
+
+  renderTeamsBar();renderBoard();renderScoreboard();
+})();
+</script>
+<b>Spracovala pomocou UI: Mgr. Erika Matyiová (2025)</b>
+</body></html>
