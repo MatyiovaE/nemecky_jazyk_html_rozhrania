@@ -860,13 +860,7 @@ m/a\chen	robiť
             const focusedInput = document.activeElement; 
             
             if (focusedInput && focusedInput.classList.contains('answer-input')) {
-                const start = focusedInput.selectionStart;
-                const end = focusedInput.selectionEnd;
-                const text = focusedInput.value;
-                
-                focusedInput.value = text.substring(0, start) + char + text.substring(end);
-                focusedInput.selectionStart = focusedInput.selectionEnd = start + char.length;
-                
+                focusedInput.value = char;
                 focusedInput.dispatchEvent(new Event('input')); 
             }
         }
@@ -884,13 +878,14 @@ m/a\chen	robiť
                 if (comp.type === 'stub') {
                     html += \`<span class="stub">\${comp.value}</span>\`;
                 } else { 
-                    const placeholder = '_'.repeat(comp.value.length);
-                    let savedAnswer = (userAnswers[index] && userAnswers[index].length > inputCounter) ? userAnswers[index][inputCounter] : "";
-                    
-                    const inputWidth = Math.max(30, comp.value.length * 30); 
-                    
-                    html += \`<input type="text" class="answer-input" data-task-index="\${index}" data-input-index="\${inputCounter}" value="\${savedAnswer}" placeholder="\${placeholder}" style="width: \${inputWidth}px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">\`;
-                    inputCounter++;
+                    html += \`<span style="white-space: nowrap;">\`;
+                    for(let i=0; i<comp.value.length; i++) {
+                        let savedAnswer = (userAnswers[index] && userAnswers[index].length > inputCounter) ? userAnswers[index][inputCounter] : "";
+                        
+                        html += \`<input type="text" class="answer-input" maxlength="1" data-task-index="\${index}" data-input-index="\${inputCounter}" value="\${savedAnswer}" style="width: 1.2em; text-align: center; margin: 0 3px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">\`;
+                        inputCounter++;
+                    }
+                    html += \`</span>\`;
                 }
             });
             html += \`</div>\`;
@@ -901,27 +896,32 @@ m/a\chen	robiť
 
             taskDisplay.innerHTML = html;
 
-            taskDisplay.querySelectorAll('.answer-input').forEach(input => {
-                input.addEventListener('input', () => {
-                    const minWidth = Math.max(30, (input.placeholder.length || 1) * 18);
-                    const newWidth = Math.max(minWidth, (input.value.length + 1) * 18);
-                    input.style.width = \`\${newWidth}px\`;
+            const inputs = taskDisplay.querySelectorAll('.answer-input');
+            inputs.forEach((input, i) => {
+                input.addEventListener('input', (e) => {
+                    // Po zadaní znaku automaticky preskočí na ďalšie políčko
+                    if (input.value.length === 1 && i < inputs.length - 1) {
+                        inputs[i + 1].focus();
+                    }
                 });
-				 // --- PRIDANÝ KÓD PRE ENTER ---
+                
                 input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault(); // zabráni pípnutiu alebo inému neželanému správaniu
-                        
-                        // Ak sme na poslednej úlohe, simulujeme klik na "Vyhodnotiť"
+                    if (e.key === 'Backspace' && input.value === '' && i > 0) {
+                        // Návrat na predchádzajúce pole pri vymazávaní
+                        inputs[i - 1].focus();
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
                         if (currentTaskIndex === allTasks.length - 1) {
                             evalBtn.click();
                         } else {
-                            // Inak simulujeme klik na "Ďalej"
                             nextBtn.click();
                         }
+                    } else if (e.key === 'ArrowLeft' && i > 0) {
+                        inputs[i - 1].focus();
+                    } else if (e.key === 'ArrowRight' && i < inputs.length - 1) {
+                        inputs[i + 1].focus();
                     }
                 });
-                input.dispatchEvent(new Event('input'));
             });
 
             const firstInput = taskDisplay.querySelector('input[type="text"]');
@@ -1010,46 +1010,37 @@ m/a\chen	robiť
             }
         };
 
-
         function evaluate() {
             isEvaluated = true;
             let score = 0;
             const results = [];
 
             allTasks.forEach((task, index) => {
-                const correctAnswers = task.components.filter(c => c.type === 'answer').map(c => c.value);
                 const studentAnswers = userAnswers[index] || [];
-                
                 let isCorrect = true;
-                
-                if (correctAnswers.length !== studentAnswers.length) {
-                    isCorrect = false;
-                } else {
-                    for (let i = 0; i < correctAnswers.length; i++) {
-                        if (studentAnswers[i].trim() !== correctAnswers[i]) {
-                            isCorrect = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (isCorrect) score++;
-
                 let studentTextAnswer = "";
-                let i_ans = 0;
+                let inputCounter = 0;
+
                 task.components.forEach(c => {
                     if (c.type === 'stub') {
                         studentTextAnswer += c.value;
                     } else {
-                        studentTextAnswer += (studentAnswers[i_ans] || "[_]");
-                        i_ans++;
+                        for(let i=0; i<c.value.length; i++) {
+                            let charAns = studentAnswers[inputCounter] || "";
+                            studentTextAnswer += (charAns || "_");
+                            if (charAns !== c.value[i]) {
+                                isCorrect = false;
+                            }
+                            inputCounter++;
+                        }
                     }
                 });
+
+                if (isCorrect) score++;
 
                 results.push({
                     ...task,
                     studentAnswers,
-                    correctAnswers,
                     studentTextAnswer, 
                     isCorrect
                 });
