@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Editor textu pre dyslektikov - rôzne fonty</title>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/antijingoist/open-dyslexic/webkit/css/OpenDyslexic.css">
+  <style>
+    :root {
+      --editor-font: "Courier Prime", "Courier New", monospace;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #f8fafc;
+      font-family: Courier bold, monospace;
+      color: #0f172a;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .editor-wrap {
+      background: #fff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 8px;
+      background: #f3f4f6;
+      border-bottom: 1px solid #d1d5db;
+    }
+
+    .group {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .tool {
+      padding: 6px 10px;
+      font-size: 14px;
+      background: #fff;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .tool:hover {
+      background: #e5e7eb;
+    }
+
+    .editor {
+      min-height: 240px;
+      padding: 16px;
+      font-size: 16px;
+      line-height: 1.5;
+      outline: none;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: var(--editor-font);
+      /* Odstránené konfliktné CSS, všetko riadi JavaScript */
+    }
+
+    .actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 14px;
+      font-size: 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #btn-bigger, #btn-dys, #btn-clear {
+      background: #fff;
+      border: 1px solid #d1d5db;
+    }
+
+    #btn-pdf {
+      background: #616161;
+      color: #fff;
+      border: none;
+    }
+
+    .dyslexic .editor {
+      font-family: "OpenDyslexic3", "OpenDyslexic", "Atkinson Hyperlegible", sans-serif;
+      line-height: 1.6;
+    }
+
+    .small-control {
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      font-size: 14px;
+    }
+
+   @media print {
+      body { background: #fff; }
+      .toolbar, .actions, h1, label, select, #btn-clear, #applySelectionSize, #clearSelectionSize { display: none !important; }
+      .editor-wrap { border: none !important; box-shadow: none !important; padding: 0 !important; }
+      .editor { font-size: 14pt; padding: 0 !important; border: none !important; box-shadow: none !important; font-family: var(--editor-font) !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Editor textu pre dyslektikov - rôzne fonty</h1>
+
+    <div id="root" class="editor-wrap">
+      <div class="toolbar">
+        <div class="group">
+          <button class="tool" data-format="bold">B</button>
+          <button class="tool" data-format="italic">I</button>
+          <button class="tool" data-format="underline">U</button>
+        </div>
+        <div class="group">
+          <button class="tool" data-cmd="align-left">←</button>
+          <button class="tool" data-cmd="align-center">↔</button>
+          <button class="tool" data-cmd="align-right">→</button>
+          <button class="tool" data-cmd="align-justify">▤</button>
+        </div>
+        <div class="group">
+          <button class="tool" data-insert="|">|</button>
+          <button class="tool" data-insert="·">·</button>
+        </div>
+
+        <div class="group" style="margin-left: auto;">
+          <label for="fontSelect" style="font-size:14px; margin-right:6px;">Font:</label>
+          <select id="fontSelect" class="small-control">
+            <option value="opendyslexic">OpenDyslexic</option>
+            <option value="comic">Comic Sans MS</option>
+            <option value="courierprime" selected>Courier Prime</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="editor" class="editor" contenteditable="true" aria-label="Textový editor"></div>
+    </div>
+
+    <div class="actions">
+      <button id="btn-bigger">Zväčšiť písmo</button>
+      <button id="btn-dys">Zapnúť/Vypnúť font pre dyslektikov</button>
+      <button id="btn-pdf">Exportovať text ako .pdf</button>
+      <button id="btn-clear">Vymazať uložený text</button>
+    </div>
+
+    <div style="margin-top: 12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <div>
+        <label for="globalFontSize">Globálna veľkosť písma:</label>
+        <select id="globalFontSize" class="small-control">
+          <option value="12px">12 px</option>
+          <option value="14px">14 px</option>
+          <option value="16px" selected>16 px</option>
+          <option value="18px">18 px</option>
+          <option value="20px">20 px</option>
+          <option value="22px">22 px</option>
+          <option value="24px">24 px</option>
+		  <option value="26px">26 px</option>
+          <option value="28px">28 px</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="selectionFontSize">Veľkosť písma pre výber:</label>
+        <select id="selectionFontSize" class="small-control">
+          <option value="">(použiť)</option>
+          <option value="12px">12 px</option>
+          <option value="14px">14 px</option>
+          <option value="16px">16 px</option>
+          <option value="18px">18 px</option>
+          <option value="20px">20 px</option>
+          <option value="22px">22 px</option>
+          <option value="24px">24 px</option>
+		  <option value="26px">26 px</option>
+          <option value="28px">28 px</option>
+        </select>
+        <button id="applySelectionSize" class="tool" style="margin-left:6px;">Použiť na výber</button>
+        <button id="clearSelectionSize" class="tool" style="margin-left:6px;">Vymazať štýl výberu</button>
+      </div>
+    </div>
+
+    <div style="margin-top: 12px;">
+      <label for="lineHeight">Výška riadka:</label>
+      <select id="lineHeight">
+        <option value="1.2">1.2</option>
+        <option value="1.5" selected>1.5</option>
+        <option value="1.8">1.8</option>
+        <option value="2.0">2.0</option>
+        <option value="2.2">2.2</option>
+        <option value="2.5">2.5</option>
+      </select>
+    </div>
+
+    <div style="margin-top: 12px;">
+      <label for="letterSpacing">Medzery medzi písmenami:</label>
+      <select id="letterSpacing">
+        <option value="normal" selected>Normálna</option>
+        <option value="0.05em">0.05em</option>
+        <option value="0.1em">0.1em</option>
+        <option value="0.15em">0.15em</option>
+        <option value="0.2em">0.2em</option>
+        <option value="0.25em">0.25em</option>
+        <option value="0.3em">0.3em</option>
+      </select>
+    </div>
+	<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+<br><br>
+  </div>
+
+  <script>
+    const editor = document.getElementById('editor');
+    const STORAGE_KEY = 'editorText';
+    const FONT_KEY = 'editorFont';
+    const SIZE_KEY = 'editorGlobalFontSize';
+    const fontSelect = document.getElementById('fontSelect');
+    const dysBtn = document.getElementById('btn-dys');
+    const globalFontSize = document.getElementById('globalFontSize');
+    const selectionFontSize = document.getElementById('selectionFontSize');
+    const applySelectionSize = document.getElementById('applySelectionSize');
+    const clearSelectionSize = document.getElementById('clearSelectionSize');
+    const letterSpacingSelect = document.getElementById('letterSpacing');
+    let previousFont = null;
+
+    const FONT_MAP = {
+      'opendyslexic': '"OpenDyslexic3", "OpenDyslexic", "Atkinson Hyperlegible", sans-serif',
+      'comic': '"Comic Sans MS", "Comic Sans", "Segoe UI Emoji", sans-serif',
+      'courierprime': '"Courier Prime", "Courier New", monospace'
+    };
+
+    function saveEditorContent() {
+      try { localStorage.setItem(STORAGE_KEY, editor.innerHTML); } catch (e) {}
+    }
+
+    function loadEditorContent() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved !== null) editor.innerHTML = saved;
+      } catch (e) {}
+    }
+
+    function sanitizeNode(node) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.style) {
+          // Vymažeme font-family a letter-spacing z vloženého textu, aby sa riadili hlavným editorom
+          node.style.fontFamily = '';
+          node.style.letterSpacing = ''; 
+        }
+        if (node.tagName === 'FONT') {
+          const parent = node.parentNode;
+          while (node.firstChild) parent.insertBefore(node.firstChild, node);
+          parent.removeChild(node);
+          return;
+        }
+        if (node.hasAttribute('face')) node.removeAttribute('face');
+        Array.from(node.childNodes).forEach(child => sanitizeNode(child));
+      }
+    }
+
+    function parseAndSanitizeHTML(html) {
+      const template = document.createElement('template');
+      template.innerHTML = html;
+      const fragment = template.content;
+      Array.from(fragment.childNodes).forEach(n => sanitizeNode(n));
+      return fragment;
+    }
+
+    function insertFragmentAtCaret(fragment) {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) { editor.appendChild(fragment); return; }
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(fragment);
+      sel.removeAllRanges();
+      const newRange = document.createRange();
+      let lastNode = fragment.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? fragment.lastChild : fragment;
+      if (lastNode) {
+        newRange.setStartAfter(lastNode);
+        newRange.collapse(true);
+        sel.addRange(newRange);
+      }
+    }
+
+    // --- FUNKCIA NA RIADENIE MEDZIER ---
+    function updateLetterSpacing() {
+      const val = letterSpacingSelect.value;
+      const isDyslexic = document.body.classList.contains('dyslexic');
+      let finalSpacing = 'normal';
+
+      if (val === 'normal') {
+        // Ak je zvolená normálna, v dyslektickom režime dáme jemne širšie
+        finalSpacing = isDyslexic ? '0.02em' : 'normal';
+      } else {
+        finalSpacing = val;
+      }
+
+      // 1. Nastavíme štýl priamo na editor
+      editor.style.letterSpacing = finalSpacing;
+
+      // 2. Prejdeme všetky elementy vo vnútri a vymažeme im ich vlastný letter-spacing,
+      // aby dedili ten hlavný (rieši problémy s vloženým textom)
+      const children = editor.querySelectorAll('*');
+      children.forEach(child => {
+        if (child.style && child.style.letterSpacing) {
+           child.style.letterSpacing = '';
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadEditorContent();
+
+      const savedFont = localStorage.getItem(FONT_KEY);
+      if (savedFont && FONT_MAP[savedFont]) {
+        fontSelect.value = savedFont;
+        applyFont(savedFont);
+      } else {
+        applyFont(fontSelect.value);
+      }
+
+      const savedSize = localStorage.getItem(SIZE_KEY);
+      if (savedSize) {
+        globalFontSize.value = savedSize;
+        applyGlobalFontSize(savedSize);
+      } else {
+        applyGlobalFontSize(globalFontSize.value);
+      }
+      
+      // Inicializácia medzier
+      updateLetterSpacing();
+    });
+
+    setInterval(saveEditorContent, 5000);
+    editor.addEventListener('input', saveEditorContent);
+    window.addEventListener('beforeunload', saveEditorContent);
+
+    fontSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      applyFont(val);
+      try { localStorage.setItem(FONT_KEY, val); } catch (e) {}
+    });
+
+    function applyFont(key) {
+      const fontFamily = FONT_MAP[key] || FONT_MAP['courierprime'];
+      document.documentElement.style.setProperty('--editor-font', fontFamily);
+    }
+
+    globalFontSize.addEventListener('change', (e) => {
+      const size = e.target.value;
+      applyGlobalFontSize(size);
+      try { localStorage.setItem(SIZE_KEY, size); } catch (e) {}
+    });
+
+    function applyGlobalFontSize(size) {
+      editor.style.fontSize = size;
+    }
+
+    document.querySelectorAll('[data-format]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.execCommand(btn.getAttribute('data-format'), false, null);
+        editor.focus();
+      });
+    });
+
+    function setAlignment(alignment) {
+      editor.style.textAlign = alignment;
+    }
+
+    document.querySelectorAll('[data-cmd]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cmd = btn.getAttribute('data-cmd');
+        if (cmd === 'align-left') setAlignment('left');
+        if (cmd === 'align-center') setAlignment('center');
+        if (cmd === 'align-right') setAlignment('right');
+        if (cmd === 'align-justify') setAlignment('justify');
+      });
+    });
+
+    function insertAtCaret(text) {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(document.createTextNode(text));
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    document.querySelectorAll('[data-insert]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        insertAtCaret(btn.getAttribute('data-insert'));
+        editor.focus();
+      });
+    });
+
+    editor.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const clipboard = (e.clipboardData || window.clipboardData);
+      if (!clipboard) return;
+
+      const html = clipboard.getData('text/html');
+      const text = clipboard.getData('text/plain');
+
+      if (html) {
+        const fragment = parseAndSanitizeHTML(html);
+        const elements = fragment.querySelectorAll ? fragment.querySelectorAll('*') : [];
+        elements.forEach(el => {
+          if (el.style) {
+             el.style.fontFamily = '';
+             el.style.letterSpacing = ''; // Dôležité pri prilepení
+          }
+          if (el.hasAttribute && el.hasAttribute('face')) el.removeAttribute('face');
+        });
+        insertFragmentAtCaret(fragment);
+      } else if (text) {
+        const lines = text.split(/\r\n|\r|\n/);
+        const frag = document.createDocumentFragment();
+        lines.forEach((line, idx) => {
+          frag.appendChild(document.createTextNode(line));
+          if (idx < lines.length - 1) frag.appendChild(document.createElement('br'));
+        });
+        insertFragmentAtCaret(frag);
+      }
+      saveEditorContent();
+      // Po vložení aktualizujeme medzery
+      updateLetterSpacing();
+    });
+
+    document.getElementById('btn-bigger').addEventListener('click', () => {
+      const currentSize = parseFloat(window.getComputedStyle(editor).fontSize);
+      const newSize = (currentSize + 2) + 'px';
+      editor.style.fontSize = newSize;
+      globalFontSize.value = newSize;
+      try { localStorage.setItem(SIZE_KEY, newSize); } catch (e) {}
+    });
+
+    dysBtn.addEventListener('click', () => {
+      const isActive = document.body.classList.toggle('dyslexic');
+      if (isActive) {
+        previousFont = fontSelect.value;
+        fontSelect.value = 'opendyslexic';
+        applyFont('opendyslexic');
+        try { localStorage.setItem(FONT_KEY, 'opendyslexic'); } catch (e) {}
+      } else {
+        if (previousFont && FONT_MAP[previousFont]) {
+          fontSelect.value = previousFont;
+          applyFont(previousFont);
+          try { localStorage.setItem(FONT_KEY, previousFont); } catch (e) {}
+        }
+        previousFont = null;
+      }
+      // Aktualizujeme medzery po prepnutí režimu
+      updateLetterSpacing();
+    });
+
+    function wrapSelectionWithSpan(styleObj) {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return false;
+      const range = sel.getRangeAt(0);
+      if (range.collapsed) return false;
+
+      const span = document.createElement('span');
+      for (const k in styleObj) {
+        span.style[k] = styleObj[k];
+      }
+
+      const content = range.extractContents();
+      span.appendChild(content);
+      range.insertNode(span);
+
+      sel.removeAllRanges();
+      const newRange = document.createRange();
+      newRange.selectNodeContents(span);
+      sel.addRange(newRange);
+
+      saveEditorContent();
+      return true;
+    }
+
+    applySelectionSize.addEventListener('click', () => {
+      const size = selectionFontSize.value;
+      if (!size) return;
+      wrapSelectionWithSpan({ fontSize: size });
+    });
+
+    clearSelectionSize.addEventListener('click', () => {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      if (range.collapsed) return;
+
+      const container = range.commonAncestorContainer;
+      const walker = document.createTreeWalker(
+        container.nodeType === Node.ELEMENT_NODE ? container : container.parentNode,
+        NodeFilter.SHOW_ELEMENT,
+        {
+          acceptNode(node) {
+            const nodeRange = document.createRange();
+            try { nodeRange.selectNodeContents(node); } catch (e) { return NodeFilter.FILTER_REJECT; }
+            if (range.compareBoundaryPoints(Range.END_TO_START, nodeRange) >= 0 ||
+                range.compareBoundaryPoints(Range.START_TO_END, nodeRange) <= 0) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        },
+        false
+      );
+
+      const toClean = [];
+      while (walker.nextNode()) toClean.push(walker.currentNode);
+
+      toClean.forEach(node => {
+        if (node.style && node.style.fontSize) {
+          node.style.fontSize = '';
+          if (node.tagName === 'SPAN' && node.getAttribute('style') === '') {
+            const parent = node.parentNode;
+            while (node.firstChild) parent.insertBefore(node.firstChild, node);
+            parent.removeChild(node);
+          }
+        }
+      });
+
+      let el = sel.anchorNode;
+      while (el && el !== editor) {
+        if (el.nodeType === Node.ELEMENT_NODE && el.style && el.style.fontSize) {
+          el.style.fontSize = '';
+          if (el.tagName === 'SPAN' && el.getAttribute('style') === '') {
+            const parent = el.parentNode;
+            while (el.firstChild) parent.insertBefore(el.firstChild, el);
+            parent.removeChild(el);
+          }
+        }
+        el = el.parentNode;
+      }
+      saveEditorContent();
+    });
+
+    document.getElementById('btn-pdf').addEventListener('click', () => {
+      window.print();
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      editor.innerHTML = '';
+    });
+
+    document.getElementById('lineHeight').addEventListener('change', (e) => {
+      editor.style.lineHeight = e.target.value;
+    });
+
+    // Pripájame listener na zmenu medzier
+    letterSpacingSelect.addEventListener('change', updateLetterSpacing);
+  </script>
+
+</body>
+</html>

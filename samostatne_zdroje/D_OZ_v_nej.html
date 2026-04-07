@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datív osobných zámen v nemčine</title>
+    <style>
+        body {
+            font-family: Courier bold, monospace;
+            margin: 20px;
+            background-color: #fdfdfd;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        #studentInfo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #studentInfo label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        #studentInfo input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #instructions {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+			max-width: 950px; 
+			margin: 0 auto;   /* centrovanie bloku horizontálne */
+			text-align: left; /* text zostane zarovnaný vľavo */
+        }
+        
+       
+        #exerciseContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Vrátené na 10px */
+            align-items: center;
+            justify-content: center;
+            max-width: 850px; /* Obmedzená šírka pre zúženie priestoru */
+			margin:	0 auto;   /* centrovanie horizontálne */
+        }
+        
+     
+        #tableContainer {
+            margin-top: 30px;
+			flex: 2; /* Zmenené z 3 na 2 */
+            min-width: 350px;
+        }
+        
+        #buttonContainer {
+            flex: 1;
+            min-width: 80px; 
+            display: grid; /* Zmenené na grid */
+            grid-template-columns: 1fr 1fr 1fr;
+            column-gap: 10px; 
+            align-items: center;
+            justify-content: center;
+        }
+
+        
+        table {
+            width: 90%;
+            border-collapse: collapse;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+       
+       
+        th, td {
+            border: 1px solid #b0b0b0;
+            padding: 5px; 
+            text-align: center;
+            height: 1.5em; 
+            font-size: 1.4em;
+        }
+        th {
+            background-color: #e9e9e9;
+        }
+
+        /* Štýly pozadia stĺpcov */
+        td:nth-child(1), th:nth-child(1) { background-color: #ffffff; }
+        
+        td:nth-child(2), th:nth-child(2) { 
+            background-color: #fed8b1; /* Oranžová */
+            width: 40%; /* Upravená šírka */
+        } 
+       
+
+        .droppable {
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: bold;
+            color: #000; 
+        }
+        
+        .droppable:hover {
+            background-color: #cceeff;
+        }
+        .droppable.filled {
+            cursor: ns-resize;
+        }
+        
+        .answer-button {
+            padding: 12px; 
+            cursor: pointer;
+            background-color: #f8f8f8;
+            justify-content: center;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            border-radius: 5px;
+            transition: all 0.2s;
+            margin-bottom: 10px; 
+            break-inside: avoid; 
+        }
+        
+        .answer-button strong {
+            font-size: 1.6em; 
+            font-family: Courier bold, monospace;
+        }
+        
+        .answer-button:hover {
+            background-color: #e0e0e0;
+        }
+        .answer-button.selected {
+            border: 3px solid #007BFF;
+            background-color: #cceeff;
+            transform: scale(1.05);
+        }
+
+        /* Krátka animácia pre vizuálnu spätnú väzbu, ak sa pokúsite vložiť do obsadenej bunky */
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            50% { transform: translateX(4px); }
+            75% { transform: translateX(-4px); }
+            100% { transform: translateX(0); }
+        }
+        .answer-button.shake {
+            animation: shake 0.28s ease-in-out;
+        }
+
+        #evaluationSection {
+            margin-top: 30px;
+            text-align: center;
+        }
+        #evaluateButton, #detailedButton {
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        #evaluateButton:hover, #detailedButton:hover {
+            background-color: #0056b3;
+        }
+        #evaluateButton:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+        /* Výsledky */
+        #summarySection {
+            display: none;
+            margin-top: 20px;
+            border: 2px solid #007BFF;
+            padding: 20px;
+            background-color: #f4faff;
+            border-radius: 8px;
+        }
+        #summarySection h2 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+        .result-symbol {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .correct { color: green; }
+        .incorrect { color: red; }
+
+        /* Štýly pre okno s detailnými výsledkami */
+        .popup-body { padding: 20px; font-family: Courier bold, monospace; }
+        .popup-body h1 { text-align: center; }
+        .popup-body .summary-block { border: 1px solid #ccc; background: #f9f9f9; padding: 15px; margin-bottom: 20px; }
+        .popup-body table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .popup-body th, .popup-body td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .popup-body th { background-color: #f2f2f2; }
+        .popup-body .legend { margin-top: 20px; }
+        .popup-body .legend-symbol { font-weight: bold; font-size: 1.2em; }
+        
+        /* Tlačové štýly pre detailné výsledky */
+        @media print {
+            .no-print { display: none; }
+            body, .popup-body {
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+                border: none;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Datív osobných zámen v nemčine</h1>
+
+    <div id="studentInfo">
+        <label for="studentName">Meno žiaka:</label>
+        <input type="text" id="studentName" style="width:400px; box-sizing:border-box;">
+
+    </div>
+
+    <div id="instructions">
+        <span style="font-size: 110%;"><strong>Pokyny:</strong> Klikni na tlačidlo, ktorého obsah chceš umiestniť.<br>
+        Následne klikni na príslušnú prázdnu bunku. 
+        <br>Ak si to rozmyslíš, klikni na obsah bunky dvakrát a dané tlačidlo sa objaví znova medzi možnosťami.</span>
+    </div>
+
+    <div id="exerciseContainer">
+        <div id="tableContainer">
+            <table>
+                <thead>
+                    <tr>
+                        <th><strong>nominatív</strong></th>
+                        <th><strong>datív</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                <tr data-row-id="0">
+                    <td><strong>ich</strong></td>
+                    <td class="droppable" data-correct="mir"></td>
+                </tr>
+            
+                <tr data-row-id="1">
+                    <td><strong>du</strong></td>
+                    <td class="droppable" data-correct="dir"></td>
+                </tr>
+            
+                <tr data-row-id="2">
+                    <td><strong>er</strong></td>
+                    <td class="droppable" data-correct="ihm"></td>
+                </tr>
+            
+                <tr data-row-id="3">
+                    <td><strong>sie (ona)</strong></td>
+                    <td class="droppable" data-correct="ihr"></td>
+                </tr>
+            
+                <tr data-row-id="4">
+                    <td><strong>es</strong></td>
+                    <td class="droppable" data-correct="ihm"></td>
+                </tr>
+            
+                <tr data-row-id="5">
+                    <td><strong>wir</strong></td>
+                    <td class="droppable" data-correct="uns"></td>
+                </tr>
+            
+                <tr data-row-id="6">
+                    <td><strong>ihr</strong></td>
+                    <td class="droppable" data-correct="euch"></td>
+                </tr>
+            
+                <tr data-row-id="7">
+                    <td><strong>sie (oni/ony)</strong></td>
+                    <td class="droppable" data-correct="ihnen"></td>
+                </tr>
+            
+                <tr data-row-id="8">
+                    <td><strong>Sie</strong></td>
+                    <td class="droppable" data-correct="Ihnen"></td>
+                </tr>
+            
+                </tbody>
+            </table>
+        </div>
+        <div id="buttonContainer">
+            <button class="answer-button"><strong>ihnen</strong></button>
+<button class="answer-button"><strong>dir</strong></button>
+<button class="answer-button"><strong>euch</strong></button>
+<button class="answer-button"><strong>ihm</strong></button>
+<button class="answer-button"><strong>Ihnen</strong></button>
+<button class="answer-button"><strong>mir</strong></button>
+<button class="answer-button"><strong>uns</strong></button>
+<button class="answer-button"><strong>ihr</strong></button>
+<button class="answer-button"><strong>ihm</strong></button>
+        </div>
+    </div>
+
+    <div id="evaluationSection">
+        <button id="evaluateButton">Vyhodnotiť</button>
+        <button id="detailedButton" style="display: none;">Detailné výsledky</button>
+    </div>
+
+    <div id="summarySection">
+        <h2>Prehľad hodnotenia</h2>
+        <p><strong>Názov cvičenia:</strong> <span id="summaryTitle"></span></p>
+        <p><strong>Meno žiaka:</strong> <span id="summaryName"></span></p>
+        <p><strong>Hodnotenie:</strong> <span id="summaryScore"></span></p>
+        <p><strong>Dátum a čas:</strong> <span id="summaryDate"></span></p>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Shuffle answer buttons on each load/refresh so order changes after page reload
+        const buttonContainer = document.getElementById('buttonContainer');
+        if (buttonContainer) {
+            const nodes = Array.from(buttonContainer.children);
+            for (let i = nodes.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [nodes[i], nodes[j]] = [nodes[j], nodes[i]];
+            }
+            nodes.forEach(n => buttonContainer.appendChild(n));
+        }
+
+        let selectedButton = null;
+        let exerciseState = 'active';
+        let detailedResultsData = [];
+        const exerciseTitle = "Datív osobných zámen v nemčine";
+        // Názov cvičenia je vložený priamo z generátora
+
+        const answerButtons = document.querySelectorAll('.answer-button');
+        const droppableCells = document.querySelectorAll('.droppable');
+        const evaluateButton = document.getElementById('evaluateButton');
+        const detailedButton = document.getElementById('detailedButton');
+        const studentNameInput = document.getElementById('studentName');
+        
+        // 1. Logika výberu tlačidla
+        answerButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (exerciseState !== 'active') return;
+
+                if (selectedButton === button) {
+                    // Zrušiť výber
+                    button.classList.remove('selected');
+                    selectedButton = null;
+                } else {
+                    // Zrušiť výber starého, vybrať nové
+                    if (selectedButton) {
+                        selectedButton.classList.remove('selected');
+                    }
+                    button.classList.add('selected');
+                    selectedButton = button;
+                }
+            });
+        });
+        
+        // 2. Logika vloženia do bunky
+        droppableCells.forEach(cell => {
+            cell.addEventListener('click', () => {
+                if (exerciseState !== 'active') return;
+
+                // Ak máme vybrané tlačidlo a bunka je prázdna -> vložíme obsah
+                if (selectedButton && !cell.textContent.trim()) {
+                    cell.textContent = selectedButton.querySelector('strong').textContent;
+                    cell.classList.add('filled');
+                    selectedButton.style.display = 'none'; // Skryjeme tlačidlo
+                    selectedButton.classList.remove('selected');
+                    selectedButton = null;
+                    return;
+                }
+
+                // Ak máme vybrané tlačidlo a bunka už obsahuje niečo -> nič nemeníme (obsah nezmizne)
+                if (selectedButton && cell.textContent.trim()) {
+                    // Krátka vizuálna spätná väzba na tlačidle, že vloženie nie je možné
+                    selectedButton.classList.add('shake');
+                    setTimeout(() => selectedButton.classList.remove('shake'), 300);
+                    return;
+                }
+
+                // Ak nie je vybraté žiadne tlačidlo a bunka je obsadená -> nič sa nedeje (obsah zostane)
+                // Jediný spôsob, ako vrátiť obsah späť medzi tlačidlá, zostáva dvojklik (dblclick)
+            });
+
+            // 3. Logika vrátenia (dvojklik)
+            cell.addEventListener('dblclick', () => {
+                if (exerciseState !== 'active') return;
+
+                const textToReturn = cell.textContent.trim();
+                if (textToReturn) {
+                    // Nájsť skryté tlačidlo s rovnakým textom (najskôr hľadáme také, ktoré je momentálne skryté)
+                    let buttonToRestore = null;
+                    answerButtons.forEach(btn => {
+                        if (btn.querySelector('strong').textContent === textToReturn && btn.style.display === 'none') {
+                            if (!buttonToRestore) buttonToRestore = btn;
+                        }
+                    });
+                    // Ak nenašli skryté, nájdeme prvé s rovnakým textom (bez ohľadu na viditeľnosť)
+                    if (!buttonToRestore) {
+                        answerButtons.forEach(btn => {
+                            if (btn.querySelector('strong').textContent === textToReturn && !buttonToRestore) {
+                                buttonToRestore = btn;
+                            }
+                        });
+                    }
+
+                    if (buttonToRestore) {
+                        buttonToRestore.style.display = 'block'; // Zobrazíme tlačidlo
+                    }
+                    
+                    cell.textContent = ''; // Vyprázdnime bunku
+                    cell.classList.remove('filled');
+                }
+            });
+        });
+        
+        // 4. Logika vyhodnotenia
+        evaluateButton.addEventListener('click', () => {
+            if (exerciseState !== 'evaluated') {
+                exerciseState = 'evaluated';
+                evaluateButton.disabled = true;
+                detailedButton.style.display = 'inline-block';
+
+                
+                let total = 0;
+                let correct = 0;
+                detailedResultsData = [];
+
+                const studentName = studentNameInput.value.trim() || 'Anonym';
+                studentNameInput.disabled = true; // Zamkneme pole mena
+
+                document.querySelectorAll('#tableContainer tbody tr').forEach(row => {
+                    const nominativ = row.cells[0].textContent.trim();
+                    const dativeCell = row.cells[1];
+
+                    // --- Vyhodnotenie Datívu ---
+                    total++;
+                    const dativeUser = dativeCell.textContent.trim();
+                    const dativeCorrect = dativeCell.dataset.correct;
+                    let dativeSymbol = '✗';
+                    let dativeClass = 'incorrect';
+                    
+                    if (dativeUser === dativeCorrect) {
+                        correct++;
+                        dativeSymbol = '✓';
+                        dativeClass = 'correct';
+                    }
+                    dativeCell.innerHTML += ` <span class="result-symbol ${dativeClass}">${dativeSymbol}</span>`;
+                    detailedResultsData.push({
+                        base: nominativ,
+                        type: 'datív', // Toto môžeme ponechať pre internú logiku, ale v detailoch sa nezobrazí
+                        user: dativeUser || '---',
+                        correct: dativeCorrect,
+                        symbol: dativeSymbol
+                    });
+                    
+                });
+
+                // Zablokujeme ďalšie úpravy
+                droppableCells.forEach(cell => cell.style.cursor = 'default');
+                answerButtons.forEach(btn => {
+                    btn.style.cursor = 'not-allowed';
+                    btn.disabled = true;
+                });
+                
+                // Vypočítame a zobrazíme súhrn
+                const percentage = (total > 0) ? (correct / total * 100).toFixed(1) : 0;
+                const scoreText = `${correct} z ${total} správnych (${percentage} %)`;
+                const now = new Date();
+                const dateTimeText = now.toLocaleString('sk-SK');
+
+                document.getElementById('summaryTitle').textContent = exerciseTitle;
+                document.getElementById('summaryName').textContent = studentName;
+                document.getElementById('summaryScore').textContent = scoreText;
+                document.getElementById('summaryDate').textContent = dateTimeText;
+                document.getElementById('summarySection').style.display = 'block';
+            }
+        });
+        
+        // 5. Logika detailných výsledkov (nové okno)
+        detailedButton.addEventListener('click', () => {
+            const studentName = document.getElementById('studentName').value.trim() || 'Anonym';
+            const score = document.getElementById('summaryScore').textContent;
+            const date = document.getElementById('summaryDate').textContent;
+
+            let detailTableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Základ (Nominatív)</th>
+                            <th>Tvoja odpoveď</th>
+                            <th>Správna odpoveď</th>
+                            <th>Hodnotenie</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            detailedResultsData.forEach(res => {
+                detailTableHTML += `
+                    <tr>
+                        <td>${res.base}</td>
+                        <td>${res.user}</td>
+                        <td><strong>${res.correct}</strong></td>
+                        <td><span class="result-symbol ${res.symbol === '✓' ? 'correct' : 'incorrect'}">${res.symbol}</span></td>
+                    </tr>
+                `;
+            });
+            
+            detailTableHTML += `</tbody></table>`;
+
+            const popupContent = `
+                <html>
+                <head>
+                    <title>Detailné výsledky: Datív osobných zámen v nemčine</title>
+                    <style>
+                        /* Vložia sa rovnaké CSS štýly ako pre hlavnú stránku pre konzistentnosť */
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        h1 { text-align: center; color: #333; }
+                        .summary-block { border: 1px solid #ccc; background: #f9f9f9; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                        .result-symbol { font-size: 1.3em; font-weight: bold; }
+                        .correct { color: green; }
+                        .incorrect { color: red; }
+                        .legend { margin-top: 20px; background-color: #f0f0f0; padding: 10px; border-radius: 5px; }
+                        .legend-symbol { font-weight: bold; font-size: 1.2em; }
+                        
+                        @media print {
+                            body { padding: 0; margin: 0; }
+                            .summary-block { border: 1px solid #000; background: #fff; page-break-inside: avoid; }
+                            table { page-break-inside: auto; }
+                            tr { page-break-inside: avoid; }
+                        }
+                    </style>
+                </head>
+                <body class="popup-body">
+                    <h1>Detailné výsledky</h1>
+                    
+                    <div class="summary-block">
+                        <p><strong>Názov cvičenia:</strong> Datív osobných zámen v nemčine</p>
+                        <p><strong>Meno žiaka:</strong> ${studentName}</p>
+                        <p><strong>Hodnotenie:</strong> ${score}</p>
+                        <p><strong>Dátum a čas:</strong> ${date}</p>
+                    </div>
+
+                    <h2>Detailný prehľad (Datív)</h2>
+                    ${detailTableHTML}
+
+                    <div class="legend">
+                        <strong>Vysvetlivky:</strong><br>
+                        <span class="legend-symbol correct">✓</span> = Správna odpoveď<br>
+                        <span class="legend-symbol incorrect">✗</span> = Nesprávna odpoveď
+                    </div>
+                </body>
+                </html>
+            `;
+            const popupWindow = window.open('', 'DetailneVysledky', 'width=900,height=700,scrollbars=yes,resizable=yes');
+            popupWindow.document.open();
+            popupWindow.document.write(popupContent);
+            popupWindow.document.close();
+            popupWindow.focus(); // Pre istotu, aby sa okno zobrazilo navrchu
+        });
+    });
+    </script>
+
+</body>
+</html>

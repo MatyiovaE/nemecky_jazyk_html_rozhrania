@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akuzatív osobných zámen v nemčine so slovenským prekladom</title>
+    <style>
+        body {
+            font-family: Courier bold, monospace;
+            margin: 20px;
+            background-color: #fdfdfd;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        #studentInfo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #studentInfo label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        #studentInfo input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #instructions {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+			max-width: 950px; 
+			margin: 0 auto;   /* centrovanie bloku horizontálne */
+			text-align: left; /* text zostane zarovnaný vľavo */
+        }
+        
+       
+        #exerciseContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Vrátené na 10px */
+            align-items: center;
+            justify-content: center;
+            max-width: 900px; /* Obmedzená šírka pre zúženie priestoru */
+			margin:	0 auto;   /* centrovanie horizontálne */
+        }
+        
+     
+        #tableContainer {
+            margin-top: 30px;
+			flex: 2; /* Zmenené z 3 na 2 */
+            min-width: 450px;
+        }
+        
+        #buttonContainer {
+            flex: 1;
+            min-width: 80px; 
+            display: grid; /* Zmenené na grid */
+            grid-template-columns: 1fr 1fr 1fr;
+            column-gap: 10px; 
+            align-items: center;
+            justify-content: center;
+        }
+
+        
+        table {
+            width: 90%;
+            border-collapse: collapse;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+       
+       
+        th, td {
+            border: 1px solid #b0b0b0;
+            padding: 5px; 
+            text-align: center;
+            height: 1.5em; 
+            font-size: 1.4em;
+        }
+        th {
+            background-color: #e9e9e9;
+        }
+
+        /* ZMENA: Štýly pozadia stĺpcov */
+        td:nth-child(1), th:nth-child(1) { background-color: #ffffff; }
+        td:nth-child(2), th:nth-child(2) { background-color: #d9ead3; } /* Svetlozelená (Akuzatív) */
+        td:nth-child(3), th:nth-child(3) { background-color: #e8f5e3; } /* Svetlejšia zelená (Preklad) */
+        
+    
+        td:nth-child(2), th:nth-child(2) { 
+            background-color: #d9ead3; /* ZMENA: Svetlozelená */
+            width: 33%; /* Fixná šírka */
+        } 
+        td:nth-child(3), th:nth-child(3) { 
+            background-color: #e8f5e3; /* ZMENA: Svetlejšia zelená */
+            width: 33%; /* Fixná šírka */
+        } 
+       
+
+        .droppable {
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: bold;
+            color: #000; 
+        }
+        
+        /* Zabezpečí, že text v bunkách 3. stĺpca nebude hrubý */
+        td:nth-child(3).droppable {
+            font-weight: normal; 
+        }
+
+        .droppable:hover {
+            background-color: #cceeff;
+        }
+        .droppable.filled {
+            cursor: ns-resize;
+        }
+        
+        /* Nastavenie spoločnej veľkosti písma pre všetky tlačidlá */
+        .answer-button {
+            padding: 12px; 
+            cursor: pointer;
+            background-color: #f8f8f8; /* sivá pre Akuzatív */
+            justify-content: center;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            border-radius: 5px;
+            transition: all 0.2s;
+            margin-bottom: 10px; 
+            break-inside: avoid; 
+            font-size: 1.3em; /* Jednotná veľkosť písma pre VŠETKY tlačidlá */
+        }
+        
+        /* ZMENA: NOVÝ ŠTÝL pre tlačidlá prekladu (zelené) */
+        .answer-button.translation-button-green {
+            background-color: #e8f5e3; /* Svetlozelená */
+            font-weight: normal; /* Zabezpečenie normálneho písma */
+			font-family: Courier bold, monospace;
+        }
+        
+        /* Tento štýl zostáva pre sivé tlačidlá (Akuzatív) */
+        .answer-button strong {
+            /* font-size dedí z .answer-button */
+            font-family: Courier bold, monospace;
+        }
+        
+        .answer-button:hover {
+            background-color: #e0e0e0; /* Tmavšia sivá pre Akuzatív hover */
+        }
+        
+        /* ZMENA: NOVÝ ŠTÝL pre hover tlačidiel prekladu (zelené) */
+        .answer-button.translation-button-green:hover {
+            background-color: #d9ead3; /* Tmavšia zelená pri hover */
+        }
+        
+        .answer-button.selected {
+            border: 3px solid #007BFF;
+            background-color: #cceeff;
+            transform: scale(1.05);
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            50% { transform: translateX(4px); }
+            75% { transform: translateX(-4px); }
+            100% { transform: translateX(0); }
+        }
+        .answer-button.shake {
+            animation: shake 0.28s ease-in-out;
+        }
+
+        #evaluationSection {
+            margin-top: 30px;
+            text-align: center;
+        }
+        #evaluateButton, #detailedButton {
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        #evaluateButton:hover, #detailedButton:hover {
+            background-color: #0056b3;
+        }
+        #evaluateButton:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+        #summarySection {
+            display: none;
+            margin-top: 20px;
+            border: 2px solid #007BFF;
+            padding: 20px;
+            background-color: #f4faff;
+            border-radius: 8px;
+        }
+        #summarySection h2 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+        .result-symbol {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .correct { color: green; }
+        .incorrect { color: red; }
+
+        .popup-body { padding: 20px; font-family: Courier bold, monospace; }
+        .popup-body h1 { text-align: center; }
+        .popup-body .summary-block { border: 1px solid #ccc; background: #f9f9f9; padding: 15px; margin-bottom: 20px; }
+        .popup-body table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .popup-body th, .popup-body td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .popup-body th { background-color: #f2f2f2; }
+        .popup-body .legend { margin-top: 20px; }
+        .popup-body .legend-symbol { font-weight: bold; font-size: 1.2em; }
+        
+        @media print {
+            .no-print { display: none; }
+            body, .popup-body {
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+                border: none;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Akuzatív osobných zámen v nemčine so slovenským prekladom</h1>
+
+    <div id="studentInfo">
+        <label for="studentName">Meno žiaka:</label>
+        <input type="text" id="studentName" style="width:400px; box-sizing:border-box;">
+
+    </div>
+
+    <div id="instructions">
+        <span style="font-size: 110%;"><strong>Pokyny:</strong> Klikni na tlačidlo, ktorého obsah chceš umiestniť.<br>
+        Následne klikni na príslušnú prázdnu bunku. 
+        <br>Ak si to rozmyslíš, klikni na obsah bunky dvakrát a dané tlačidlo sa objaví znova medzi možnosťami.</span>
+    </div>
+
+    <div id="exerciseContainer">
+        <div id="tableContainer">
+            <table>
+                <thead>
+                    <tr>
+                        <th><strong>nominatív</strong></th>
+                        <th><strong>akuzatív</strong></th>
+                        <th><strong>slovenský preklad</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                <tr data-row-id="0">
+                    <td><strong>ich</strong></td>
+                    <td class="droppable" data-correct="mich"></td>
+                    <td class="droppable" data-correct="mňa, ma"></td>
+                </tr>
+            
+                <tr data-row-id="1">
+                    <td><strong>du</strong></td>
+                    <td class="droppable" data-correct="dich"></td>
+                    <td class="droppable" data-correct="teba, ťa"></td>
+                </tr>
+            
+                <tr data-row-id="2">
+                    <td><strong>er</strong></td>
+                    <td class="droppable" data-correct="ihn"></td>
+                    <td class="droppable" data-correct="jeho, ho"></td>
+                </tr>
+            
+                <tr data-row-id="3">
+                    <td><strong>sie (ona)</strong></td>
+                    <td class="droppable" data-correct="sie"></td>
+                    <td class="droppable" data-correct="ju"></td>
+                </tr>
+            
+                <tr data-row-id="4">
+                    <td><strong>es</strong></td>
+                    <td class="droppable" data-correct="es"></td>
+                    <td class="droppable" data-correct="jeho, ho"></td>
+                </tr>
+            
+                <tr data-row-id="5">
+                    <td><strong>wir</strong></td>
+                    <td class="droppable" data-correct="uns"></td>
+                    <td class="droppable" data-correct="nás"></td>
+                </tr>
+            
+                <tr data-row-id="6">
+                    <td><strong>ihr</strong></td>
+                    <td class="droppable" data-correct="euch"></td>
+                    <td class="droppable" data-correct="vás (T2)"></td>
+                </tr>
+            
+                <tr data-row-id="7">
+                    <td><strong>sie (oni/ony)</strong></td>
+                    <td class="droppable" data-correct="sie"></td>
+                    <td class="droppable" data-correct="ich"></td>
+                </tr>
+            
+                <tr data-row-id="8">
+                    <td><strong>Sie</strong></td>
+                    <td class="droppable" data-correct="Sie"></td>
+                    <td class="droppable" data-correct="Vás (V)"></td>
+                </tr>
+            
+                </tbody>
+            </table>
+        </div>
+        <div id="buttonContainer">
+            
+            <button class="answer-button"><strong>mich</strong></button>
+            <button class="answer-button"><strong>dich</strong></button>
+            <button class="answer-button"><strong>ihn</strong></button>
+            <button class="answer-button"><strong>sie</strong></button>
+            <button class="answer-button"><strong>es</strong></button>
+            <button class="answer-button"><strong>uns</strong></button>
+            <button class="answer-button"><strong>euch</strong></button>
+            <button class="answer-button"><strong>sie</strong></button>
+            <button class="answer-button"><strong>Sie</strong></button>
+            
+            <button class="answer-button translation-button-green">mňa, ma</button>
+            <button class="answer-button translation-button-green">teba, ťa</button>
+            <button class="answer-button translation-button-green">jeho, ho</button>
+            <button class="answer-button translation-button-green">ju</button>
+            <button class="answer-button translation-button-green">jeho, ho</button>
+            <button class="answer-button translation-button-green">nás</button>
+            <button class="answer-button translation-button-green">vás (T2)</button>
+            <button class="answer-button translation-button-green">ich</button>
+            <button class="answer-button translation-button-green">Vás (V)</button>
+
+        </div>
+    </div>
+
+    <div id="evaluationSection">
+        <button id="evaluateButton">Vyhodnotiť</button>
+        <button id="detailedButton" style="display: none;">Detailné výsledky</button>
+    </div>
+
+    <div id="summarySection">
+        <h2>Prehľad hodnotenia</h2>
+        <p><strong>Názov cvičenia:</strong> <span id="summaryTitle"></span></p>
+        <p><strong>Meno žiaka:</strong> <span id="summaryName"></span></p>
+        <p><strong>Hodnotenie:</strong> <span id="summaryScore"></span></p>
+        <p><strong>Dátum a čas:</strong> <span id="summaryDate"></span></p>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Shuffle answer buttons on each load/refresh so order changes after page reload
+        const buttonContainer = document.getElementById('buttonContainer');
+        if (buttonContainer) {
+            const nodes = Array.from(buttonContainer.children);
+            for (let i = nodes.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [nodes[i], nodes[j]] = [nodes[j], nodes[i]];
+            }
+            nodes.forEach(n => buttonContainer.appendChild(n));
+        }
+
+        let selectedButton = null;
+        let exerciseState = 'active';
+        let detailedResultsData = [];
+        const exerciseTitle = "Akuzatív osobných zámen v nemčine so slovenským prekladom";
+        // Názov cvičenia je vložený priamo z generátora
+
+        const answerButtons = document.querySelectorAll('.answer-button');
+        const droppableCells = document.querySelectorAll('.droppable');
+        const evaluateButton = document.getElementById('evaluateButton');
+        const detailedButton = document.getElementById('detailedButton');
+        const studentNameInput = document.getElementById('studentName');
+        
+        // 1. Logika výberu tlačidla
+        answerButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (exerciseState !== 'active') return;
+
+                if (selectedButton === button) {
+                    button.classList.remove('selected');
+                    selectedButton = null;
+                } else {
+                    if (selectedButton) {
+                        selectedButton.classList.remove('selected');
+                    }
+                    button.classList.add('selected');
+                    selectedButton = button;
+                }
+            });
+        });
+        
+        // 2. Logika vloženia do bunky
+        droppableCells.forEach(cell => {
+            cell.addEventListener('click', () => {
+                if (exerciseState !== 'active') return;
+
+                if (selectedButton && !cell.textContent.trim()) {
+                    // Nájde text buď zo <strong> alebo priamo z tlačidla
+                    const buttonText = selectedButton.querySelector('strong') 
+                                        ? selectedButton.querySelector('strong').textContent 
+                                        : selectedButton.textContent.trim();
+                    
+                    cell.textContent = buttonText;
+                    cell.classList.add('filled');
+                    selectedButton.style.display = 'none'; 
+                    selectedButton.classList.remove('selected');
+                    selectedButton = null;
+                    return;
+                }
+
+                if (selectedButton && cell.textContent.trim()) {
+                    selectedButton.classList.add('shake');
+                    setTimeout(() => selectedButton.classList.remove('shake'), 300);
+                    return;
+                }
+            });
+
+            // 3. Logika vrátenia (dvojklik)
+            cell.addEventListener('dblclick', () => {
+                if (exerciseState !== 'active') return;
+
+                const textToReturn = cell.textContent.trim();
+                if (textToReturn) {
+                    // Nájsť skryté tlačidlo s rovnakým textom
+                    let buttonToRestore = null;
+                    answerButtons.forEach(btn => {
+                        const btnText = btn.querySelector('strong') 
+                                        ? btn.querySelector('strong').textContent 
+                                        : btn.textContent.trim();
+
+                        if (btnText === textToReturn && btn.style.display === 'none') {
+                            if (!buttonToRestore) buttonToRestore = btn;
+                        }
+                    });
+                    
+                    if (buttonToRestore) {
+                        buttonToRestore.style.display = 'block'; 
+                    }
+                    
+                    cell.textContent = ''; 
+                    cell.classList.remove('filled');
+                }
+            });
+        });
+        
+        // 4. Logika vyhodnotenia
+        evaluateButton.addEventListener('click', () => {
+            if (exerciseState !== 'evaluated') {
+                exerciseState = 'evaluated';
+                evaluateButton.disabled = true;
+                detailedButton.style.display = 'inline-block';
+
+                
+                let total = 0;
+                let correct = 0;
+                detailedResultsData = [];
+
+                const studentName = studentNameInput.value.trim() || 'Anonym';
+                studentNameInput.disabled = true; 
+
+                document.querySelectorAll('#tableContainer tbody tr').forEach(row => {
+                    const nominativ = row.cells[0].textContent.trim();
+                    // ZMENA: Namiesto Datívu kontrolujeme Akuzatív
+                    const accusativeCell = row.cells[1];
+                    const translationCell = row.cells[2]; 
+
+                    // --- Vyhodnotenie Akuzatívu ---
+                    total++;
+                    const accUser = accusativeCell.textContent.trim();
+                    const accCorrect = accusativeCell.dataset.correct;
+                    let accSymbol = '✗';
+                    let accClass = 'incorrect';
+                    
+                    if (accUser === accCorrect) {
+                        correct++;
+                        accSymbol = '✓';
+                        accClass = 'correct';
+                    }
+                    accusativeCell.innerHTML += ` <span class="result-symbol ${accClass}">${accSymbol}</span>`;
+                    detailedResultsData.push({
+                        base: nominativ,
+                        type: 'akuzatív', // ZMENA
+                        user: accUser || '---',
+                        correct: accCorrect,
+                        symbol: accSymbol
+                    });
+                    
+                    // --- Vyhodnotenie Prekladu ---
+                    total++;
+                    const transUser = translationCell.textContent.trim();
+                    const transCorrect = translationCell.dataset.correct;
+                    let transSymbol = '✗';
+                    let transClass = 'incorrect';
+                    if (transUser === transCorrect) {
+                        correct++;
+                        transSymbol = '✓';
+                        transClass = 'correct';
+                    }
+                    translationCell.innerHTML += ` <span class="result-symbol ${transClass}">${transSymbol}</span>`;
+                    
+                    detailedResultsData.push({
+                        base: nominativ,
+                        type: 'slovenský preklad',
+                        user: transUser || '---',
+                        correct: transCorrect,
+                        symbol: transSymbol
+                    });
+                });
+
+                droppableCells.forEach(cell => cell.style.cursor = 'default');
+                answerButtons.forEach(btn => {
+                    btn.style.cursor = 'not-allowed';
+                    btn.disabled = true;
+                });
+                
+                const percentage = (total > 0) ? (correct / total * 100).toFixed(1) : 0;
+                const scoreText = `${correct} z ${total} správnych (${percentage} %)`;
+                const now = new Date();
+                const dateTimeText = now.toLocaleString('sk-SK');
+
+                document.getElementById('summaryTitle').textContent = exerciseTitle;
+                document.getElementById('summaryName').textContent = studentName;
+                document.getElementById('summaryScore').textContent = scoreText;
+                document.getElementById('summaryDate').textContent = dateTimeText;
+                document.getElementById('summarySection').style.display = 'block';
+            }
+        });
+        
+        // 5. Logika detailných výsledkov (nové okno)
+        detailedButton.addEventListener('click', () => {
+            const studentName = document.getElementById('studentName').value.trim() || 'Anonym';
+            const score = document.getElementById('summaryScore').textContent;
+            const date = document.getElementById('summaryDate').textContent;
+
+            let detailTableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Základ (Nominatív)</th>
+                            <th>Typ</th> <th>Tvoja odpoveď</th>
+                            <th>Správna odpoveď</th>
+                            <th>Hodnotenie</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            detailedResultsData.forEach(res => {
+                detailTableHTML += `
+                    <tr>
+                        <td>${res.base}</td>
+                        <td>${res.type}</td> <td>${res.user}</td>
+                        <td><strong>${res.correct}</strong></td>
+                        <td><span class="result-symbol ${res.symbol === '✓' ? 'correct' : 'incorrect'}">${res.symbol}</span></td>
+                    </tr>
+                `;
+            });
+            
+            detailTableHTML += `</tbody></table>`;
+
+            const popupContent = `
+                <html>
+                <head>
+                    <title>Detailné výsledky: Akuzatív osobných zámen v nemčine so slovenským prekladom</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        h1 { text-align: center; color: #333; }
+                        .summary-block { border: 1px solid #ccc; background: #f9f9f9; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                        .result-symbol { font-size: 1.3em; font-weight: bold; }
+                        .correct { color: green; }
+                        .incorrect { color: red; }
+                        .legend { margin-top: 20px; background-color: #f0f0f0; padding: 10px; border-radius: 5px; }
+                        .legend-symbol { font-weight: bold; font-size: 1.2em; }
+                        
+                        @media print {
+                            body { padding: 0; margin: 0; }
+                            .summary-block { border: 1px solid #000; background: #fff; page-break-inside: avoid; }
+                            table { page-break-inside: auto; }
+                            tr { page-break-inside: avoid; }
+                        }
+                    </style>
+                </head>
+                <body class="popup-body">
+                    <h1>Detailné výsledky</h1>
+                    
+                    <div class="summary-block">
+                        <p><strong>Názov cvičenia:</strong> Datív a akuzatív osobných zámen v nemčine</p>
+                        <p><strong>Meno žiaka:</strong> ${studentName}</p>
+                        <p><strong>Hodnotenie:</strong> ${score}</p>
+                        <p><strong>Dátum a čas:</strong> ${date}</p>
+                    </div>
+
+                    <h2>Detailný prehľad</h2>
+                    ${detailTableHTML}
+
+                    <div class="legend">
+                        <strong>Vysvetlivky:</strong><br>
+                        <span class="legend-symbol correct">✓</span> = Správna odpoveď<br>
+                        <span class="legend-symbol incorrect">✗</span> = Nesprávna odpoveď
+                    </div>
+                </body>
+                </html>
+            `;
+            const popupWindow = window.open('', 'DetailneVysledky', 'width=900,height=700,scrollbars=yes,resizable=yes');
+            popupWindow.document.open();
+            popupWindow.document.write(popupContent);
+            popupWindow.document.close();
+            popupWindow.focus(); 
+        });
+    });
+    </script>
+
+</body>
+</html>

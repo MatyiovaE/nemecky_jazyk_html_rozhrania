@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor náhodne pomiešaných položiek</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+	  font-size: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 10px;
+      font-size: 10px;
+      resize: vertical;
+    }
+    #output {
+      width: 100%;
+      height: 150px;
+      padding: 10px;
+      font-size: 10px;
+      resize: vertical;
+      margin-top: 10px;
+    }
+    button {
+      margin-top: 10px;
+      margin-right: 10px;
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Generátor náhodne pomiešaných položiek</h2>
+
+  <label for="input"><b>Vložte jednotlivé položky:</b><div style="height:3px;"></div>
+  (každý riadok -> jedna položka)</label><div style="height:10px;"></div>
+  <textarea id="input" placeholder="Sem vložte jednotlivé položky." style="font-size: 105%;"></textarea>
+
+  <button onclick="shuffleItems()">🎲 Náhodne pomiešaj</button>
+  
+<div style="height:50px;"></div>
+  <label for="output"><b>Výstup (náhodne pomiešané položky):</b>
+  <textarea id="output" readonly placeholder="Tu sa zobrazí výstup." style="font-size: 105%;"></textarea>
+<div style="height:5px;"></div>
+<button onclick="copyToClipboard()">📋 Skopíruj do schránky</button>
+
+  <script>
+     // Podpora TAB v textarea
+    document.getElementById('input').addEventListener('keydown', function(e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+
+        // Vloží tabulátor na aktuálnu pozíciu
+        this.value = this.value.substring(0, start) + '\t' + this.value.substring(end);
+
+        // Posunie kurzor za tabulátor
+        this.selectionStart = this.selectionEnd = start + 1;
+      }
+    });
+	
+	function shuffleItems() {
+      const inputText = document.getElementById('input').value;
+      const items = inputText.split('\n').filter(item => item.trim() !== '');
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      document.getElementById('output').value = items.join('\n');
+    }
+
+    function copyToClipboard() {
+      const output = document.getElementById('output');
+      output.select();
+      output.setSelectionRange(0, 99999); // Pre mobilné zariadenia
+      document.execCommand('copy');
+      alert('Výstup bol skopírovaný do schránky!');
+    }
+  </script>
+<br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>
