@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Časovanie slovesa hrať</title>
+    <style>
+        :root { 
+            --cell-size: 36px; 
+            --gap: 2px;
+            
+            /* Light Theme (Default) */
+            --bg-app: #f0f9ff;
+            --bg-panel: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            
+            /* Upravená mriežka pre svetlý režim */
+            --bg-grid: #ffffff;
+            --bg-cell: #c2cad6;
+            
+            --border-color: #cbd5e1;
+            --input-bg: #ffffff;
+            --btn-choice-bg: #f1f5f9;
+            --btn-choice-hover: #e2e8f0;
+            --shadow: rgba(0,0,0,0.1);
+            --card-bg: #ffffff;
+            --task-bg: transparent; 
+            --task-text: #0f172a;
+        }
+
+        /* Dark Theme Variables */
+        [data-theme="dark"] {
+            --bg-app: #0f172a;
+            --bg-panel: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --bg-grid: #334155;
+            --bg-cell: #475569;
+            --border-color: #475569;
+            
+            /* Tmavé vstupy pre dark mode */
+            --input-bg: #334155; 
+            --btn-choice-bg: #334155;
+            --btn-choice-hover: #475569;
+            
+            --shadow: rgba(0,0,0,0.5);
+            --card-bg: #1e293b;
+
+            /* Úloha zostáva tmavá (transparent na tmavom paneli) */
+            --task-bg: transparent;
+            --task-text: #f1f5f9;
+        }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--bg-app); 
+            color: var(--text-main); 
+            height: 100vh; margin: 0; padding: 0; 
+            display: flex; flex-direction: column; 
+            user-select: none; overflow: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+        
+        header { 
+    padding: 10px 20px; 
+    display: flex; 
+    justify-content: flex-end; /* Zmena: všetko zarovnáme doprava (tlačidlá) */
+    align-items: center;
+    position: relative; /* Dôležité pre centrovanie nadpisu */
+    background: var(--bg-panel); border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0; transition: background 0.3s;
+}
+
+/* Pridajte túto novú triedu pre nadpis */
+.header-center {
+    position: absolute;
+    left: 0; 
+    right: 0;
+    text-align: center;
+    pointer-events: none; /* Aby text neprekrýval klikanie na tlačidlá, ak sa stretnú */
+}
+        h1 { margin: 0; font-size: 1.2rem; color: var(--text-main); }
+        .meta { font-size: 0.9rem; color: var(--text-muted); }
+        
+        .header-controls { display: flex; align-items: center; gap: 20px; }
+        .stats-bar { display: flex; gap: 15px; font-weight: bold; font-size: 0.9rem; }
+        .stat-item { color: #3b82f6; }
+
+        .theme-btn {
+            background: transparent; border: 1px solid var(--border-color);
+            color: var(--text-main); padding: 5px 10px; border-radius: 6px;
+            cursor: pointer; font-size: 1.2rem; line-height: 1;
+            transition: 0.2s;
+        }
+        .theme-btn:hover { background: var(--bg-grid); }
+
+        .game-area { 
+            flex-grow: 1; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 20px; 
+            padding: 10px;
+            overflow: auto; 
+        }
+
+        .panel-left { 
+            flex: 1; max-width: 450px; min-width: 300px;
+            background: var(--bg-panel); 
+            padding: 20px; border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px var(--shadow); 
+            border: 1px solid var(--border-color);
+            display: flex; flex-direction: column; justify-content: center;
+            height: fit-content; max-height: 90%;
+            transition: background 0.3s;
+        }
+
+        #task-container {
+            background: var(--task-bg);
+            color: var(--task-text);
+            transition: 0.3s;
+        }
+
+        .panel-right { 
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+        }
+
+        #q-text { font-size: 1.25rem; font-weight: bold; margin-bottom: 15px; color: var(--text-main); line-height: 1.3; }
+        
+        input.answer-input { 
+            padding: 12px; 
+            border: 2px solid var(--border-color); 
+            background: var(--input-bg); color: var(--text-main);
+            border-radius: 8px; width: 100%; 
+            box-sizing: border-box; font-size: 1rem; margin-bottom: 10px; 
+        }
+        input.answer-input:focus { outline: none; border-color: #3b82f6; }
+
+        .choice-btn { 
+            display: block; width: 100%; padding: 10px; margin-bottom: 6px; 
+            background: var(--btn-choice-bg); color: var(--text-main);
+            border: 2px solid var(--border-color); border-radius: 8px; 
+            cursor: pointer; text-align: left; transition: 0.1s; font-size: 0.95rem;
+        }
+        .choice-btn:hover { background: var(--btn-choice-hover); border-color: #94a3b8; }
+        
+        .feedback { min-height: 24px; font-weight: 600; margin-top: 5px; font-size: 0.95rem; }
+        .feedback.correct { color: #16a34a; }
+        .feedback.wrong { color: #ef4444; }
+
+        /* V Tmavom režime: Zobrazenie riešenia (feedback) na bielom pozadí */
+        [data-theme="dark"] .feedback.correct,
+        [data-theme="dark"] .feedback.wrong {
+            background-color: #ffffff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: block;
+            width: fit-content;
+        }
+
+        .btn-action { background: #3b82f6; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1rem; margin-top: 5px; }
+        .btn-skip { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); margin-top: 10px; }
+
+        .grid-container { 
+            display: grid; 
+            grid-template-columns: repeat(8, var(--cell-size)); 
+            grid-template-rows: repeat(8, var(--cell-size)); 
+            gap: var(--gap); 
+            background: var(--bg-grid); 
+            padding: var(--gap); 
+            border-radius: 4px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+            transition: background 0.3s;
+        }
+        .cell { 
+            background: var(--bg-cell); width: var(--cell-size); height: var(--cell-size); 
+            border-radius: 3px; 
+        }
+        .cell.filled { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); }
+        .cell.clearing { transform: scale(0); opacity: 0; transition: 0.3s; }
+
+        #blocks-tray { 
+            min-height: 80px; 
+            width: 100%; max-width: 400px;
+            display: flex; justify-content: center; gap: 15px; 
+            align-items: flex-start;
+        }
+        .draggable-shape { display: grid; gap: var(--gap); cursor: grab; touch-action: none; }
+        .draggable-shape.dragging { opacity: 0.8; cursor: grabbing; position: fixed; z-index: 1000; pointer-events: none; }
+        .shape-cell { width: var(--cell-size); height: var(--cell-size); border-radius: 3px; box-shadow: inset 0 0 4px rgba(0,0,0,0.2); }
+
+        #overlay { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: rgba(15, 23, 42, 0.85);
+            display: none; justify-content: center; align-items: center; 
+            z-index: 2000; 
+        }
+        #fireworks { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: 1; pointer-events: none;
+        }
+        .score-card {
+            background: var(--card-bg);
+            color: var(--text-main);
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+            z-index: 10;
+            min-width: 300px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid var(--border-color);
+        }
+        .score-row {
+            display: flex; justify-content: space-between;
+            margin: 10px 0; font-size: 1.1rem;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 5px;
+        }
+        .total-score {
+            font-size: 2rem; font-weight: bold; color: #3b82f6;
+            margin-top: 15px; display: block;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        @media (max-width: 700px) {
+            .game-area { flex-direction: column; justify-content: flex-start; padding-top: 10px; }
+            .panel-left { width: 90%; max-height: none; }
+            :root { --cell-size: 32px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+    <div class="header-center"> <h1>Časovanie slovesa hrať</h1>
+        <div class="meta">Mgr. Erika Matyiová</div>
+    </div>
+    <div class="header-controls">
+
+            <div class="stats-bar">
+                <span class="stat-item">Otázky: <span id="score-quiz">0</span></span>
+                <span class="stat-item">Bloky: <span id="score-grid">0</span></span>
+            </div>
+            <button class="theme-btn" id="theme-toggle" title="Prepnúť režim">🌓</button>
+        </div>
+    </header>
+
+    <div class="game-area">
+        <div class="panel-left">
+            <div id="task-container">
+                <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 5px;">Otázka</div>
+                <div id="q-text">Načítavam...</div>
+                <div id="input-area"></div>
+                <div id="feedback-area" class="feedback"></div>
+                <div id="controls-area"></div>
+            </div>
+            <div id="tray-msg" class="hidden" style="text-align:center; margin-top: 15px; padding: 10px; background: rgba(22, 163, 74, 0.1); color: #16a34a; border-radius: 6px; font-weight: bold;">
+                Správne! Presuň blok do mriežky →
+            </div>
+        </div>
+
+        <div class="panel-right">
+            <div class="grid-container" id="grid"></div>
+            <div id="blocks-tray"></div>
+        </div>
+    </div>
+
+    <div id="overlay">
+        <canvas id="fireworks"></canvas>
+        <div class="score-card">
+            <h1 style="margin-bottom: 20px; color: var(--primary);">Gratulujeme!</h1>
+            <p style="margin-bottom: 20px; color: var(--text-muted);">Všetky bloky boli využité.</p>
+            
+            <div class="score-row">
+                <span>Body za otázky:</span>
+                <strong id="final-quiz">0</strong>
+            </div>
+            <div class="score-row">
+                <span>Body za mriežku:</span>
+                <strong id="final-grid">0</strong>
+            </div>
+            
+            <span class="total-score" id="final-total">0</span>
+            <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px;">CELKOVÉ SKÓRE</div>
+            
+            <button class="btn-action" style="width: 100%; padding: 12px;" onclick="location.reload()">Hrať znova</button>
+        </div>
+    </div>
+
+<script>
+    const TASKS = [{"q":"hrať (ja)","a":"hrám","d":["hráš","hrá"]},{"q":"hrať (ty)","a":"hráš","d":["hrám","hrá"]},{"q":"hrať (on)","a":"hrá","d":["hráme","hráte"]},{"q":"hrať (ona)","a":"hrá","d":["hráš","hrajú"]},{"q":"hrať (ono)","a":"hrá","d":["hrajú","hrám"]},{"q":"hrať (my)","a":"hráme","d":["hrajú","hráte"]},{"q":"hrať (vy)","a":"hráte","d":["hráme","hráš"]},{"q":"hrať (oni)","a":"hrajú","d":["hrám","hráme"]},{"q":"hrať (ony)","a":"hrajú","d":["hráte","hráš"]}];
+    const MODE = "choice";
+    
+    // --- THEME TOGGLE LOGIC ---
+    const themeBtn = document.getElementById('theme-toggle');
+    const htmlEl = document.documentElement;
+    
+    // Load Saved Theme
+    const savedTheme = localStorage.getItem('mm-theme');
+    if (savedTheme === 'dark') {
+        htmlEl.setAttribute('data-theme', 'dark');
+        themeBtn.innerHTML = '☀️';
+    } else {
+        themeBtn.innerHTML = '🌙';
+    }
+
+    themeBtn.addEventListener('click', () => {
+        const current = htmlEl.getAttribute('data-theme');
+        if (current === 'dark') {
+            htmlEl.removeAttribute('data-theme');
+            localStorage.setItem('mm-theme', 'light');
+            themeBtn.innerHTML = '🌙';
+        } else {
+            htmlEl.setAttribute('data-theme', 'dark');
+            localStorage.setItem('mm-theme', 'dark');
+            themeBtn.innerHTML = '☀️';
+        }
+    });
+
+    // --- GAME LOGIC ---
+
+    function getCellSize() {
+        const style = getComputedStyle(document.documentElement);
+        const size = parseInt(style.getPropertyValue('--cell-size')) || 36;
+        const gap = parseInt(style.getPropertyValue('--gap')) || 2;
+        return size + gap;
+    }
+
+    let state = {
+        grid: Array(8).fill().map(() => Array(8).fill(null)),
+        scoreQuiz: 0,
+        scoreGrid: 0,
+        currentTask: null,
+        isPlacingPhase: false, 
+        blocksInTray: [],
+        gameOver: false
+    };
+
+    const SHAPES = [
+        [[1]], [[1,1]], [[1],[1]], [[1,1],[1,1]], 
+        [[1,1,1]], [[1],[1],[1]], 
+        [[1,0],[1,1]], [[0,1],[1,1]], 
+        [[1,1,1],[0,1,0]], [[1,1],[1,0],[1,0]],
+        [[1,1,1],[1,1,1],[1,1,1]]
+    ];
+    const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef'];
+
+    const els = {
+        grid: document.getElementById('grid'),
+        tray: document.getElementById('blocks-tray'),
+        qText: document.getElementById('q-text'),
+        inputArea: document.getElementById('input-area'),
+        feedback: document.getElementById('feedback-area'),
+        controls: document.getElementById('controls-area'),
+        trayMsg: document.getElementById('tray-msg'),
+        taskContainer: document.getElementById('task-container'),
+        scoreQuiz: document.getElementById('score-quiz'),
+        scoreGrid: document.getElementById('score-grid'),
+        overlay: document.getElementById('overlay')
+    };
+
+    function init() { renderGrid(); nextTask(); }
+
+    function nextTask() {
+        if (state.gameOver) return;
+        state.isPlacingPhase = false;
+        els.trayMsg.classList.add('hidden');
+        els.taskContainer.style.opacity = '1';
+        els.taskContainer.style.pointerEvents = 'auto';
+
+        const idx = Math.floor(Math.random() * TASKS.length);
+        state.currentTask = TASKS[idx];
+        els.qText.textContent = state.currentTask.q;
+        els.feedback.textContent = ""; els.feedback.className = "feedback";
+        els.inputArea.innerHTML = ""; els.controls.innerHTML = "";
+
+        if (MODE === 'text') {
+            const inp = document.createElement('input');
+            inp.type = "text"; inp.className = "answer-input"; inp.placeholder = "Odpoveď...";
+            inp.onkeydown = (e) => { if(e.key === 'Enter') checkAnswerText(inp.value); };
+            els.inputArea.appendChild(inp);
+            const btn = document.createElement('button');
+            btn.className = "btn-action"; btn.textContent = "Overiť";
+            btn.onclick = () => checkAnswerText(inp.value);
+            els.controls.appendChild(btn);
+        } else {
+            let answers = [state.currentTask.a];
+            if (state.currentTask.d && state.currentTask.d.length > 0) {
+                answers = answers.concat(state.currentTask.d.slice(0, 3));
+            } else {
+                const others = TASKS.filter(t => t.a !== state.currentTask.a).map(t => t.a);
+                for(let i=0; i<3 && others.length; i++) {
+                    answers.push(others.splice(Math.floor(Math.random()*others.length),1)[0]);
+                }
+            }
+            answers.sort(() => Math.random() - 0.5);
+            answers.forEach(ans => {
+                const btn = document.createElement('button');
+                btn.className = "choice-btn"; btn.textContent = ans;
+                btn.onclick = () => checkAnswerChoice(ans, btn);
+                els.inputArea.appendChild(btn);
+            });
+        }
+        const skip = document.createElement('button');
+        skip.className = "btn-action btn-skip"; skip.textContent = "Vynechať";
+        skip.onclick = () => { state.scoreQuiz--; updateStats(); nextTask(); };
+        els.controls.appendChild(skip);
+    }
+
+    function checkAnswerText(val) {
+        if (!val.trim()) return;
+        if (val.trim().toLowerCase() === state.currentTask.a.toLowerCase()) handleCorrect();
+        else handleWrong();
+    }
+    function checkAnswerChoice(val, btn) {
+        if (val === state.currentTask.a) {
+            btn.style.background = "#dcfce7"; btn.style.borderColor = "#16a34a";
+            // Ensure visibility in dark mode override
+            btn.style.color = "#16a34a";
+            handleCorrect();
+        } else {
+            btn.style.background = "#fee2e2"; btn.style.borderColor = "#dc2626";
+             // Ensure visibility in dark mode override
+            btn.style.color = "#dc2626";
+            btn.disabled = true; handleWrong();
+        }
+    }
+
+    function handleCorrect() {
+        els.feedback.textContent = "Správne!"; els.feedback.className = "feedback correct";
+        state.scoreQuiz++; updateStats();
+        startPlacementPhase();
+    }
+    function handleWrong() {
+        els.feedback.textContent = "Skús znova."; els.feedback.className = "feedback wrong";
+    }
+    function updateStats() {
+        els.scoreQuiz.textContent = state.scoreQuiz;
+        els.scoreGrid.textContent = state.scoreGrid;
+    }
+
+    function renderGrid() {
+        els.grid.innerHTML = "";
+        for (let r=0; r<8; r++) {
+            for (let c=0; c<8; c++) {
+                const cell = document.createElement('div');
+                cell.className = "cell";
+                cell.dataset.r = r; cell.dataset.c = c;
+                if (state.grid[r][c]) {
+                    cell.style.backgroundColor = state.grid[r][c];
+                    cell.classList.add('filled');
+                }
+                els.grid.appendChild(cell);
+            }
+        }
+    }
+
+    function startPlacementPhase() {
+        state.isPlacingPhase = true;
+        els.taskContainer.style.opacity = '0.4'; els.taskContainer.style.pointerEvents = 'none';
+        els.trayMsg.classList.remove('hidden');
+        state.blocksInTray = []; els.tray.innerHTML = "";
+        for(let i=0; i<3; i++) createBlockInTray(i);
+        checkGameOver();
+    }
+
+    function createBlockInTray(id) {
+        const shapeIdx = Math.floor(Math.random() * SHAPES.length);
+        const matrix = SHAPES[shapeIdx];
+        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        
+        const blockEl = document.createElement('div');
+        blockEl.className = "draggable-shape";
+        blockEl.style.gridTemplateColumns = `repeat(${matrix[0].length}, var(--cell-size))`;
+        
+        matrix.forEach(row => {
+            row.forEach(val => {
+                const c = document.createElement('div');
+                if (val) {
+                    c.className = "shape-cell"; c.style.backgroundColor = color;
+                }
+                blockEl.appendChild(c);
+            });
+        });
+
+        blockEl.onmousedown = (e) => startDrag(e, blockEl, matrix, color, id);
+        blockEl.ontouchstart = (e) => startDrag(e, blockEl, matrix, color, id);
+        els.tray.appendChild(blockEl);
+        state.blocksInTray.push({ id, el: blockEl, matrix, color });
+    }
+
+    let dragObj = null;
+
+    function startDrag(e, el, matrix, color, id) {
+        e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        const rect = el.getBoundingClientRect();
+        
+        const cellSizeFull = getCellSize();
+        
+        const offsetX = touch.clientX - rect.left;
+        const offsetY = touch.clientY - rect.top;
+        const holdCol = Math.floor(offsetX / cellSizeFull);
+        const holdRow = Math.floor(offsetY / cellSizeFull);
+
+        const clone = el.cloneNode(true);
+        clone.classList.add('dragging');
+        clone.style.width = el.offsetWidth + 'px';
+        document.body.appendChild(clone);
+        el.style.opacity = "0";
+
+        dragObj = { el: clone, originEl: el, matrix, color, id, holdCol, holdRow, dragOffsetX: offsetX, dragOffsetY: offsetY };
+        
+        moveDrag(e);
+        document.addEventListener('mousemove', moveDrag);
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchmove', moveDrag, {passive: false});
+        document.addEventListener('touchend', endDrag);
+    }
+
+    function moveDrag(e) {
+        if (!dragObj) return;
+        const touch = e.touches ? e.touches[0] : e;
+        e.preventDefault && e.preventDefault();
+        dragObj.el.style.left = (touch.clientX - dragObj.dragOffsetX) + 'px';
+        dragObj.el.style.top = (touch.clientY - dragObj.dragOffsetY) + 'px';
+    }
+
+    function endDrag(e) {
+        if (!dragObj) return;
+        document.removeEventListener('mousemove', moveDrag);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchmove', moveDrag);
+        document.removeEventListener('touchend', endDrag);
+
+        const touch = e.changedTouches ? e.changedTouches[0] : e;
+        const gridRect = els.grid.getBoundingClientRect();
+        
+        let placed = false;
+        
+        if (touch.clientX > gridRect.left && touch.clientX < gridRect.right &&
+            touch.clientY > gridRect.top && touch.clientY < gridRect.bottom) {
+            
+            const cellSizeFull = getCellSize();
+            const relX = touch.clientX - gridRect.left;
+            const relY = touch.clientY - gridRect.top;
+            
+            const mouseGridC = Math.floor(relX / cellSizeFull);
+            const mouseGridR = Math.floor(relY / cellSizeFull);
+
+            const targetC = mouseGridC - dragObj.holdCol;
+            const targetR = mouseGridR - dragObj.holdRow;
+
+            if (canPlace(dragObj.matrix, targetR, targetC)) {
+                placeBlock(dragObj.matrix, targetR, targetC, dragObj.color);
+                dragObj.originEl.remove();
+                const idx = state.blocksInTray.findIndex(b => b.id === dragObj.id);
+                if (idx > -1) state.blocksInTray.splice(idx, 1);
+                placed = true;
+                checkLines();
+                if (state.blocksInTray.length === 0) setTimeout(nextTask, 500);
+                else checkGameOver();
+            }
+        }
+
+        if (!placed) dragObj.originEl.style.opacity = "1";
+        dragObj.el.remove();
+        dragObj = null;
+    }
+
+    function canPlace(matrix, startR, startC) {
+        for (let r=0; r < matrix.length; r++) {
+            for (let c=0; c < matrix[r].length; c++) {
+                if (matrix[r][c] === 1) {
+                    let targetR = startR + r;
+                    let targetC = startC + c;
+                    if (targetR < 0 || targetR >= 8 || targetC < 0 || targetC >= 8) return false;
+                    if (state.grid[targetR][targetC] !== null) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    function placeBlock(matrix, startR, startC, color) {
+        for (let r=0; r < matrix.length; r++) {
+            for (let c=0; c < matrix[r].length; c++) {
+                if (matrix[r][c] === 1) state.grid[startR + r][startC + c] = color;
+            }
+        }
+        state.scoreGrid += matrix.flat().filter(x=>x).length;
+        updateStats(); renderGrid();
+    }
+
+    function checkLines() {
+        let rows = [], cols = [];
+        for (let r=0; r<8; r++) if (state.grid[r].every(v => v)) rows.push(r);
+        for (let c=0; c<8; c++) {
+            let full = true;
+            for(let r=0; r<8; r++) if(!state.grid[r][c]) { full=false; break; }
+            if(full) cols.push(c);
+        }
+        if (rows.length || cols.length) animateClear(rows, cols);
+    }
+
+    function animateClear(rows, cols) {
+        let cells = [];
+        rows.forEach(r => { for(let c=0; c<8; c++) cells.push({r,c}); });
+        cols.forEach(c => { for(let r=0; r<8; r++) cells.push({r,c}); });
+        
+        cells.forEach(o => {
+            const el = els.grid.querySelector(`[data-r="${o.r}"][data-c="${o.c}"]`);
+            if(el) el.classList.add('clearing');
+        });
+
+        setTimeout(() => {
+            cells.forEach(o => state.grid[o.r][o.c] = null);
+            state.scoreGrid += (new Set(cells.map(o=>`${o.r}-${o.c}`))).size;
+            updateStats(); renderGrid();
+        }, 300);
+    }
+
+    function checkGameOver() {
+        if (!state.blocksInTray.length) return;
+        let possible = state.blocksInTray.some(b => {
+            for (let r=0; r<8; r++) 
+                for (let c=0; c<8; c++) 
+                    if (canPlace(b.matrix, r, c)) return true;
+            return false;
+        });
+        if (!possible) {
+            state.gameOver = true;
+            document.getElementById('final-quiz').textContent = state.scoreQuiz;
+            document.getElementById('final-grid').textContent = state.scoreGrid;
+            document.getElementById('final-total').textContent = state.scoreQuiz + state.scoreGrid;
+            els.overlay.style.display = 'flex';
+            startFireworks();
+        }
+    }
+
+    function startFireworks() {
+        const c = document.getElementById('fireworks');
+        const ctx = c.getContext('2d');
+        c.width = window.innerWidth; c.height = window.innerHeight;
+        let p = [];
+        function loop() {
+            ctx.clearRect(0,0,c.width,c.height); // Clear to keep transparent
+            if(Math.random()<0.05) {
+                const x=Math.random()*c.width, y=Math.random()*c.height/2, col=`hsl(${Math.random()*360},50%,50%)`;
+                for(let i=0;i<30;i++) p.push({x,y,col,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:100});
+            }
+            p.forEach((pt,i)=>{ pt.x+=pt.vx; pt.y+=pt.vy; pt.vy+=0.05; pt.life--; 
+                ctx.fillStyle=pt.col; ctx.beginPath(); ctx.arc(pt.x,pt.y,3,0,6.28); ctx.fill();
+                if(pt.life<=0) p.splice(i,1);
+            });
+            requestAnimationFrame(loop);
+        }
+        loop();
+    }
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>AB 28/3 - E-mail (9. ročník)</title><style>body{font-family:Courier bold, monospace;margin:20px;font-size:115%;line-height:1.6}h1{margin-top:0}.gap{display:inline-block;margin:0 2px;padding:0 2px;border-radius:2px;font-family:monospace;letter-spacing:0.3em;color:#0b3d91;font-size:130%;font-weight:bold;cursor:pointer}.gap.selected{background:#cceeff}.gap.correct{background:#e6ffed;border:1px solid #34c759;color:#065f46;font-size:130%}.gap.incorrect{background:#ffecec;border:1px solid #ff3b30;color:#7a0010;font-size:130%}.choice{display:inline-block;margin:5px 6px 0 0;padding:5px 10px;background:#eee;border-radius:6px;cursor:pointer}.choice:hover{background:#ddd}.test-block{border:1px solid #ddd;padding:10px;margin-bottom:14px;white-space:pre-wrap}.meta{margin-top:12px}.choices-label{margin-top:12px;font-weight:bold}button{padding:8px 12px; font-size:1em; cursor:pointer; margin-right:10px;}</style></head><body><h1>AB 28/3 - E-mail (9. ročník)</h1><p style="font-size:1.1em; color:#555;"><b>Autor:</b> Mgr. Erika Matyiová&nbsp;&nbsp;&nbsp;<b>Rok:</b> 2026</p><p style="font-weight: bold;">Klikni na miesto, kde niečo chýba a potom klikni na niektorú z položiek.<br>Ak si to rozmyslíš, klikni na uvedenú položku dvakrát a tá sa vráti na miesto.</p><label>Meno žiaka: <input id="studentName" type="text" style="padding:6px;width:300px"></label><br><br><div class="test-block" data-section="0"><div class="section-title"><b>Úloha 1</b><br><br></div><div class="content" id="content-0"><span class="gap" data-gap="1" data-correct-len="5" data-current="">_____(1)</span>!
+
+Ich <span class="gap" data-gap="2" data-correct-len="5" data-current="">_____(2)</span> Melly, bin <span class="gap" data-gap="3" data-correct-len="2" data-current="">__(3)</span> und <span class="gap" data-gap="4" data-correct-len="5" data-current="">_____(4)</span> aus Lübeck. Auf dem Foto <span class="gap" data-gap="5" data-correct-len="6" data-current="">______(5)</span> du mein
+Hobby: Skateboard <span class="gap" data-gap="6" data-correct-len="6" data-current="">______(6)</span>! <span class="gap" data-gap="7" data-correct-len="5" data-current="">_____(7)</span> Hutter sagt, das ist ein <span class="gap" data-gap="8" data-correct-len="5" data-current="">_____(8)</span> für Jungen,
+aber ich finde, wir Mädchen <span class="gap" data-gap="9" data-correct-len="6" data-current="">______(9)</span> auch super fahren. Mein Star <span class="gap" data-gap="10" data-correct-len="3" data-current="">___(10)</span> Alex
+Mizurow. Er ist Skateboarder und die <span class="gap" data-gap="11" data-correct-len="6" data-current="">______(11)</span> 1 in Deutschland. Total cool!
+Deshalb <span class="gap" data-gap="12" data-correct-len="9" data-current="">_________(12)</span> ich oft. Vielleicht bin <span class="gap" data-gap="13" data-correct-len="3" data-current="">___(13)</span> auch mal die Nummer 1?! Ich
+gehe auch gern <span class="gap" data-gap="14" data-correct-len="3" data-current="">___(14)</span> Kino. Und du? Ich habe viele <span class="gap" data-gap="15" data-correct-len="6" data-current="">______(15)</span>: Wer <span class="gap" data-gap="16" data-correct-len="4" data-current="">____(16)</span> du und
+was <span class="gap" data-gap="17" data-correct-len="6" data-current="">______(17)</span> du gern? Machst du Sport? Wer ist <span class="gap" data-gap="18" data-correct-len="4" data-current="">____(18)</span> Star? Bitte <span class="gap" data-gap="19" data-correct-len="7" data-current="">_______(19)</span> mir!
+<span class="gap" data-gap="20" data-correct-len="7" data-current="">_______(20)</span>! Melly</div><div class="choices-label">Slová na doplnenie:</div><div class="choices" id="choices-0"><h3>Slová na doplnenie</h3><span class="choice">schreib</span><span class="choice">trainiere</span><span class="choice">ins</span><span class="choice">dein</span><span class="choice">können</span><span class="choice">Sport</span><span class="choice">14</span><span class="choice">komme</span><span class="choice">Meine</span><span class="choice">ich</span><span class="choice">fahren</span><span class="choice">machst</span><span class="choice">heiße</span><span class="choice">siehst</span><span class="choice">Fragen</span><span class="choice">ist</span><span class="choice">Hallo</span><span class="choice">bist</span><span class="choice">Tschüss</span><span class="choice">Nummer</span></div><div class="result" id="result-0"></div></div><button id="btnEvaluateAll">Vyhodnotiť všetky</button><button id="btnShowDetails" style="display:none; background:#007bff; color:white; border:none; border-radius:4px;">Detailný prehľad odpovedí</button><div id="summary" class="meta"></div><script>(function(){
+    function codePointLen(s){return Array.from(s||"").length;}
+    function escapeHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+    function shuffle(a){var t=a.slice();for(var i=t.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=t[i];t[i]=t[j];t[j]=tmp;}return t;}
+    var secData=[{"answers":{"1":"Hallo","2":"heiße","3":"14","4":"komme","5":"siehst","6":"fahren","7":"Meine","8":"Sport","9":"können","10":"ist","11":"Nummer","12":"trainiere","13":"ich","14":"ins","15":"Fragen","16":"bist","17":"machst","18":"dein","19":"schreib","20":"Tschüss"}}];
+
+    document.querySelectorAll(".test-block").forEach(function(block,idx){
+      var choices = block.querySelector(".choices");
+      var selected = null;
+      var originalChoices = Array.from(choices.querySelectorAll(".choice")).map(c => c.textContent);
+      choices.innerHTML = "";
+      shuffle(originalChoices).forEach(function(txt){
+        var c = document.createElement("span");
+        c.className = "choice";
+        c.textContent = txt;
+        choices.appendChild(c);
+      });
+
+      block.querySelectorAll(".gap").forEach(function(g){
+        g.dataset.current = g.dataset.current || "";
+        g.addEventListener("click", function(){
+          if(selected) selected.classList.remove("selected");
+          selected = g;
+          g.classList.add("selected");
+        });
+        g.addEventListener("dblclick", function(){
+          var num = g.dataset.gap;
+          var cur = g.dataset.current || "";
+          if(cur){
+            var back = document.createElement("span");
+            back.className = "choice";
+            back.textContent = cur;
+            choices.appendChild(back);
+          }
+          var clen = Number(g.dataset.correctLen) || 0;
+          g.textContent = "_".repeat(clen) + "(" + num + ")";
+          g.dataset.current = "";
+          g.classList.remove("selected","correct","incorrect");
+          selected = null;
+        });
+      });
+
+      choices.addEventListener("click", function(e){
+        var c = e.target.closest(".choice");
+        if(!c) return;
+        if(!selected){ alert("Najprv kliknite na medzeru."); return; }
+        var num = selected.dataset.gap;
+        var cur = selected.dataset.current || "";
+        if(cur){
+          var back = document.createElement("span");
+          back.className = "choice";
+          back.textContent = cur;
+          choices.appendChild(back);
+        }
+        selected.textContent = c.textContent + "(" + num + ")";
+        selected.dataset.current = c.textContent;
+        c.remove();
+        selected.classList.remove("selected");
+        selected = null;
+      });
+    });
+
+    document.getElementById("btnEvaluateAll").addEventListener("click", function(){
+      var sumOk = 0, sumTotal = 0;
+      var name = document.getElementById("studentName").value || "";
+      
+      window._detailData = {
+          title: "AB 28/3 - E-mail (9. ročník)",
+          studentName: name,
+          blocks: []
+      };
+
+      document.querySelectorAll(".test-block").forEach(function(block,idx){
+        var answers = secData[idx].answers || {};
+        var total = Object.keys(answers).length;
+        var ok = 0;
+        
+        var blockData = { id: idx + 1, gaps: [] };
+
+        block.querySelectorAll(".gap").forEach(function(g){
+          g.classList.remove("correct","incorrect");
+          var num = g.dataset.gap;
+          var correct = answers[num] || "";
+          var user = g.dataset.current || "";
+          var clen = Number(g.dataset.correctLen) || 0;
+          var miss = Math.max(0, clen - codePointLen(user));
+          g.textContent = (user || "") + "_".repeat(miss) + "(" + num + ")";
+          
+          var status = "";
+          if(!user) { status = "❗"; }
+          else if(user === correct) { g.classList.add("correct"); ok++; status = "✅"; }
+          else { g.classList.add("incorrect"); status = "❌"; }
+          
+          blockData.gaps.push({ num: num, user: user, correct: correct, status: status });
+        });
+        
+        window._detailData.blocks.push(blockData);
+        sumOk += ok;
+        sumTotal += total;
+      });
+      var pct = Math.round((sumOk / (sumTotal || 1)) * 100);
+      var now = new Date();
+      document.getElementById("summary").innerHTML =
+        "<br><b>Názov testu:</b> " + escapeHtml("AB 28/3 - E-mail (9. ročník)") +
+        "<br><b>Meno žiaka:</b> " + escapeHtml(name) +
+        "<br><b>Hodnotenie:</b> " + sumOk + "/" + sumTotal + " (" + pct + "%)" +
+        "<br><b>Dátum a čas:</b> " + now.toLocaleString();
+        
+      document.getElementById("btnShowDetails").style.display = "inline-block";
+    });
+
+    document.getElementById("btnShowDetails").addEventListener("click", function(){
+        var w = window.open('', '_blank');
+        if(!w) { alert("Povoľte vyskakovacie okná (pop-ups) pre zobrazenie detailov."); return; }
+        var d = window._detailData;
+        var html = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Detailný prehľad odpovedí</title>" +
+          "<style>body{font-family:sans-serif;margin:20px;line-height:1.6} table{border-collapse:collapse;width:100%;margin-bottom:20px;} th,td{border:1px solid #ccc;padding:8px;text-align:left;} th{background:#eee;} .legend{margin-top:20px;font-size:1em;background:#f9f9f9;padding:15px;border:1px solid #ddd;} @media print{ button{display:none;} }</style></head><body>" +
+          "<h2>Detailný prehľad odpovedí</h2>" +
+          "<p><b>Test:</b> " + d.title + "<br><b>Žiak:</b> " + (d.studentName || "Nezadané") + "</p>";
+          
+        d.blocks.forEach(function(b) {
+          html += "<h3>Úloha " + b.id + "</h3><table><tr><th style='width:10%'>Medzera</th><th style='width:40%'>Odpoveď žiaka</th><th style='width:40%'>Správna odpoveď</th><th style='width:10%; text-align:center;'>Výsledok</th></tr>";
+          b.gaps.forEach(function(g) {
+             html += "<tr><td>" + g.num + "</td>" +
+                     "<td>" + (g.user || "<i>(žiadna)</i>") + "</td>" +
+                     "<td>" + g.correct + "</td>" +
+                     "<td style='text-align:center;font-size:1.2em;'>" + g.status + "</td></tr>";
+          });
+          html += "</table>";
+        });
+        
+        html += "<div class='legend'><b>Vysvetlivky symbolov:</b><br><br>✅ - Správna odpoveď<br>❌ - Nesprávna odpoveď<br>❗ - Chýbajúca odpoveď (žiak nedoplnil slovo)<br><br><hr><br><button onclick='window.print()' style='padding:8px 12px; cursor:pointer;'>🖨️ Tlačiť / Uložiť ako PDF</button></div>";
+        html += "</body></html>";
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+    });
+  })();</script></body></html>

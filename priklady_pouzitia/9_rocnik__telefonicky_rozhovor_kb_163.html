@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>9. ročník - Telefonický rozhovor (KB 16/3)</title>
+    <style>
+        body {
+            font-family: Courier bold, monospace;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+            color: #212529;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: #0056b3;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        .student-name {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        .student-name label {
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+        .student-name input {
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+            width: 300px;
+        }
+        .exercise-container {
+            margin-top: 20px;
+        }
+        
+        .sub-question {
+            display: flex;
+            flex-direction: row; 
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            background-color: #fdfdfd;
+            border-bottom: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+        .sub-question:hover {
+            background-color: #f1f8ff;
+        }
+
+        .sentence {
+            font-size: 1.2rem;
+            line-height: 1.7;
+            flex: 1; 
+            padding-right: 20px;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+            min-width: 30%;
+        }
+
+        .placeholder {
+            font-weight: bold;
+            color: #007bff;
+            padding: 2px 5px;
+            border-bottom: 2px dotted #007bff;
+            min-width: 60px;
+            display: inline-block;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+        
+        .placeholder.filled {
+            color: #000000;
+            border-bottom: 2px solid #000000;
+        }
+        
+        .placeholder.evaluated-correct {
+            background-color: #d4edda;
+            color: #155724;
+            border-bottom: 2px solid #c3e6cb;
+            padding: 3px 6px;
+            border-radius: 4px;
+        }
+        .placeholder.evaluated-incorrect {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-bottom: 2px solid #f5c6cb;
+            padding: 3px 6px;
+            border-radius: 4px;
+        }
+        
+        .option-btn {
+            font-size: 1rem;
+            font-weight: bold;
+            padding: 8px 12px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 50px;
+            text-align: center;
+        }
+        .option-btn:hover {
+            background-color: #e0e0e0;
+            border-color: #bbb;
+        }
+        .option-btn.selected {
+            background-color: #007bff;
+            color: white;
+            border-color: #0056b3;
+            box-shadow: 0 0 4px rgba(0,123,255,0.5);
+        }
+        .option-btn:disabled {
+            background-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.7;
+            box-shadow: none;
+        }
+        
+        .action-buttons {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e9ecef;
+        }
+        .action-buttons button {
+            background-color: #28a745;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 0 10px;
+            transition: background-color 0.3s ease;
+        }
+        .action-buttons button:hover {
+            background-color: #218838;
+        }
+        .action-buttons button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        #detailedResultsBtn {
+            background-color: #17a2b8;
+            display: none;
+        }
+        #detailedResultsBtn:hover {
+            background-color: #138496;
+        }
+        
+        #resultsSummary {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e6f7ff;
+            border: 1px solid #b3e0ff;
+            border-radius: 8px;
+            display: none;
+        }
+        #resultsSummary h2 {
+            margin-top: 0;
+            color: #0056b3;
+            font-size: 1.5rem;
+        }
+        #resultsSummary p {
+            font-size: 1.1rem;
+            margin: 8px 0;
+        }
+        #resultsSummary strong {
+            color: #333;
+            display: inline-block;
+            width: 180px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-align: right;
+            border-top: 1px solid #dee2e6;
+            padding-top: 10px;
+        }
+
+        @media print {
+            body { padding: 0; margin: 0; }
+            .container { box-shadow: none; border: none; width: 100%; max-width: 100%; }
+            .no-print { display: none; }
+            .option-btn { display: none; } 
+            .placeholder { border: none; padding: 0; color: black; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 id="exerciseTitle">9. ročník - Telefonický rozhovor (KB 16/3)</h1>
+        <h3 style="text-align:center; color:#555; margin-top:-10px;">Autor: Mgr. Erika Matyiová, 2026</h3>
+
+        <div class="student-name">
+            <label for="studentName">Meno žiaka:</label>
+            <input type="text" id="studentName" placeholder="Zadajte meno žiaka">
+        </div>
+
+        <div id="exerciseContainer" class="exercise-container">
+            </div>
+
+        <div class="action-buttons no-print">
+            <button id="evaluateBtn">Vyhodnotiť</button>
+            <button id="detailedResultsBtn">Detailné výsledky</button>
+        </div>
+
+        <div id="resultsSummary">
+            <h2>Prehľad hodnotenia</h2>
+            <p><strong>Názov cvičenia:</strong> <span id="summaryTitle"></span></p>
+            <p><strong>Meno žiaka:</strong> <span id="summaryName"></span></p>
+            <p><strong>Hodnotenie:</strong> <span id="summaryScore"></span></p>
+            <p><strong>Dátum a čas:</strong> <span id="summaryDateTime"></span></p>
+        </div>
+
+        <div class="footer">
+            <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+        </div>
+    </div>
+
+    <script>
+        const exerciseData = [{"part1":"<b>Hanna:</b>","part2":"?","correct":"Hallo","options":["Hallo","Tschüss","Bis bald"]},{"part1":"<b>Nico:</b> Hallo,","part2":"du Hanna?","correct":"bist","options":["bist","sind","ist"]},{"part1":"<b>Hanna:</b> Ja. Und","part2":"bist du?","correct":"wer","options":["wer","wie","wann"]},{"part1":"<b>Nico:</b> Ich heiße Nico. Ich","part2":"wegen der Anzeige in Kurz&gut an.","correct":"rufe","options":["rufe","finde","biege"]},{"part1":"<b>Hanna:</b> Ah, super.","part2":"spielst Gitarre?","correct":"Du","options":["Du","Er","Ihr"]},{"part1":"<b>Nico:</b>","part2":", genau.","correct":"Ja","options":["Ja","Nein"]},{"part1":"<b>Hanna:</b> Wie lange spielst du","part2":"?","correct":"schon","options":["schon","schön"]},{"part1":"<b>Nico:</b> Zwei, drei","part2":". Und ich möchte gern in einer Band spielen.","correct":"Jahre","options":["Jahre","Jahr","Jahren"]},{"part1":"<b>Hanna:</b> Dann komm doch","part2":"Dienstag zur Bandprobe. Geht das?","correct":"am","options":["am","im","um"]},{"part1":"<b>Nico:</b> Dienstag? Ja, Dienstag","part2":". Und wann?","correct":"geht","options":["geht","gehen","gehst"]},{"part1":"<b>Hanna:</b>","part2":"sechs. Ist das okay?","correct":"Um","options":["Um","Am","Im"]},{"part1":"<b>Nico:</b> Ja, super! Dienstag um sechs.","part2":"wo?","correct":"Und","options":["Und","Wer","Wie"]},{"part1":"<b>Hanna:</b> In","part2":"Spiegelstraße 12.","correct":"der","options":["der","die","das"]}];
+        const exerciseTitle = "9. ročník - Telefonický rozhovor (KB 16/3)";
+        let detailedResultsData = [];
+
+        window.addEventListener('load', () => {
+            const exerciseContainer = document.getElementById('exerciseContainer');
+
+            exerciseData.forEach((task, index) => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'sub-question';
+                rowDiv.dataset.correct = task.correct;
+                rowDiv.dataset.part1 = task.part1;
+                rowDiv.dataset.part2 = task.part2;
+                
+                const uniqueId = `q${index}`;
+
+                const sentenceDiv = document.createElement('div');
+                sentenceDiv.className = 'sentence';
+                
+                const spanPart1 = document.createElement('span');
+                // Podpora pre HTML tagy (napr. <b>)
+                spanPart1.innerHTML = task.part1 + " ";
+                
+                const placeholder = document.createElement('span');
+                placeholder.className = 'placeholder';
+                placeholder.id = `placeholder-${uniqueId}`;
+                placeholder.textContent = '...';
+
+                const spanPart2 = document.createElement('span');
+                // Podpora pre HTML tagy (napr. <b>)
+                spanPart2.innerHTML = " " + task.part2;
+
+                sentenceDiv.appendChild(spanPart1);
+                sentenceDiv.appendChild(placeholder);
+                sentenceDiv.appendChild(spanPart2);
+
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'options';
+
+                const optionsToShuffle = [...task.options];
+                const shuffledOptions = shuffleArray(optionsToShuffle);
+
+                shuffledOptions.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.textContent = opt;
+                    btn.onclick = () => selectAnswer(btn, uniqueId, opt);
+                    optionsDiv.appendChild(btn);
+                });
+
+                rowDiv.appendChild(sentenceDiv);
+                rowDiv.appendChild(optionsDiv);
+                exerciseContainer.appendChild(rowDiv);
+            });
+        });
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function selectAnswer(btn, uniqueId, value) {
+            const parent = btn.parentElement;
+            const buttons = parent.querySelectorAll('.option-btn');
+            buttons.forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+
+            const placeholder = document.getElementById(`placeholder-${uniqueId}`);
+            placeholder.textContent = value;
+            placeholder.classList.add('filled');
+
+            const rowDiv = parent.parentElement;
+            rowDiv.dataset.selected = value;
+        }
+
+        const evaluateBtn = document.getElementById('evaluateBtn');
+        evaluateBtn.addEventListener('click', () => {
+            const studentName = document.getElementById('studentName').value.trim() || "Anonym";
+            const questions = document.querySelectorAll('.sub-question');
+            let correctCount = 0;
+            const totalQuestions = questions.length;
+            detailedResultsData = [];
+
+            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+            evaluateBtn.disabled = true;
+
+            questions.forEach(q => {
+                const selected = q.dataset.selected;
+                const correct = q.dataset.correct;
+                // Načítanie dát (part1, part2) je stále potrebné pre zobrazenie
+                const part1 = q.dataset.part1;
+                const part2 = q.dataset.part2;
+
+                let status = "missing"; 
+                if (selected) {
+                    if (selected === correct) {
+                        status = "correct";
+                        correctCount++;
+                    } else {
+                        status = "incorrect";
+                    }
+                }
+
+                const ph = q.querySelector('.placeholder');
+                if (status === "correct") ph.classList.add('evaluated-correct');
+                else if (status === "incorrect") ph.classList.add('evaluated-incorrect');
+
+                const selectedBtn = Array.from(q.querySelectorAll('.option-btn')).find(b => b.textContent === selected);
+                if (selectedBtn) selectedBtn.classList.remove('selected');
+
+                detailedResultsData.push({
+                    fullSentenceWithAnswer: `${part1} <strong>${selected || '...'}</strong> ${part2}`,
+                    correct: correct,
+                    selected: selected || null,
+                    status: status
+                });
+            });
+
+            const percentage = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+            const scoreText = `${correctCount} / ${totalQuestions} (${percentage.toFixed(0)}%)`;
+            const now = new Date();
+            const dateTimeText = now.toLocaleString('sk-SK');
+
+            document.getElementById('summaryTitle').textContent = exerciseTitle;
+            document.getElementById('summaryName').textContent = studentName;
+            document.getElementById('summaryScore').textContent = scoreText;
+            document.getElementById('summaryDateTime').textContent = dateTimeText;
+            document.getElementById('resultsSummary').style.display = 'block';
+            document.getElementById('detailedResultsBtn').style.display = 'inline-block';
+
+            window.quizResults = {
+                title: exerciseTitle,
+                name: studentName,
+                score: scoreText,
+                dateTime: dateTimeText,
+                details: detailedResultsData
+            };
+        });
+
+        document.getElementById('detailedResultsBtn').addEventListener('click', () => {
+            const data = window.quizResults;
+            if (!data) return;
+
+            const win = window.open('', '_blank');
+            let rowsHtml = '';
+            data.details.forEach(item => {
+                let symbol = '';
+                if (item.status === 'correct') {
+                    symbol = '<span class="symbol correct">✔</span>';
+                } else if (item.status === 'incorrect') {
+                    symbol = '<span class="symbol incorrect">❌</span>';
+                } else {
+                    symbol = '<span class="symbol missing">!</span>';
+                }
+
+                rowsHtml += `
+                    <tr>
+                        <td>${item.fullSentenceWithAnswer}</td>
+                        <td><strong>${item.correct}</strong></td>
+                        <td style="text-align:center;">${symbol}</td>
+                    </tr>
+                `;
+            });
+
+            const htmlContent = `
+                <!DOCTYPE html>
+                <html lang="sk">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Detailné výsledky: ${data.title}</title>
+                    <style>
+                        body { font-family: 'Segoe UI', sans-serif; padding: 20px; line-height: 1.5; color: #333; }
+                        h1 { color: #0056b3; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+                        .meta { margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: middle; }
+                        th { background-color: #f2f2f2; font-weight: bold; }
+                        .correct { color: #28a745; font-weight: bold; }
+                        .incorrect { color: #dc3545; font-weight: bold; }
+                        .symbol { font-size: 1.4rem; }
+                        .symbol.missing { color: #ffc107; font-weight: bold; }
+                        .legend { margin-top: 30px; font-size: 0.9rem; border: 1px solid #eee; padding: 10px; display: inline-block; }
+                        .btn-print { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; border-radius: 5px; font-size: 1rem; }
+                        @media print { .no-print { display: none; } body { padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <button class="btn-print no-print" onclick="window.print()">🖨️ Vytlačiť (Ctrl+P)</button>
+                    <h1>Detailný prehľad výsledkov</h1>
+                    <div class="meta">
+                        <strong>Názov cvičenia:</strong> ${data.title}<br>
+                        <strong>Meno žiaka:</strong> ${data.name}<br>
+                        <strong>Hodnotenie:</strong> ${data.score}<br>
+                        <strong>Dátum:</strong> ${data.dateTime}
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 50%">Zadaná úloha (s odpoveďou žiaka)</th>
+                                <th style="width: 30%">Správna odpoveď</th>
+                                <th style="width: 20%; text-align:center;">Hodnotenie</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+
+                    <div class="legend">
+                        <strong>Vysvetlivky:</strong><br>
+                        <span class="symbol correct">✔</span> = Správna odpoveď<br>
+                        <span class="symbol incorrect">❌</span> = Nesprávna odpoveď<br>
+                        <span class="symbol missing">!</span> = Chýbajúca odpoveď
+                    </div>
+                </body>
+                </html>
+            `;
+
+            win.document.open();
+            win.document.write(htmlContent);
+            win.document.close();
+        });
+
+    </script>
+</body>
+</html>

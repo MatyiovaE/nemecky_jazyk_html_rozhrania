@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>8. ročník - Povolania a zamestnania</title>
+<style>
+  body { font-family: 'Monaco', monospace; background: #fdfdfd; color: #333; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; }
+  body.dark { background: #1a1a1a; color: #f0f0f0; }
+  .top-bar { background: rgba(0,0,0,0.05); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+  button { cursor: pointer; }
+  #themeBtn { padding: 5px 10px; border: none; background: #ccc; border-radius: 4px; }
+  .container { max-width: 800px; margin: 0 auto; padding: 20px; flex: 1; display: flex; flex-direction: column; }
+  
+  /* Start Screen */
+  #startScreen { text-align: center; margin-top: 40px; }
+  input.inp { padding: 10px; width: 80%; max-width: 300px; margin: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 5px; }
+  #btnStart { background: #4CAF50; color: white; border: none; padding: 15px 40px; font-size: 1.2rem; border-radius: 50px; margin-top: 20px; }
+  #btnStart:hover { transform: scale(1.05); }
+
+  /* Quiz Screen */
+  #quizScreen { display: none; flex-direction: column; height: 100%; }
+  .q-box { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; min-height: 20vh; margin-bottom: 20px; }
+  .q-inst { color: #666; font-style: italic; margin-bottom: 15px; font-size: 1.1rem; }
+  .q-num { color: #888; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 10px; }
+  .q-txt { font-size: 1.8rem; font-weight: bold; }
+  
+.opts { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 15px; 
+  width: 100%; 
+  max-width: 1550px; 
+  margin: 0 auto; 
+}
+  @media(max-width:600px){ .opts { grid-template-columns: 1fr; } }
+  
+  .opt-btn { 
+    background: #fff; 
+    border: 2px solid #ddd; 
+    padding: 25px 10px;
+	font-family: 'Monaco', monospace;
+    font-size: 1.4rem;
+    border-radius: 8px; 
+    color: #333; 
+    transition: 0.2s; 
+	width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 100px;
+  word-wrap: break-word; 
+  overflow-wrap: anywhere; 
+  white-space: normal;
+  line-height: 1.2;
+  }
+  body.dark .opt-btn { background: #333; border-color: #555; color: #fff; }
+  .opt-btn:hover { background: #eee; }
+  body.dark .opt-btn:hover { background: #444; }
+  .opt-btn.sel { background: #e3f2fd; border-color: #2196F3; color: #1565c0; font-weight: bold; }
+  body.dark .opt-btn.sel { background: #1a3b5c; border-color: #4dabf5; color: #fff; }
+
+  /* Nav */
+  .nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin-top: 20px; }
+  
+  .nav-btn { 
+    width: 30px; 
+    height: 30px; 
+    border: 1px solid #ccc; 
+    background: #eee; 
+    border-radius: 4px; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  body.dark .nav-btn { color: #000; }
+  .nav-btn.done { background: #b3e5fc; border-color: #81d4fa; }
+  .nav-btn.act { border: 2px solid #333; transform: scale(1.15); font-weight: bold; }
+  body.dark .nav-btn.act { border-color: #fff; }
+
+  #btnEval { display: none; margin: 20px auto; background: #28a745; color: white; border: none; padding: 15px 40px; font-size: 1.2rem; border-radius: 5px; }
+
+  /* Results */
+  #resScreen { display: none; text-align: center; padding: 20px; }
+  .score-big { font-size: 3rem; margin: 20px; font-weight: bold; }
+  .good { color: green; } .bad { color: red; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left; }
+  th, td { border: 1px solid #aaa; padding: 8px; }
+  .wrong-ans { text-decoration: line-through; color: red; }
+  .right-ans { color: green; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div><strong>8. ročník - Povolania a zamestnania</strong>, Mgr. Erika Matyiová 2026</div>
+  <button id="themeBtn" onclick="toggleTheme()">Tmavý režim</button>
+</div>
+
+<div class="container">
+  <div id="startScreen">
+    <h1>Vitajte v teste</h1>
+    <input type="text" id="pName" class="inp" placeholder="Vaše meno">
+    <br>
+    <label>Počet otázok (max <span id="maxQ"></span>): </label>
+    <input type="number" id="pCount" class="inp" style="width: 60px;" min="1" value="1">
+    <br>
+    <button id="btnStart" onclick="startTest()">Spustiť test</button>
+  </div>
+
+  <div id="quizScreen">
+    <div class="q-box">
+      <div class="q-inst" id="qInst"></div>
+      <div class="q-num" id="qNum"></div>
+      <div class="q-txt" id="qTxt"></div>
+    </div>
+    <div class="opts" id="optsBox"></div>
+    <div class="nav" id="navBox"></div>
+    <button id="btnEval" onclick="evalTest()">Vyhodnotiť test</button>
+  </div>
+
+  <div id="resScreen"></div>
+</div>
+
+<script>
+// DATA INJECTED BY GENERATOR
+var DB = [{"term":"advokát","correct":"der Advokat","group":0},{"term":"advokátka","correct":"die Advokatin","group":0},{"term":"architekt","correct":"der Architekt","group":0},{"term":"architektka","correct":"die Architektin","group":0},{"term":"automechanik","correct":"der Automechaniker","group":0},{"term":"čašníčka","correct":"die Kellnerin","group":0},{"term":"čašník","correct":"der Kellner","group":0},{"term":"dôchodca","correct":"der Rentner","group":0},{"term":"dôchodkyňa","correct":"die Rentnerin","group":0},{"term":"elektrikár","correct":"der Elektriker","group":0},{"term":"hasič","correct":"der Feuerwehrmann","group":0},{"term":"herec","correct":"der Schauspieler","group":0},{"term":"herečka","correct":"die Schauspielerin","group":0},{"term":"kaderníčka","correct":"die Friseurin","group":0},{"term":"kaderník","correct":"der Friseur","group":0},{"term":"kozmetička","correct":"die Kosmetikerin","group":0},{"term":"kozmetik","correct":"der Kosmetiker","group":0},{"term":"kuchár","correct":"der Koch","group":0},{"term":"kuchárka","correct":"die Köchin","group":0},{"term":"lekár","correct":"der Arzt","group":0},{"term":"lekárka","correct":"die Ärztin","group":0},{"term":"lekárnička","correct":"die Apothekerin","group":0},{"term":"lekárnik","correct":"der Apotheker","group":0},{"term":"murár","correct":"der Maurer","group":0},{"term":"novinár","correct":"der Journalist","group":0},{"term":"novinárka","correct":"die Journalistin","group":0},{"term":"obchodníčka","correct":"die Kauffrau","group":0},{"term":"obchodník","correct":"der Kaufmann","group":0},{"term":"odborníčka v oblasti informačných technológií","correct":"die IT-Fachfrau","group":0},{"term":"odborník v oblasti informačných technológií","correct":"der IT-Fachmann","group":0},{"term":"opatrovateľ","correct":"der Pfleger","group":0},{"term":"opatrovateľka","correct":"die Pflegerin","group":0},{"term":"operátor zákazníckeho centra","correct":"der Callcenteragent","group":0},{"term":"operátorka zákazníckeho centra","correct":"die Callcenteragentin","group":0},{"term":"pedagogická asistenka","correct":"pädagogische Assistentin","group":0},{"term":"pedagogický asistent","correct":"pädagogischer Assistent","group":0},{"term":"pekár","correct":"der Bäcker","group":0},{"term":"pekárka","correct":"die Bäckerin","group":0},{"term":"policajt","correct":"der Polizist","group":0},{"term":"policajtka","correct":"die Polizistin","group":0},{"term":"poľnohospodár","correct":"der Landwirt","group":0},{"term":"poľnohospodárka","correct":"die Landwirtin","group":0},{"term":"poštová doručovateľka","correct":"die Briefträgerin","group":0},{"term":"poštový doručovateľ","correct":"der Briefträger","group":0},{"term":"povolanie","correct":"der Beruf, die Berufe","group":0},{"term":"pracovník bezpečnostnej služby","correct":"der Sicherheitsdienstmitarbeiter","group":0},{"term":"právnička","correct":"die Juristin","group":0},{"term":"právnik","correct":"der Jurist","group":0},{"term":"predavač","correct":"der Verkäufer","group":0},{"term":"predavačka","correct":"die Verkäuferin","group":0},{"term":"programátor","correct":"der Programmierer","group":0},{"term":"programátorka","correct":"die Programmiererin","group":0},{"term":"riaditeľ školy","correct":"der Schulleiter","group":0},{"term":"riaditeľka školy","correct":"die Schulleiterin","group":0},{"term":"rušňovodič","correct":"der Lokomotivführer","group":0},{"term":"smetiar","correct":"der Müllwerker","group":0},{"term":"sociálna pracovníčka","correct":"die Sozialarbeiterin","group":0},{"term":"sociálny pracovník","correct":"der Sozialarbeiter","group":0},{"term":"speváčka","correct":"die Sängerin","group":0},{"term":"spevák","correct":"der Sänger","group":0},{"term":"súkromný podnikateľ","correct":"der Privatunternehmer","group":0},{"term":"súkromná podnikateľka","correct":"die Privatunternehmerin","group":0},{"term":"šofér autobusu","correct":"der Busfahrer","group":0},{"term":"šofér taxíka","correct":"der Taxifahrer","group":0},{"term":"študent (na vysokej škole)","correct":"der Student","group":0},{"term":"študentka (na vysokej škole)","correct":"die Studentin","group":0},{"term":"tajomníčka, sekretárka","correct":"die Sekretärin","group":0},{"term":"tajomník, sekretár","correct":"der Sekretär","group":0},{"term":"tanečníčka","correct":"die Tänzerin","group":0},{"term":"tanečník","correct":"der Tänzer","group":0},{"term":"tréner","correct":"der Trainer","group":0},{"term":"trénerka","correct":"die Trainerin","group":0},{"term":"učiteľ","correct":"der Lehrer","group":0},{"term":"učiteľka","correct":"die Lehrerin","group":0},{"term":"účtovníčka","correct":"die Buchhalterin","group":0},{"term":"účtovník","correct":"der Buchhalter","group":0},{"term":"údržbár","correct":"der Wartungstechniker","group":0},{"term":"upratovač","correct":"der Raumpfleger","group":0},{"term":"upratovačka","correct":"die Raumpflegerin","group":0},{"term":"vojačka","correct":"die Soldatin","group":0},{"term":"vojak","correct":"der Soldat","group":0},{"term":"vrátnička","correct":"die Pförtnerin","group":0},{"term":"vrátnik","correct":"der Pförtner","group":0},{"term":"vychovávateľ","correct":"der Erzieher","group":0},{"term":"vychovávateľka","correct":"die Erzieherin","group":0},{"term":"výpravca","correct":"der Fahrdienstleiter","group":0},{"term":"zamestnanec železnice","correct":"der Eisenbahnangestellte","group":0},{"term":"zamestnankyňa železnice","correct":"die Eisenbahnangestellte","group":0},{"term":"zámočník","correct":"der Schlosser","group":0},{"term":"zdravotná sestra","correct":"die Krankenschwester","group":0},{"term":"zubár","correct":"der Zahnarzt","group":0},{"term":"zubárka","correct":"die Zahnärztin","group":0},{"term":"železničiar","correct":"der Eisenbahner","group":0},{"term":"žiačka","correct":"die Schülerin","group":0},{"term":"žiak","correct":"der Schüler","group":0},{"term":"On pracuje ako ...","correct":"Er arbeitet als ...","group":1},{"term":"Ona pracuje ako ...","correct":"Sie arbeitet als ...","group":1},{"term":"Moja teta pracuje ako ...","correct":"Meine Tante arbeitet als ...","group":1},{"term":"Môj strýko pracuje ako ...","correct":"Mein Onkel arbeitet als ...","group":1},{"term":"Ona je v súčasnosti ženou v domácnosti.","correct":"Sie ist zurzeit Hausfrau.","group":1},{"term":"On si v súčasnosti hľadá prácu.","correct":"Er ist zurzeit auf Arbeitssuche.","group":1},{"term":"Ona si v súčasnosti hľadá prácu.","correct":"Sie ist zurzeit auf Arbeitssuche.","group":1},{"term":"Ona je v súčasnosti doma s dieťaťom.","correct":"Sie ist zurzeit in Elternzeit.","group":1},{"term":"On je v súčasnosti doma s dieťaťom.","correct":"Er ist zurzeit in Elternzeit.","group":1}];
+var META = {"title":"8. ročník - Povolania a zamestnania","author":"Mgr. Erika Matyiová","year":"2026","instruction":"Zvoľ správny preklad."};
+
+var testData = [];
+var currIdx = 0;
+var result = { name: '', score: 0 };
+
+// Init
+window.onload = function() {
+  document.getElementById('maxQ').innerText = DB.length;
+  document.getElementById('pCount').max = DB.length;
+  document.getElementById('pCount').value = DB.length;
+};
+
+function toggleTheme() {
+  document.body.classList.toggle('dark');
+}
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+function startTest() {
+  var name = document.getElementById('pName').value.trim();
+  result.name = name || 'Anonym';
+  var cnt = parseInt(document.getElementById('pCount').value);
+  if (cnt < 1) cnt = 1;
+  if (cnt > DB.length) cnt = DB.length;
+
+  // Prepare questions
+  var picked = shuffle([...DB]).slice(0, cnt);
+  
+  // Generate distractors WITH GROUP LOGIC
+  testData = picked.map(q => {
+    var sameGroupItems = DB.filter(item => item.group === q.group);
+    var others = sameGroupItems
+                   .filter(x => x.correct !== q.correct)
+                   .map(x => x.correct);
+    var uniqueOthers = [...new Set(others)];
+    var dist = shuffle(uniqueOthers).slice(0, 3);
+    var options = shuffle([q.correct, ...dist]);
+    return {
+      term: q.term,
+      correct: q.correct,
+      opts: options,
+      userAns: null
+    };
+  });
+
+  // UI switch
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('quizScreen').style.display = 'flex';
+  
+  loadQ(0);
+}
+
+function loadQ(idx) {
+  currIdx = idx;
+  var q = testData[idx];
+  
+  // Vloženie pokynu pre žiaka
+  document.getElementById('qInst').innerText = META.instruction;
+  
+  document.getElementById('qNum').innerText = 'Otázka ' + (idx+1) + ' / ' + testData.length;
+  document.getElementById('qTxt').innerText = q.term;
+  
+  var box = document.getElementById('optsBox');
+  box.innerHTML = '';
+  q.opts.forEach(opt => {
+    var btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    if (q.userAns === opt) btn.classList.add('sel');
+    btn.innerText = opt;
+    btn.onclick = function() { setAns(opt); };
+    box.appendChild(btn);
+  });
+  
+  renderNav();
+  document.getElementById('btnEval').style.display = (idx === testData.length - 1) ? 'block' : 'none';
+}
+
+function setAns(ans) {
+  testData[currIdx].userAns = ans;
+  loadQ(currIdx);
+}
+
+function renderNav() {
+  var box = document.getElementById('navBox');
+  box.innerHTML = '';
+  testData.forEach((q, i) => {
+    var b = document.createElement('div');
+    b.className = 'nav-btn';
+    if (q.userAns) b.classList.add('done');
+    if (i === currIdx) b.classList.add('act');
+    b.innerText = i + 1;
+    b.onclick = function() { loadQ(i); };
+    box.appendChild(b);
+  });
+}
+
+function evalTest() {
+  var score = 0;
+  testData.forEach(q => { if (q.userAns === q.correct) score++; });
+  result.score = score;
+  
+  document.getElementById('quizScreen').style.display = 'none';
+  var resDiv = document.getElementById('resScreen');
+  resDiv.style.display = 'block';
+  
+  var percent = Math.round((score / testData.length) * 100);
+  var colorClass = percent >= 50 ? 'good' : 'bad';
+  
+  var html = '<h2>Výsledky testu</h2>';
+  html += '<div class="score-big ' + colorClass + '">' + percent + '%</div>';
+  html += '<p>Meno: <b>' + result.name + '</b></p>';
+  html += '<p>Body: ' + score + ' / ' + testData.length + '</p>';
+  html += '<p>Dátum: ' + new Date().toLocaleString() + '</p>';
+  html += '<button onclick="showDetails()" style="background:#008CBA; color:white; padding:10px; border:none; border-radius:5px;">Zobraziť odpovede</button>';
+  html += '<br><br><button onclick="location.reload()" style="background:#666; color:white; padding:10px; border:none; border-radius:5px;">Spustiť znova</button>';
+  
+  resDiv.innerHTML = html;
+}
+
+function showDetails() {
+  var w = window.open('', '_blank');
+  var rows = '';
+  var now = new Date().toLocaleString('sk-SK'); 
+  testData.forEach((q, i) => {
+    var status = '';
+    var uVal = '';
+    
+    if (q.userAns === q.correct) {
+      status = '✅';
+      uVal = '<span class="right-ans">' + q.userAns + '</span>';
+    } else if (q.userAns === null) {
+      status = '⚠️';
+      uVal = '(bez odpovede)';
+    } else {
+      status = '❌';
+      uVal = '<span class="wrong-ans">' + q.userAns + '</span>';
+    }
+    
+    rows += '<tr>';
+    rows += '<td><b>' + (i+1) + '. ' + q.term + '</b><br><small>Správne: ' + q.correct + '</small></td>';
+    rows += '<td>' + uVal + ' <span style="float:right; font-size:1.2em;">' + status + '</span></td>';
+    rows += '</tr>';
+  });
+
+  var page = '<html><head><title>Výsledky</title>';
+  page += '<style>body{font-family:sans-serif; padding:20px;} table{width:100%; border-collapse:collapse;} td,th{border:1px solid #ccc; padding:10px;} .wrong-ans{text-decoration:line-through;color:red;} .right-ans{color:green;font-weight:bold;}</style>';
+  page += '</head><body>';
+  page += '<h2>Detailný prehľad: ' + META.title + '</h2>';
+  page += '<p>Žiak: ' + result.name + '</p>';
+  page += '<p>Dátum a čas: ' + now + '</p>';
+  page += '<table><thead><tr><th>Otázka</th><th>Vaša odpoveď</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  page += '<br><button onclick="window.print()">Vytlačiť</button>';
+  page += '</body></html>';
+  w.document.write(page);
+  w.document.close();
+}
+</script>
+</body>
+</html>

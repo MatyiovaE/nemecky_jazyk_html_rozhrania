@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Cvičenie – časovanie slovies</title>
+  <style>
+    body { font-family: Courier bold, monospace; background-color: #f0f4f8; padding: 20px; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; background-color: #e0f7fa; border: 3px solid white; }
+    th, td { border: 2px solid white; padding: 15px; text-align: center; font-size: 18px; height: 50px; }
+    .highlight { background-color: #ffcccb; }
+    .message { color: red; font-weight: bold; margin-top: 10px; }
+    .score { font-size: 20px; margin-top: 20px; }
+    .compact-table { width: 50%; margin: 0 auto; border-collapse: collapse; }
+    .compact-table th, .compact-table td { padding: 4px 8px; text-align: center; border: 1px solid #ccc; font-size: 20px; }
+    .compact-table td:first-child { font-weight: bold; width: 30%; }
+  </style>
+</head>
+<body>
+
+<h2>Cvičenie – časovanie slovies</h2>
+<div id="exerciseArea"></div>
+<div class="message" id="feedback"></div>
+<div class="score" id="scoreDisplay"></div>
+
+<script>
+  // Dáta cvičenia (prenesené zo zdrojovej stránky)
+  const verbs = [{"infinitive":"robiť","forms":[{"pronoun":"ja","form":"robím"},{"pronoun":"ty","form":"robíš"},{"pronoun":"on, ona, ono","form":"robí"},{"pronoun":"my","form":"robíme"},{"pronoun":"vy","form":"robíte"},{"pronoun":"oni, ony","form":"robia"}]},{"infinitive":"spievať","forms":[{"pronoun":"ja","form":"spievam"},{"pronoun":"ty","form":"spievaš"},{"pronoun":"on, ona, ono","form":"spieva"},{"pronoun":"my","form":"spievame"},{"pronoun":"vy","form":"spievate"},{"pronoun":"oni, ony","form":"spievajú"}]}];
+
+  let currentVerbIndex = 0;
+  let currentForms = [];
+  let score = 0;
+  let total = 0;
+
+  // NOVÉ: indikátor, či bol pri aktuálnom tvare aspoň jeden omyl
+  let hadMistakeForCurrent = false;
+
+  function nextVerb() {
+    if (currentVerbIndex >= verbs.length) {
+      const percent = total ? Math.round((score / total) * 100) : 0;
+      document.getElementById("exerciseArea").innerHTML = "";
+      const fb = document.getElementById("feedback"); if (fb) fb.textContent = "";
+      document.getElementById("scoreDisplay").textContent = "Výsledok: " + score + "/" + total + " bodov (" + percent + "%)";
+      return;
+    }
+
+    const verb = verbs[currentVerbIndex];
+    currentForms = verb.forms.slice().sort(function(){ return Math.random() - 0.5; });
+    total += currentForms.length;
+
+    // reset indikátora pre prvý zobrazovaný tvar
+    hadMistakeForCurrent = false;
+
+    let html = '<h3 style="text-align: center;">Sloveso: <em>' + escapeHtml(verb.infinitive) + '</em></h3>';
+    html += '<p style="text-align: center;">Kam patrí tento časovaný tvar? Klikni do správnej prázdnej bunky.</p>';
+    html += '<p id="formToPlace" style="text-align: center; font-size: 25px;"><strong>' + escapeHtml(currentForms[0].form) + '</strong></p>';
+    html += '<div id="localFeedback" class="message" style="text-align: center; margin: 8px 0 12px;"></div>';
+    html += '<table class="compact-table"><tr><th>Osobné zámeno</th><th>Časovaný tvar</th></tr>';
+    const pronouns = ["ja","ty","on, ona, ono","my","vy","oni, ony"];
+    pronouns.forEach(function(p) {
+      html += '<tr><td>' + escapeHtml(p) + '</td><td onclick="placeForm(this, \'' + p.replace(/\'/g, "\\'") + '\')"></td></tr>';
+    });
+    html += '</table><br>';
+    document.getElementById("exerciseArea").innerHTML = html;
+
+    const lfb = document.getElementById("localFeedback"); if (lfb) lfb.textContent = "";
+    const fb = document.getElementById("feedback"); if (fb) fb.textContent = "";
+  }
+
+  function placeForm(cell, pronoun) {
+    const current = currentForms[0];
+    if (!current || cell.textContent !== "") return;
+
+    const validPronouns = verbs[currentVerbIndex].forms
+      .filter(function(f) { return f.form === current.form; })
+      .map(function(f) { return f.pronoun; });
+
+    if (validPronouns.includes(pronoun)) {
+      cell.textContent = current.form;
+
+      const allCells = document.querySelectorAll("td");
+      allCells.forEach(function(td) {
+        if (td.classList.contains("highlight") && td.textContent === "") td.classList.remove("highlight");
+      });
+
+      currentForms.shift();
+
+      // bod len ak nebola žiadna chyba pri tomto tvare
+      if (!hadMistakeForCurrent) {
+        score++;
+      }
+      // reset indikátora pre ďalší tvar (nastaví sa nanovo pri zobrazení)
+      hadMistakeForCurrent = false;
+
+      const lfb = document.getElementById("localFeedback"); if (lfb) lfb.textContent = "";
+      if (currentForms.length > 0) {
+        document.getElementById("formToPlace").innerHTML = '<strong style="color: black;">' + escapeHtml(currentForms[0].form) + '</strong>';
+        // nový tvar začína bez chyby
+        hadMistakeForCurrent = false;
+      } else {
+        currentVerbIndex++;
+        setTimeout(nextVerb, 800);
+      }
+    } else {
+      // prvá nesprávna voľba nastaví indikátor; ďalšie už nič nemenia
+      if (!hadMistakeForCurrent) {
+        hadMistakeForCurrent = true;
+      }
+
+      cell.classList.add("highlight");
+      document.getElementById("formToPlace").innerHTML = '<strong style="color: red;">' + escapeHtml(current.form) + '</strong>';
+      const lfb = document.getElementById("localFeedback");
+      if (lfb) lfb.innerHTML = "Nesprávne. Skús to znova.<br>Teraz klikni do správnej prázdnej bunky.";
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/\'/g, "&#039;");
+  }
+
+  document.addEventListener("DOMContentLoaded", nextVerb);
+</script>
+</body>
+</html>

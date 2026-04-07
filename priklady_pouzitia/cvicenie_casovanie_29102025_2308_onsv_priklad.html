@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Cvičenie – časovanie slovies</title>
+  <style>
+    body { font-family: Courier bold, monospace; background: #f0f4f8; padding: 20px; }
+    h1, h2, h3, h4, p { margin: 0 0 10px; }
+    label, input { display: block; margin: 10px 0; font-size: 16px; }
+    input { padding: 6px; width: 300px; }
+    table { border-collapse: collapse; margin: 10px 0; width: 50%; background: #e0f7fa; }
+    th, td { border: 2px solid white; padding: 12px; text-align: center; font-size: 30px; cursor: pointer; }
+    .card { display: inline-block; padding: 6px 12px; margin: 5px; background: #eef; font-size: 160%; border: 1px solid #99c; cursor: pointer; }
+    .selected { background: #cfc; }
+    .correct { background: #cfc; }
+    .incorrect { background: #fbb; }
+    .controls { margin-top: 20px; }
+    @media print {
+      input, button { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Názov cvičenia:</h1>
+  <h2>Cvičenie s oneskorenou spätnou väzbou</h2>
+  <label for="studentName">Meno žiaka:</label>
+  <input type="text" id="studentName" placeholder="Sem napíšte meno žiaka">
+<span style="display: block; text-align: center; font-weight: bold; font-size: 120%; color: blue;">Najprv klikni na tvar slovesa pod tabuľkou a potom klikni na správnu bunku.<br>Ak chceš už umiestnený tvar vymeniť, klikni znova do bunky, čím sa vráti daný tvar pod tabuľku.</span>
+<div style="height: 30px;"></div>
+  <div id="exerciseArea"></div>
+  <div id="cards"></div>
+  <div class="controls" id="controls"></div>
+  <div id="finalResults"></div>
+
+  <script>
+    // Dáta cvičenia
+    const verbs = [{"infinitive":"spievať","forms":[{"pronoun":"ja","form":"spievam"},{"pronoun":"ty","form":"spievaš"},{"pronoun":"on, ona, ono","form":"spieva"},{"pronoun":"my","form":"spievame"},{"pronoun":"vy","form":"spievate"},{"pronoun":"oni, ony","form":"spievajú"}]},{"infinitive":"robiť","forms":[{"pronoun":"ja","form":"robím"},{"pronoun":"ty","form":"robíš"},{"pronoun":"on, ona, ono","form":"robí"},{"pronoun":"my","form":"robíme"},{"pronoun":"vy","form":"robíte"},{"pronoun":"oni, ony","form":"robia"}]}];
+    let currentIndex = 0;
+    let answers = [];
+
+    function shuffle(a) { return a.sort(() => Math.random() - 0.5); }
+
+    function renderVerb() {
+      const v = verbs[currentIndex];
+      const area = document.getElementById("exerciseArea");
+      area.innerHTML = `
+        <h3>${currentIndex+1}. sloveso: <em>${v.infinitive}</em></h3>
+        <table>
+          <tr><th>Osobné zámeno</th><th>Časovaný tvar</th></tr>
+          ${v.forms.map((f,i)=>
+            '<tr><td>'+f.pronoun+'</td><td class="drop" data-i="'+i+'"></td></tr>'
+          ).join('')}
+        </table>`;
+      document.getElementById("cards").innerHTML =
+        shuffle(v.forms.map(f=>f.form))
+          .map(t=>'<div class="card">'+t+'</div>').join('');
+      document.getElementById("controls").innerHTML = "";
+      bind();
+    }
+
+    function bind() {
+      let selected = null;
+      document.querySelectorAll(".card").forEach(c => {
+        c.onclick = () => {
+          document.querySelectorAll(".card").forEach(x=>x.classList.remove("selected"));
+          c.classList.add("selected");
+          selected = c;
+        };
+      });
+      document.querySelectorAll(".drop").forEach(cell => {
+        cell.onclick = () => {
+          if (selected) {
+            if (cell.textContent) {
+              // vrátime starú hodnotu kartičke
+              const old = document.createElement("div");
+              old.className = "card";
+              old.textContent = cell.textContent;
+              document.getElementById("cards").appendChild(old);
+              bind();
+            }
+            cell.textContent = selected.textContent;
+            selected.remove();
+            selected = null;
+            checkFilled();
+          } else if (cell.textContent) {
+            // ak nie je vybraná žiadna karta, vrátime bunku
+            const old = document.createElement("div");
+            old.className = "card";
+            old.textContent = cell.textContent;
+            document.getElementById("cards").appendChild(old);
+            cell.textContent = "";
+            bind();
+            document.getElementById("controls").innerHTML = "";
+          }
+        };
+      });
+    }
+
+    function checkFilled() {
+      const all = [...document.querySelectorAll(".drop")];
+      if (all.every(c=>c.textContent.trim())) {
+        const btn = document.createElement("button");
+        btn.textContent = currentIndex < verbs.length - 1 
+          ? "Ďalej" 
+          : "Vyhodnotiť odpovede";
+        btn.onclick = () => {
+          answers.push(all.map(c=>c.textContent));
+          currentIndex++;
+          if (currentIndex < verbs.length) {
+            renderVerb();
+          } else {
+            showResults();
+          }
+        };
+        document.getElementById("controls").innerHTML = "";
+        document.getElementById("controls").appendChild(btn);
+      }
+    }
+
+    function showResults() {
+      const student = document.getElementById("studentName").value || "– neznáme –";
+      let html = `
+        <h2>Výsledky</h2>
+        <p><strong>Meno žiaka:</strong> ${student}</p>
+        <p><strong>Dátum a čas:</strong> 29.10.2025 23:08</p>
+        <hr>`;
+      let total = 0, correct = 0;
+      verbs.forEach((v,i) => {
+        html += '<h3>'+v.infinitive+'</h3>'
+          + '<table style="width: 900px; font-size: 120%;"><tr><th style="width: 200px; font-size: 120%;">Osobné zámeno</th><th style="width: 350px; font-size: 120%;">Vaša odpoveď</th><th style="width: 350px; font-size: 120%;">Správny tvar</th></tr>';
+        v.forms.forEach((f,j) => {
+          const u = answers[i][j];
+          const ok = u === f.form;
+          html += '<tr>'
+            + '<td>'+f.pronoun+'</td>'
+            + '<td class="'+(ok?'correct':'incorrect')+'">'+u+'</td>'
+            + '<td>'+f.form+'</td>'
+            + '</tr>';
+          total++;
+          if (ok) correct++;
+        });
+        html += '</table>';
+      });
+      const pct = Math.round(correct/total*100);
+      html += `
+        <p><strong>Skóre:</strong> ${correct} z ${total} (${pct}%)</p>`;
+
+      document.body.innerHTML = 
+        document.querySelector('h1').outerHTML
+        + html
+        + '<p><em>Na záznam ako PDF použite Ctrl+P</em></p>';
+    }
+
+    // Štart prvej úlohy až po zadaní mena
+    document.getElementById("studentName").addEventListener("change", () => {
+      renderVerb();
+    });
+  </script>
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br>
+</body>
+</html>

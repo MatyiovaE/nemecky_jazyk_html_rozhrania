@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+<html lang="de-DE">
+<head>
+  <meta charset="UTF-8">
+  <title>Červená čiapočka - nemecky</title>
+  <style>
+    body { font-family: system-ui, Courier bold, monospace; padding: 20px; }
+    #text { white-space: pre-wrap; margin-bottom: 1em; }
+    button, select { margin: 0.3em; padding: 0.4em 0.8em; }
+    .highlight { background-color: yellow; }
+  </style>
+</head>
+<body>
+  <div id="text">Rotkäppchen
+
+Es war einmal ein kleines Mädchen. Alle nannten es Rotkäppchen, weil es immer ein rotes Käppchen trug. Seine Großmutter hatte es ihr geschenkt.
+
+Eines Tages sagte die Mutter: „Rotkäppchen, bring deiner Großmutter Kuchen und Wein. Aber bleib auf dem Weg und sprich nicht mit Fremden.“
+
+Rotkäppchen versprach es und ging los. Im Wald traf es den Wolf. Der Wolf fragte freundlich: „Wohin gehst du, Rotkäppchen?“ Es antwortete: „Zur Großmutter. Sie wohnt hinter dem Wald.“
+
+Der Wolf dachte: Die Großmutter und das Kind – das ist ein gutes Mahl. Er sagte: „Schau, wie schön die Blumen sind. Pflück doch ein paar für deine Großmutter.“ Rotkäppchen vergaß das Versprechen und ging vom Weg ab.
+
+Der Wolf lief schnell zum Haus der Großmutter. Er klopfte an die Tür. „Wer ist da?“ fragte die Großmutter. „Ich bin Rotkäppchen“, sagte der Wolf mit verstellter Stimme. Die Großmutter ließ ihn herein. Der Wolf verschluckte sie mit einem Bissen. Dann zog er ihre Kleider an, legte sich ins Bett und wartete.
+
+Bald kam Rotkäppchen mit den Blumen. Es wunderte sich: „Wie seltsam sieht die Großmutter aus!“ Es trat näher ans Bett und sagte: „Großmutter, warum hast du so große Ohren?“ „Damit ich dich besser hören kann.“ „Großmutter, warum hast du so große Augen?“ „Damit ich dich besser sehen kann.“ „Großmutter, warum hast du so große Zähne?“ „Damit ich dich besser fressen kann!“
+
+Der Wolf sprang aus dem Bett und verschluckte auch Rotkäppchen.
+
+Zum Glück kam ein Jäger vorbei. Er hörte den Wolf schnarchen. Er trat ins Haus, sah den Wolf und schnitt ihm den Bauch auf. Rotkäppchen und die Großmutter sprangen lebendig heraus. Sie füllten den Bauch des Wolfes mit Steinen. Als der Wolf aufwachte, konnte er nicht mehr laufen und fiel tot um.
+
+Rotkäppchen versprach: „Ich gehe nie wieder vom Weg ab und höre auf meine Mutter.“
+
+Und so lebten sie glücklich und sicher weiter.</div>
+
+  <div>
+    <label for="rateSelect">🔄 Rýchlosť: </label>
+    <select id="rateSelect">
+      <option value="0.7">0.7×</option>
+	  <option value="0.8">0.8×</option>
+      <option value="0.9">0.9×</option>
+      <option value="1" selected>1× (normálna)</option>
+      <option value="1.2">1.2×</option>
+      <option value="1.5">1.5×</option>
+    </select>
+  </div>
+
+  <button onclick="speak()">▶️ Spustiť</button>
+  <button onclick="stopSpeaking()">⏹️ Zastaviť</button>
+
+  <script>
+    const selectedLang = "de-DE";
+
+    // --- LocalStorage pre rýchlosť ---
+    window.addEventListener("load", () => {
+      const savedRate = localStorage.getItem("rate");
+      if (savedRate) {
+        document.getElementById("rateSelect").value = savedRate;
+      }
+    });
+    document.getElementById("rateSelect").addEventListener("change", e => {
+      localStorage.setItem("rate", e.target.value);
+    });
+
+    function splitTextIntoChunks(text) {
+      return text.split(/(?<=[.?!])\s+|\n{2,}/).filter(p => p.trim().length > 0);
+    }
+
+    function prepareChunks() {
+      const container = document.getElementById("text");
+      const rawText = container.textContent;
+      const chunks = splitTextIntoChunks(rawText);
+
+      container.innerHTML = "";
+      chunks.forEach((chunk, i) => {
+        const span = document.createElement("span");
+        span.textContent = chunk + " ";
+        span.id = "chunk-" + i;
+        container.appendChild(span);
+      });
+      return chunks;
+    }
+
+    function speak() {
+      const chunks = prepareChunks();
+      const rate = parseFloat(document.getElementById("rateSelect").value);
+
+      let index = 0;
+      function speakChunk() {
+        if (index >= chunks.length) return;
+        const u = new SpeechSynthesisUtterance(chunks[index]);
+        u.rate = rate;
+        u.lang = selectedLang || "sk-SK";
+
+        u.onstart = () => {
+          document.querySelectorAll(".highlight").forEach(el => el.classList.remove("highlight"));
+          const el = document.getElementById("chunk-" + index);
+          if (el) el.classList.add("highlight");
+        };
+
+        let pause = /[.?!]$/.test(chunks[index]) ? 600 : 800;
+        u.onend = () => { index++; setTimeout(speakChunk, pause); };
+        speechSynthesis.speak(u);
+      }
+
+      speechSynthesis.cancel();
+      speakChunk();
+    }
+
+    function stopSpeaking() {
+      speechSynthesis.cancel();
+      document.querySelectorAll(".highlight").forEach(el => el.classList.remove("highlight"));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<title>Úprava slovosledu - cvičenie</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body{font-family:sans-serif;margin:20px;color:#111}
+  button{margin:2px;padding:4px 8px}
+  .exercise{margin-bottom:18px}
+  .exercise-row{display:flex;gap:8px;align-items:flex-start}
+  .left-col{flex:1;min-width:220px}
+  .right-col{width:700px;flex-shrink:0;margin-left:4px;padding-left:4px}
+  .shuffled{display:block;margin:8px 0;padding:0}
+  .word-row{display:flex;align-items:center;gap:12px;padding:8px;border:1px solid #e6e6e6;border-radius:6px;background:#fafafa;margin:6px 0}
+  .word-text{font-weight:700;min-width:120px}
+  .btns{display:flex;gap:6px;flex-wrap:wrap}
+  .sentence-word{display:inline-block;margin-right:10px;text-align:center;border-bottom:1px dashed #ccc;padding:4px 6px;min-width:40px}
+  .highlight{background:#cfe8ff;color:#003366;font-weight:700;border-color:#99c2ff}
+  .slot-placeholder{color:#999}
+  /* PRINT RULES: default hide interactive left column and controls;
+     show only summary area with assembled sentences and pass/fail */
+  @media print{
+    body * { visibility: hidden; } /* hide everything by default in print */
+    #printArea, #printArea * { visibility: visible; } /* make printArea visible */
+    #printArea { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+    /* ensure readable fonts and remove backgrounds */
+    .print-sentence { margin: 8px 0; font-size: 14px; color: #000; background: none; border: none; }
+    .print-pass { color: #006600; font-weight: 700; }
+    .print-fail { color: #990000; font-weight: 700; }
+  }
+  @media (max-width:760px){ .exercise-row{flex-direction:column} .right-col{width:100%;} }
+</style>
+</head>
+<body>
+<h2>🧪 Cvičenie na úpravu slovosledu</h2>
+<label><b>Meno žiaka:</b> <input id="studentName" type="text"></label>
+<br><br>
+<div id="exercisesRoot"></div>
+<button id="evaluateAllBtn" onclick="evaluateAll()">Vyhodnotiť</button>
+<div id="finalResult" style="margin-top:10px"></div>
+
+<!-- printArea bude vyplnené pri beforeprint; only this area is visible in print via CSS -->
+<div id="printArea" style="display:none; margin-top:20px;"></div>
+
+<script>
+  // vložené cvičenia
+  let exercises = JSON.parse(decodeURIComponent("%5B%7B%22originals%22%3A%5B%5B%22Kedy%22%2C%22m%C3%A1%C5%A1%22%2C%22ve%C4%8Der%22%2C%22%C4%8Das%22%2C%22%3F%22%5D%5D%2C%22shuffled%22%3A%5B%22%3F%22%2C%22Kedy%22%2C%22m%C3%A1%C5%A1%22%2C%22ve%C4%8Der%22%2C%22%C4%8Das%22%5D%2C%22userOrder%22%3A%5Bnull%2Cnull%2Cnull%2Cnull%2Cnull%5D%2C%22score%22%3A0%7D%2C%7B%22originals%22%3A%5B%5B%22Pre%C4%8Do%22%2C%22ste%22%2C%22neboli%22%2C%22v%22%2C%22piatok%22%2C%22doma%22%2C%22%3F%22%5D%2C%5B%22Pre%C4%8Do%22%2C%22ste%22%2C%22v%22%2C%22piatok%22%2C%22neboli%22%2C%22doma%22%2C%22%3F%22%5D%5D%2C%22shuffled%22%3A%5B%22Pre%C4%8Do%22%2C%22piatok%22%2C%22ste%22%2C%22doma%22%2C%22v%22%2C%22%3F%22%2C%22neboli%22%5D%2C%22userOrder%22%3A%5Bnull%2Cnull%2Cnull%2Cnull%2Cnull%2Cnull%2Cnull%5D%2C%22score%22%3A0%7D%2C%7B%22originals%22%3A%5B%5B%22My%22%2C%22sme%22%2C%22teraz%22%2C%22u%C5%BE%22%2C%22ve%C4%BEmi%22%2C%22unaven%C3%AD%22%2C%22.%22%5D%5D%2C%22shuffled%22%3A%5B%22sme%22%2C%22ve%C4%BEmi%22%2C%22u%C5%BE%22%2C%22My%22%2C%22.%22%2C%22unaven%C3%AD%22%2C%22teraz%22%5D%2C%22userOrder%22%3A%5Bnull%2Cnull%2Cnull%2Cnull%2Cnull%2Cnull%2Cnull%5D%2C%22score%22%3A0%7D%5D") || "[]");
+
+  function shuffleArray(a){
+    const arr = Array.isArray(a) ? a.slice() : [];
+    for (let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  (function initShuffleOnLoad(){
+    if (!Array.isArray(exercises)) exercises = [];
+    exercises.forEach(ex => {
+      const source = (ex.originals && ex.originals[0] && ex.originals[0].length) ? ex.originals[0] : (Array.isArray(ex.shuffled) ? ex.shuffled : []);
+      ex.shuffled = shuffleArray(source);
+      const len = (ex.originals && ex.originals[0] && ex.originals[0].length) ? ex.originals[0].length : ex.shuffled.length;
+      ex.userOrder = Array(len).fill(null);
+      ex.score = 0;
+    });
+  })();
+
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function findWordFromMarker(m){ return m && m.startsWith('_') ? m.slice(1) : m; }
+
+  function renderAll(){
+    const root = document.getElementById('exercisesRoot'); root.innerHTML = '';
+    if (!Array.isArray(exercises) || exercises.length === 0){
+      root.innerHTML = '<p style="color:#a00"><strong>Súbor neobsahuje žiadne cvičenia.</strong></p>';
+      return;
+    }
+
+    exercises.forEach((ex, i) => {
+      const exWrap = document.createElement('div');
+      exWrap.className = 'exercise';
+
+      const title = document.createElement('h4');
+      title.style.color = 'blue';
+      title.textContent = 'Veta ' + (i+1);
+      exWrap.appendChild(title);
+
+      const row = document.createElement('div');
+      row.className = 'exercise-row';
+
+      const left = document.createElement('div');
+      left.className = 'left-col';
+      const blocks = document.createElement('div');
+      blocks.className = 'shuffled';
+
+      ex.shuffled.forEach((word, wi) => {
+        const r = document.createElement('div');
+        r.className = 'word-row';
+        r.id = 'wordrow-' + i + '-' + wi;
+
+        const w = document.createElement('div');
+        w.className = 'word-text';
+        w.textContent = word;
+        r.appendChild(w);
+
+        const btns = document.createElement('div');
+        btns.className = 'btns';
+        const positionsCount = (ex.originals && ex.originals[0] && ex.originals[0].length) ? ex.originals[0].length : ex.shuffled.length;
+        for (let pi = 0; pi < positionsCount; pi++){
+          const b = document.createElement('button');
+          b.textContent = (pi+1);
+          (function(iCopy, wCopy, piCopy){
+            b.addEventListener('click', function(){ assignPosition(iCopy, '_' + wCopy, piCopy); });
+          })(i, word, pi);
+          btns.appendChild(b);
+        }
+
+        r.appendChild(btns);
+        blocks.appendChild(r);
+      });
+
+      left.appendChild(blocks);
+      row.appendChild(left);
+
+      const right = document.createElement('div');
+      right.className = 'right-col';
+
+      const sentence = document.createElement('div');
+      sentence.id = 'sentence-' + i;
+      sentence.style.marginBottom = '8px';
+      right.appendChild(sentence);
+
+      const checkBtn = document.createElement('button');
+      checkBtn.textContent = 'Je to správne?';
+      checkBtn.addEventListener('click', function(){ checkSentence(i); });
+      right.appendChild(checkBtn);
+
+      const fb = document.createElement('div');
+      fb.id = 'feedback-' + i;
+      fb.style.marginTop = '8px';
+      right.appendChild(fb);
+
+      row.appendChild(right);
+      exWrap.appendChild(row);
+      root.appendChild(exWrap);
+    });
+
+    exercises.forEach((_, i) => {
+      if (!Array.isArray(exercises[i].userOrder)) exercises[i].userOrder = Array(exercises[i].originals[0] ? exercises[i].originals[0].length : exercises[i].shuffled.length).fill(null);
+      if (typeof exercises[i].score !== 'number') exercises[i].score = 0;
+      renderSentence(i);
+      updateButtons(i);
+    });
+  }
+
+  function assignPosition(exIndex, wordMarker, position){
+    const word = findWordFromMarker(wordMarker);
+    const ex = exercises[exIndex];
+    ex.userOrder = ex.userOrder.map(w => w === word ? null : w);
+    ex.userOrder[position] = word;
+    renderSentence(exIndex);
+    updateButtons(exIndex);
+  }
+
+  function renderSentence(exIndex){
+    const ex = exercises[exIndex];
+    const sd = document.getElementById('sentence-' + exIndex);
+    sd.innerHTML = ex.userOrder.map((w,i) => {
+      if (!w) return '<span class="sentence-word slot-placeholder">[ ]</span>';
+      return '<span class="sentence-word">' + escapeHtml(w) + '<br><small>' + (i+1) + '</small> <button onclick="removeWord(' + exIndex + ',' + i + ')">X</button></span>';
+    }).join('');
+  }
+
+  function removeWord(exIndex, pos){ exercises[exIndex].userOrder[pos] = null; renderSentence(exIndex); updateButtons(exIndex); }
+
+  function renderWordButtons(exIndex, word){
+    const ex = exercises[exIndex];
+    const positionsCount = (ex.originals && ex.originals[0] && ex.originals[0].length) ? ex.originals[0].length : ex.shuffled.length;
+    return Array.from({length: positionsCount}, (_, pi) => {
+      const isUsed = ex.userOrder[pi] === word;
+      const cls = isUsed ? 'highlight' : '';
+      const safeWord = String(word).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+      return '<button class="'+cls+'" onclick="assignPosition('+exIndex+', \'_'+safeWord+'\','+pi+')">' + (pi+1) + '</button>';
+    }).join('');
+  }
+
+  function updateButtons(exIndex){
+    const ex = exercises[exIndex];
+    ex.shuffled.forEach((word, wi) => {
+      const row = document.getElementById('wordrow-' + exIndex + '-' + wi);
+      if (!row) return;
+      const wordText = row.querySelector('.word-text') ? row.querySelector('.word-text').textContent : String(word);
+      row.innerHTML = '<div class="word-text">' + escapeHtml(wordText) + '</div><div class="btns">' + renderWordButtons(exIndex, word) + '</div>';
+    });
+  }
+
+  function normalize(s){ return s.replace(/\s+/g,' ').trim().toLowerCase(); }
+
+  function checkSentence(exIndex){
+    const ex = exercises[exIndex];
+    const fb = document.getElementById('feedback-' + exIndex);
+    const userWords = ex.userOrder.map(w => w || '').filter(Boolean);
+    const user = userWords.join(' ').replace(/\s+([.?!,:;])/g,'$1').trim();
+    const correctVariants = (ex.originals || []).map(v => v.join(' ').replace(/\s+([.?!,:;])/g,'$1').trim());
+    const matched = correctVariants.some(cv => normalize(cv) === normalize(user));
+    if (matched) {
+      ex.score = 1;
+      fb.innerHTML = '<p style="color:green;">✅ Správne! +1 bod</p>';
+    } else {
+      ex.score = 0;
+      fb.innerHTML = '<p style="color:red;">❌ Nesprávne</p><div style="margin-top:6px;color:green">' + correctVariants.map(escapeHtml).join('<br>') + '</div>';
+    }
+  }
+
+  function evaluateAll(){
+    exercises.forEach((_, i) => {
+      // ensure each sentence has evaluation if teacher didn't click per-sentence button
+      const ex = exercises[i];
+      const userWords = ex.userOrder.map(w => w || '').filter(Boolean);
+      const user = userWords.join(' ').replace(/\s+([.?!,:;])/g,'$1').trim();
+      const correctVariants = (ex.originals || []).map(v => v.join(' ').replace(/\s+([.?!,:;])/g,'$1').trim());
+      const matched = correctVariants.some(cv => normalize(cv) === normalize(user));
+      ex.score = matched ? 1 : 0;
+      const fb = document.getElementById('feedback-' + i);
+      if (fb) fb.innerHTML = matched ? '<p style="color:green;">✅ Správne! +1 bod</p>' : '<p style="color:red;">❌ Nesprávne</p><div style="margin-top:6px;color:green">' + correctVariants.map(escapeHtml).join('<br>') + '</div>';
+    });
+    const total = exercises.reduce((s, ex) => s + (ex.score || 0), 0);
+    const percent = exercises.length ? Math.round((total / exercises.length) * 100) : 0;
+    const now = new Date().toLocaleString();
+    document.getElementById('finalResult').innerHTML = '<p><strong>Meno žiaka:</strong> ' + escapeHtml(document.getElementById('studentName').value || 'Neznáme meno') + '</p>' +
+      '<p><strong>Dátum a čas:</strong> ' + escapeHtml(now) + '</p>' +
+      '<p><strong>Body:</strong> ' + total + ' / ' + exercises.length + ' (' + percent + '%)</p>';
+  }
+
+  // Build print summary used for printing; will be filled on beforeprint
+  function buildPrintArea(){
+    const printArea = document.getElementById('printArea');
+    printArea.style.display = 'block';
+    printArea.innerHTML = ''; // clear
+    // header
+    const header = document.createElement('div');
+    header.innerHTML = '<h2>Výsledky cvičenia</h2>';
+    printArea.appendChild(header);
+    // student & score
+    const name = escapeHtml(document.getElementById('studentName').value || 'Neznáme meno');
+    const now = new Date().toLocaleString();
+    const total = exercises.reduce((s, ex) => s + (ex.score || 0), 0);
+    const percent = exercises.length ? Math.round((total / exercises.length) * 100) : 0;
+    const meta = document.createElement('div');
+    meta.innerHTML = '<p><strong>Meno žiaka:</strong> ' + name + '</p>' +
+                     '<p><strong>Dátum a čas:</strong> ' + escapeHtml(now) + '</p>' +
+                     '<p><strong>Body:</strong> ' + total + ' / ' + exercises.length + ' (' + percent + '%)</p><hr>';
+    printArea.appendChild(meta);
+
+    // per-sentence list: assembled sentence + pass/fail
+    exercises.forEach((ex, i) => {
+      const p = document.createElement('div');
+      p.className = 'print-sentence';
+      const userWords = ex.userOrder.map(w => w || '').filter(Boolean);
+      const sentenceText = userWords.length ? escapeHtml(userWords.join(' ').replace(/\s+([.?!,:;])/g,'$1').trim()) : '[žiadna odpoveď]';
+      const status = (ex.score && ex.score > 0) ? '<span class="print-pass">Správne</span>' : '<span class="print-fail">Nesprávne</span>';
+      p.innerHTML = '<strong>Veta ' + (i+1) + ':</strong> ' + sentenceText + ' — ' + status;
+      printArea.appendChild(p);
+    });
+    // small footnote
+    const note = document.createElement('div');
+    note.style.marginTop = '10px';
+    note.innerHTML = '<hr><div style="font-size:0.9em;color:#333">Tlač obsahuje len vyskladané vety a hodnotenie. Interaktívne prvky nie sú súčasťou tlače.</div>';
+    printArea.appendChild(note);
+  }
+
+  // beforeprint / afterprint handlers to prepare print view and restore UI
+  function handleBeforePrint(){
+    // ensure evaluation up to date
+    evaluateAll();
+    // build print-only area
+    buildPrintArea();
+    // hide main interactive content by leaving printArea visible via CSS rules
+  }
+  function handleAfterPrint(){
+    // hide printArea again (it will be invisible for screen view)
+    const printArea = document.getElementById('printArea');
+    if (printArea) printArea.style.display = 'none';
+  }
+
+  if (window.matchMedia) {
+    const mql = window.matchMedia('print');
+    mql.addListener(function(m){
+      if (m.matches) handleBeforePrint(); else handleAfterPrint();
+    });
+  }
+  window.addEventListener('beforeprint', handleBeforePrint);
+  window.addEventListener('afterprint', handleAfterPrint);
+
+  // initial render
+  renderAll();
+</script>
+ <br><br>
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  <br><br>
+</body>
+</html>
