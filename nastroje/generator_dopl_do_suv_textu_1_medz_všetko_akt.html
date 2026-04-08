@@ -587,12 +587,59 @@
             padding-top: 10px;
         }
 
-        @media print {
-            body { padding: 0; margin: 0; }
-            .container { box-shadow: none; border: none; width: 100%; max-width: 100%; }
-            .no-print { display: none; }
-            .option-btn { display: none; } 
-            .placeholder { border: none; padding: 0; color: black; }
+@media print {
+            body { padding: 0; margin: 0; background-color: white; }
+            .container { box-shadow: none; border: none; width: 100%; max-width: 100%; padding: 0; }
+            .no-print { display: none !important; }
+            #resultsSummary { display: none !important; } /* Skryje vyhodnotenie pri tlači */
+            
+           /* Úprava riadkov pre úhľadný pracovný list s užším odstupom */
+            .sub-question {
+                border-bottom: 1px dashed #ccc;
+                padding: 5px 0 !important; /* Zmenšený vnútorný priestor zhora a zdola */
+                margin-bottom: 5px !important; /* Zmenšená medzera medzi jednotlivými úlohami */
+                line-height: 1.3 !important; /* Kompaktnejšie riadkovanie samotného textu */
+                page-break-inside: avoid; /* Zabráni rozdeleniu vety na dve strany */
+            }
+			
+			/* Úprava políčka pre meno žiaka pri tlači */
+            #studentName {
+                border: none !important;
+                border-bottom: 1px solid black !important; /* Vytvorí linku na písanie */
+                outline: none;
+                background: transparent !important;
+            }
+
+            /* Skrytie textu "Zadajte meno žiaka" pri tlači */
+            #studentName::placeholder {
+                color: transparent !important;
+            }
+
+            /* Prázdna čiara na dopísanie rukou */
+            .placeholder { 
+                border: none !important;
+                border-bottom: 1px solid black !important; 
+                padding: 0 10px; 
+                color: transparent !important; /* Skryje "..." alebo text, aby ostala len čiara */
+                min-width: 60px;
+                background-color: transparent !important;
+            }
+
+            /* Prevedenie tlačidiel na text oddelený lomítkom na pravej strane */
+            .option-btn {
+                display: inline-block !important;
+                background: transparent !important;
+                border: none !important;
+                color: black !important;
+                box-shadow: none !important;
+                padding: 0 4px !important;
+                font-size: 1rem;
+            }
+            /* Pridá lomítko za každú možnosť okrem poslednej */
+            .option-btn:not(:last-child)::after {
+                content: " /";
+                font-weight: normal;
+            }
         }
     </style>
 </head>
