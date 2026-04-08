@@ -159,7 +159,8 @@
             <strong>Formát riadka:</strong> 1. časť vety ... 2. časť vety [TAB] Správna odpoveď | Nesprávna 1 | Nesprávna 2 ...<br>
             <strong>Formátovanie:</strong> Pre tučné písmo použite <code>&lt;b&gt;text&lt;/b&gt;</code>.<br>
             Použite <strong>TAB</strong> na oddelenie vety od možností. Prvá možnosť za tabulátorom je vždy <strong>správna</strong>.<br>
-			Zalomenie textu nastavíte pomocou <code>&lt;br&gt;</code>.
+			Zalomenie textu nastavíte pomocou <code>&lt;br&gt;</code>.<br>
+            <em>Tip: Ak napíšete riadok bez tabulátora, automaticky sa pripojí k nasledujúcej úlohe ako jeden celok.</em>
         </div>
         <textarea id="inputText" spellcheck="false" placeholder="<b>Hanna:</b> Hallo? ... bist du?[TAB]Wer|Wie|Wo
 <b>Nico:</b> Ich ... Nico.[TAB]heiße|hause|komme"></textarea>
@@ -272,6 +273,7 @@
         const file = input.files[0];
         if (!file) return;
         const reader = new FileReader();
+        
         reader.onload = function(e) {
             try {
                 const data = JSON.parse(e.target.result);
@@ -282,10 +284,19 @@
                 alert('Údaje úspešne načítané.');
             } catch (err) {
                 alert('Chyba pri čítaní súboru. Skontrolujte formát.');
+                console.error(err);
+            } finally {
+                // Vyčistíme input až po úspešnom/neúspešnom spracovaní
+                input.value = ''; 
             }
         };
+        
+        reader.onerror = function() {
+            alert('Chyba pri načítaní súboru.');
+            input.value = '';
+        };
+
         reader.readAsText(file);
-        input.value = ''; 
     }
 
     // --- GENERÁTOR ---
@@ -297,13 +308,21 @@
 
         const lines = rawContent.split('\n');
         const exerciseData = [];
+        let accumulatedText = ""; // Pre ukladanie riadkov, ktoré nemajú možnosti
 
         lines.forEach(line => {
-            if (!line.trim()) return;
+            const trimmedLine = line.trim();
+            if (!trimmedLine) return;
+            
             const parts = line.split('\t');
-            if (parts.length < 2) return;
+            if (parts.length < 2) {
+                // Riadok nemá tabulátor - pripojíme ho k budúcemu textu
+                accumulatedText += trimmedLine + " ";
+                return;
+            }
 
-            const sentencePart = parts[0];
+            // Máme riadok s tabulátorom, pridáme k nemu text, ktorý sa nám doteraz nazbieral
+            const sentencePart = accumulatedText + parts[0];
             const optionsPart = parts[1];
             
             // Nahradíme prvé '...', ktoré NIE JE prilepené k textu zľava (teda je pred ním medzera alebo je na začiatku)
@@ -319,7 +338,10 @@
             const part2 = splitSentence[1] ? splitSentence[1].trim() : '';
 
             const options = optionsPart.split('|').map(o => o.trim()).filter(o => o !== '');
-            if (options.length === 0) return;
+            if (options.length === 0) {
+                accumulatedText = ""; // Pre istotu vymažeme
+                return;
+            }
             
             const correct = options[0];
 
@@ -329,6 +351,9 @@
                 correct: correct,
                 options: options
             });
+            
+            // Reset nazbieraného textu pre ďalšiu úlohu
+            accumulatedText = "";
         });
 
         if (exerciseData.length === 0) {
