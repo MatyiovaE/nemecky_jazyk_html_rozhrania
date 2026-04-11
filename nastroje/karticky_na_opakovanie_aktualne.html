@@ -254,7 +254,19 @@ pojem[TAB]definícia"></textarea>
 
   <div class="options">
     <label><input type="checkbox" id="shuffleCards"> Prehrať v náhodnom poradí</label>
-    <label><input type="checkbox" id="autoPlay"> Automatické prehrávanie (prečíta pojem, po 10s ďalšia karta)</label>
+    <label style="display: flex; align-items: center; gap: 10px;">
+      <span><input type="checkbox" id="autoPlay"> Automatické prehrávanie</span>
+      <span>(čas prepnutia: 
+        <select id="autoPlayDelay" style="width: auto; margin-top: 0; padding: 5px;">
+          <option value="5000">5s</option>
+          <option value="6000">6s</option>
+          <option value="7000">7s</option>
+          <option value="8000">8s</option>
+          <option value="9000">9s</option>
+          <option value="10000" selected>10s</option>
+        </select>)
+      </span>
+    </label>
   </div>
 
   <div class="flex-row" style="margin-top: 20px;">
@@ -323,7 +335,8 @@ pojem[TAB]definícia"></textarea>
          termLang: document.getElementById('termLang').value,
          defLang: document.getElementById('defLang').value,
          shuffleCards: document.getElementById('shuffleCards').checked,
-         autoPlay: document.getElementById('autoPlay').checked
+         autoPlay: document.getElementById('autoPlay').checked,
+         autoPlayDelay: document.getElementById('autoPlayDelay').value
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
       const url = URL.createObjectURL(blob);
@@ -351,6 +364,7 @@ pojem[TAB]definícia"></textarea>
           if(data.defLang !== undefined) document.getElementById('defLang').value = data.defLang;
           if(data.shuffleCards !== undefined) document.getElementById('shuffleCards').checked = data.shuffleCards;
           if(data.autoPlay !== undefined) document.getElementById('autoPlay').checked = data.autoPlay;
+          if(data.autoPlayDelay !== undefined) document.getElementById('autoPlayDelay').value = data.autoPlayDelay;
         } catch(err) {}
       };
       reader.readAsText(file);
@@ -503,6 +517,7 @@ pojem[TAB]definícia"></textarea>
       if (!isAutoPlaying || currentIndex >= cards.length) return;
       const card = cards[currentIndex];
       const tL = document.getElementById('termLang').value;
+      const delay = parseInt(document.getElementById('autoPlayDelay').value, 10) || 10000;
       
       const utterance = new SpeechSynthesisUtterance(card.term);
       utterance.lang = tL;
@@ -516,7 +531,7 @@ pojem[TAB]definícia"></textarea>
             } else {
               finishReview();
             }
-          }, 10000);
+          }, delay);
         }
       };
       
@@ -529,7 +544,7 @@ pojem[TAB]definícia"></textarea>
             } else {
                finishReview();
             }
-          }, 10000);
+          }, delay);
         }
       };
       
@@ -553,6 +568,7 @@ pojem[TAB]definícia"></textarea>
           defLang: document.getElementById('defLang').value,
           shuffle: document.getElementById('shuffleCards').checked,
           autoPlay: document.getElementById('autoPlay').checked,
+          autoPlayDelay: document.getElementById('autoPlayDelay').value,
           dark: document.body.classList.contains('dark-mode'),
           metaSubject: document.getElementById('metaSubject').value,
           metaTopic: document.getElementById('metaTopic').value,
@@ -574,6 +590,7 @@ pojem[TAB]definícia"></textarea>
       if(u.defLang) document.getElementById('defLang').value = u.defLang;
       if(u.shuffle !== undefined) document.getElementById('shuffleCards').checked = u.shuffle;
       if(u.autoPlay !== undefined) document.getElementById('autoPlay').checked = u.autoPlay;
+      if(u.autoPlayDelay) document.getElementById('autoPlayDelay').value = u.autoPlayDelay;
       if(u.metaSubject) document.getElementById('metaSubject').value = u.metaSubject;
       if(u.metaTopic) document.getElementById('metaTopic').value = u.metaTopic;
       if(u.metaAuthor) document.getElementById('metaAuthor').value = u.metaAuthor;
@@ -606,6 +623,7 @@ pojem[TAB]definícia"></textarea>
       const topic = document.getElementById('metaTopic').value;
       const author = document.getElementById('metaAuthor').value;
       const year = document.getElementById('metaYear').value;
+      const autoPlayDelayVal = document.getElementById('autoPlayDelay').value;
       
       let metaHeaderHTML = '';
       if (subj || topic) {
@@ -840,7 +858,20 @@ pojem[TAB]definícia"></textarea>
 
     <div class="options-row">
       <label><input type="checkbox" id="shuffleCards"${document.getElementById('shuffleCards').checked?' checked':''}> Prehrať v náhodnom poradí</label>
-      <label><input type="checkbox" id="autoPlay"${document.getElementById('autoPlay').checked?' checked':''}> Automatické prehrávanie</label>
+      <label>
+        <input type="checkbox" id="autoPlay"${document.getElementById('autoPlay').checked?' checked':''}> Automatické prehrávanie
+      </label>
+      <label>
+        Čas:
+        <select id="autoPlayDelay" style="width: auto; padding: 4px; margin-left: 5px;">
+          <option value="5000"\${autoPlayDelayVal==='5000'?' selected':''}>5s</option>
+          <option value="6000"\${autoPlayDelayVal==='6000'?' selected':''}>6s</option>
+          <option value="7000"\${autoPlayDelayVal==='7000'?' selected':''}>7s</option>
+          <option value="8000"\${autoPlayDelayVal==='8000'?' selected':''}>8s</option>
+          <option value="9000"\${autoPlayDelayVal==='9000'?' selected':''}>9s</option>
+          <option value="10000"\${autoPlayDelayVal==='10000'?' selected':''}>10s</option>
+        </select>
+      </label>
       <label><input type="checkbox" id="darkModeToggle"${document.body.classList.contains('dark-mode')?' checked':''}> Tmavý režim</label>
       
       <div class="apply-controls">
@@ -1012,6 +1043,8 @@ pojem[TAB]definícia"></textarea>
       if(!isAutoPlaying || currentIndex >= cards.length) return;
       const card = cards[currentIndex];
       const tL = document.getElementById('termLang').value;
+      const delay = parseInt(document.getElementById('autoPlayDelay').value, 10) || 10000;
+      
       const utterance = new SpeechSynthesisUtterance(card.term);
       utterance.lang = tL;
       
@@ -1022,7 +1055,7 @@ pojem[TAB]definícia"></textarea>
               currentIndex++; flipped=false; showCard();
               triggerAutoPlayCycle();
             } else finishReview();
-          }, 10000);
+          }, delay);
         }
       };
       utterance.onerror = () => {
@@ -1032,7 +1065,7 @@ pojem[TAB]definícia"></textarea>
               currentIndex++; flipped=false; showCard();
               triggerAutoPlayCycle();
             } else finishReview();
-          }, 10000);
+          }, delay);
         }
       };
       speechSynthesis.speak(utterance);
