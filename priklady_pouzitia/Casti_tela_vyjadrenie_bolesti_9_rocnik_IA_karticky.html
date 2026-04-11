@@ -229,7 +229,20 @@
 
     <div class="options-row">
       <label><input type="checkbox" id="shuffleCards"> Prehrať v náhodnom poradí</label>
-      <label><input type="checkbox" id="autoPlay"> Automatické prehrávanie</label>
+      <label>
+        <input type="checkbox" id="autoPlay"> Automatické prehrávanie
+      </label>
+      <label>
+        Čas:
+        <select id="autoPlayDelay" style="width: auto; padding: 4px; margin-left: 5px;">
+          <option value="5000"${autoPlayDelayVal==='5000'?' selected':''}>5s</option>
+          <option value="6000"${autoPlayDelayVal==='6000'?' selected':''}>6s</option>
+          <option value="7000"${autoPlayDelayVal==='7000'?' selected':''}>7s</option>
+          <option value="8000"${autoPlayDelayVal==='8000'?' selected':''}>8s</option>
+          <option value="9000"${autoPlayDelayVal==='9000'?' selected':''}>9s</option>
+          <option value="10000"${autoPlayDelayVal==='10000'?' selected':''}>10s</option>
+        </select>
+      </label>
       <label><input type="checkbox" id="darkModeToggle"> Tmavý režim</label>
       
       <div class="apply-controls">
@@ -401,6 +414,8 @@
       if(!isAutoPlaying || currentIndex >= cards.length) return;
       const card = cards[currentIndex];
       const tL = document.getElementById('termLang').value;
+      const delay = parseInt(document.getElementById('autoPlayDelay').value, 10) || 10000;
+      
       const utterance = new SpeechSynthesisUtterance(card.term);
       utterance.lang = tL;
       
@@ -411,7 +426,7 @@
               currentIndex++; flipped=false; showCard();
               triggerAutoPlayCycle();
             } else finishReview();
-          }, 10000);
+          }, delay);
         }
       };
       utterance.onerror = () => {
@@ -421,7 +436,7 @@
               currentIndex++; flipped=false; showCard();
               triggerAutoPlayCycle();
             } else finishReview();
-          }, 10000);
+          }, delay);
         }
       };
       speechSynthesis.speak(utterance);
