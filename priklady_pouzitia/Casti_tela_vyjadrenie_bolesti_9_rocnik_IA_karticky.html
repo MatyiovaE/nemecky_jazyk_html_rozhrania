@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Kartičky na opakovanie</title>
+  <style>
+    body {
+      font-family: Courier bold, monospace;
+      margin: 30px;
+      background-color: #f4f4f4;
+    }
+    .header-meta {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .settings-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+      justify-content: space-between;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+    }
+    .settings-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 180px;
+    }
+    .settings-group label {
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+    select, button, input[type="checkbox"] {
+      padding: 8px;
+      font-size: 15px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .options-row {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+      width: 100%;
+      margin-top: 10px;
+      padding-top: 15px;
+      border-top: 1px dashed #ccc;
+    }
+    .options-row label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .options-row input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+    .apply-controls {
+      display: flex;
+      gap: 10px;
+      margin-left: auto;
+      flex-wrap: wrap;
+    }
+    .apply-controls button {
+      width: auto;
+      min-width: 150px;
+      cursor: pointer;
+    }
+    .card-container {
+      margin: 20px auto;
+      width: 80%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card-box {
+      position: relative;
+      width: 100%;
+      min-height: 200px;
+      height: auto;
+      background-color: white;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: clamp(20px, 4vw, 60px);
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 30px 20px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      box-sizing: border-box;
+    }
+    .card-box:hover {
+      background-color: #eef;
+    }
+    .card-box.primary { font-weight: bold; }
+    .card-box.secondary {
+      background-color: #f9f9f9;
+      font-weight: normal;
+      font-size: clamp(16px, 3vw, 50px);
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .controls button {
+      width: auto;
+      min-width: 150px;
+    }
+    .stats {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 16px;
+    }
+    .speaker {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+      font-size: 24px;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+    .speaker:hover { opacity: 1; }
+    
+    body.dark-mode {
+      background-color: #1a2d06;
+      color: #ffffff;
+    }
+    body.dark-mode .settings-bar {
+      background-color: #17290A;
+      border-color: #333;
+    }
+    body.dark-mode .options-row { border-color: #444; }
+    body.dark-mode select,
+    body.dark-mode button {
+      background-color: #263c10;
+      color: #ffffff;
+      border: 1px solid #444;
+    }
+    body.dark-mode .card-box {
+      background-color: #17290A;
+      border: 2px solid #333;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+      color: #ffffff;
+    }
+    body.dark-mode .card-box.secondary {
+      background-color: #1D2D0B;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-meta">
+    <h1>Kartičky na opakovanie</h1>
+    <h2>NEJ - Časti tela, vyjadrenie bolesti (9. ročník)</h2><p><strong>Autor:</strong> Mgr. Erika Matyiová <strong>Rok:</strong> 2026</p>
+  </div>
+
+  <div class="settings-bar">
+    <div class="settings-group">
+      <label for="boldSide">Zvýrazni hrubým písmom:</label>
+      <select id="boldSide" onchange="showCard()">
+        <option value="term" selected>Pojem</option>
+        <option value="definition">Definícia</option>
+      </select>
+    </div>
+    
+    <div class="settings-group">
+      <label for="displayMode">Zobraziť:</label>
+      <select id="displayMode" onchange="showCard()">
+        <option value="both" selected>Obe strany</option>
+        <option value="term">Len pojem</option>
+        <option value="definition">Len definícia</option>
+      </select>
+    </div>
+
+    <div class="settings-group">
+      <label for="termLang">Jazyk pojmu:</label>
+      <select id="termLang" onchange="showCard()">
+        
+        <option value="sk-SK">Slovenčina</option>
+        <option value="en-GB">Angličtina (UK)</option>
+        <option value="en-US">Angličtina (USA)</option>
+        <option value="en-AU">Angličtina (Austrália)</option>
+        <option value="de-DE">Nemčina (Nemecko)</option>
+        <option value="de-AT" selected>Nemčina (Rakúsko)</option>
+        <option value="de-CH">Nemčina (Švajčiarsko)</option>
+        <option value="fr-FR">Francúzština (Francúzsko)</option>
+        <option value="fr-BE">Francúzština (Belgicko)</option>
+        <option value="fr-CH">Francúzština (Švajčiarsko)</option>
+        <option value="fr-CA">Francúzština (Kanada)</option>
+      
+      </select>
+    </div>
+
+    <div class="settings-group">
+      <label for="defLang">Jazyk definície:</label>
+      <select id="defLang" onchange="showCard()">
+        
+        <option value="sk-SK" selected>Slovenčina</option>
+        <option value="en-GB">Angličtina (UK)</option>
+        <option value="en-US">Angličtina (USA)</option>
+        <option value="en-AU">Angličtina (Austrália)</option>
+        <option value="de-DE">Nemčina (Nemecko)</option>
+        <option value="de-AT">Nemčina (Rakúsko)</option>
+        <option value="de-CH">Nemčina (Švajčiarsko)</option>
+        <option value="fr-FR">Francúzština (Francúzsko)</option>
+        <option value="fr-BE">Francúzština (Belgicko)</option>
+        <option value="fr-CH">Francúzština (Švajčiarsko)</option>
+        <option value="fr-CA">Francúzština (Kanada)</option>
+      
+      </select>
+    </div>
+
+    <div class="options-row">
+      <label><input type="checkbox" id="shuffleCards"> Prehrať v náhodnom poradí</label>
+      <label><input type="checkbox" id="autoPlay"> Automatické prehrávanie</label>
+      <label><input type="checkbox" id="darkModeToggle"> Tmavý režim</label>
+      
+      <div class="apply-controls">
+         <button onclick="applyAndContinue()" style="background-color: #d4edda; border-color: #c3e6cb; color: #155724; font-weight: bold;">▶️ Pokračovať s novými nastaveniami</button>
+         <button onclick="applyAndRestart()" style="background-color: #f8d7da; border-color: #f5c6cb; color: #721c24;">🔄 Reštartovať s nastaveniami</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="cardDisplay" class="card-container"></div>
+
+  <div class="controls">
+    <button onclick="prevCard()">⬅️ Predchádzajúca</button>
+    <button onclick="nextCard()">➡️ Ďalšia</button>
+    <button onclick="toggleAutoPlayUI()">⏯️ Prehrať/Pozastaviť</button>
+  </div>
+
+  <div class="stats" id="cardStats"></div>
+  
+  <div style="text-align: center; margin-top: 40px; font-size: 12px; color: #777;">
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+  </div>
+
+  <script>
+    const originalCards = JSON.parse('[{"term":"der Fuß, die Füße","definition":"chodidlo"},{"term":"Mein Fuß tut weh.","definition":"Bolí ma chodidlo."},{"term":"Meine Füße tun weh.","definition":"Bolia ma chodidlá."},{"term":"das Bein, die Beine","definition":"noha (nie chodidlo)"},{"term":"Mein Bein tut weh.","definition":"Bolí ma noha. (nie chodidlo)"},{"term":"Meine Beine tun weh.","definition":"Bolia ma nohy. (nie chodidlá)"},{"term":"das Auge, die Augen","definition":"oko"},{"term":"Mein Auge tut weh.","definition":"Bolí ma oko."},{"term":"Meine Augen tun weh.","definition":"Bolia ma oči."},{"term":"das Ohr, die Ohren","definition":"ucho"},{"term":"Mein Ohr tut weh.","definition":"Bolí ma ucho."},{"term":"Meine Ohren tun weh.","definition":"Bolia ma uši."},{"term":"der Kopf","definition":"hlava"},{"term":"Mein Kopf tut weh.","definition":"Bolí ma hlava."},{"term":"die Nase","definition":"nos"},{"term":"Meine Nase tut weh.","definition":"Bolí ma nos."},{"term":"der Zahn, die Zähne","definition":"zub"},{"term":"Mein Zahn tut weh.","definition":"Bolí ma zub."},{"term":"Meine Zähne tun weh.","definition":"Bolia ma zuby."},{"term":"der Bauch","definition":"brucho"},{"term":"Mein Bauch tut weh.","definition":"Bolí ma brucho."},{"term":"der Rücken","definition":"chrbát"},{"term":"Mein Rücken tut weh.","definition":"Bolí ma chrbát."},{"term":"der Nacken","definition":"šija, krk"},{"term":"Mein Nacken tut weh.","definition":"Bolí ma šija."},{"term":"der Hals","definition":"hrdlo"},{"term":"Mein Hals tut weh.","definition":"Bolí ma hrdlo."},{"term":"der Arm, die Arme","definition":"rameno"},{"term":"Mein Arm tut weh.","definition":"Bolí ma rameno."},{"term":"Meine Arme tun weh.","definition":"Bolia ma ramená."},{"term":"die Hand, die Hände","definition":"ruka"},{"term":"Meine Hand tut weh.","definition":"Bolí ma ruka."},{"term":"Meine Hände tun weh.","definition":"Bolia ma ruky."}]');
+    let cards = JSON.parse(JSON.stringify(originalCards));
+    let currentIndex = 0;
+    let flipped = false;
+    let autoPlayTimeout = null;
+    let isAutoPlaying = false;
+
+    function shuffleArray(a) {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+    }
+    
+    function createSpeakerIcon(text, lang) {
+      const s = document.createElement('span');
+      s.className = 'speaker';
+      s.textContent = '🔊';
+      s.onclick = (e) => {
+        e.stopPropagation();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = lang;
+        speechSynthesis.speak(u);
+      };
+      return s;
+    }
+    
+    function showCard() {
+      if(currentIndex >= cards.length) return;
+      const card = cards[currentIndex];
+      const bs = document.getElementById('boldSide').value;
+      const dm = document.getElementById('displayMode').value;
+      const tL = document.getElementById('termLang').value;
+      const dL = document.getElementById('defLang').value;
+      const cd = document.getElementById('cardDisplay');
+      cd.innerHTML = '';
+      
+      const tb = document.createElement('div');
+      const db = document.createElement('div');
+      tb.className = 'card-box ' + (bs==='term'?'primary':'secondary');
+      db.className = 'card-box ' + (bs==='definition'?'primary':'secondary');
+      
+      tb.textContent = card.term;
+      tb.appendChild(createSpeakerIcon(card.term, tL));
+      db.textContent = card.definition;
+      db.appendChild(createSpeakerIcon(card.definition, dL));
+      
+      if(dm==='both') {
+        cd.append(tb, db);
+      } else {
+        const sb = document.createElement('div');
+        const isPrimary = ((bs==='term'&&!flipped&&dm==='term')||(bs==='definition'&&!flipped&&dm==='definition')||(bs==='term'&&flipped&&dm==='definition')||(bs==='definition'&&flipped&&dm==='term'));
+        sb.className = 'card-box ' + (isPrimary?'primary':'secondary');
+        sb.textContent = flipped ? (dm==='term'?card.definition:card.term) : (dm==='term'?card.term:card.definition);
+        
+        const currentLang = flipped ? (dm==='term'?dL:tL) : (dm==='term'?tL:dL);
+        sb.appendChild(createSpeakerIcon(sb.textContent, currentLang));
+        
+        sb.onclick = () => { flipped=!flipped; showCard(); };
+        cd.append(sb);
+      }
+      document.getElementById('cardStats').textContent = `Kartička ${currentIndex+1} z ${cards.length}`;
+    }
+
+    function nextCard() {
+      stopAutoPlayLogic();
+      if(currentIndex < cards.length - 1) {
+        currentIndex++; flipped=false; showCard();
+        if(isAutoPlaying) triggerAutoPlayCycle();
+      } else {
+        finishReview();
+      }
+    }
+
+    function prevCard() {
+      stopAutoPlayLogic();
+      if(currentIndex > 0) {
+        currentIndex--; flipped=false; showCard();
+        if(isAutoPlaying) triggerAutoPlayCycle();
+      }
+    }
+    
+    function finishReview() {
+      stopAutoPlayLogic();
+      isAutoPlaying = false;
+      document.getElementById('cardDisplay').innerHTML = '<div class="card-box primary"><p>Prehľad ukončený 🎉</p></div>';
+      document.getElementById('cardStats').textContent = '';
+    }
+
+    /* === APLIKOVANIE NASTAVENÍ === */
+    function applyAndContinue() {
+      if(document.getElementById('shuffleCards').checked) {
+        const remaining = cards.slice(currentIndex + 1);
+        shuffleArray(remaining);
+        cards = [...cards.slice(0, currentIndex + 1), ...remaining];
+      }
+      if(document.getElementById('autoPlay').checked) {
+        if(!isAutoPlaying) startAutoPlay();
+      } else {
+        stopAutoPlay();
+      }
+      showCard();
+    }
+
+    function applyAndRestart() {
+      if(document.getElementById('shuffleCards').checked) {
+        cards = JSON.parse(JSON.stringify(originalCards));
+        shuffleArray(cards);
+      } else {
+        cards = JSON.parse(JSON.stringify(originalCards));
+      }
+      currentIndex = 0;
+      flipped = false;
+      showCard();
+      if(document.getElementById('autoPlay').checked) {
+        startAutoPlay();
+      } else {
+        stopAutoPlay();
+      }
+    }
+
+    /* === LOGIKA AUTOMATICKÉHO PREHRÁVANIA === */
+    function startAutoPlay() {
+      isAutoPlaying = true;
+      document.getElementById('autoPlay').checked = true;
+      stopAutoPlayLogic();
+      triggerAutoPlayCycle();
+    }
+    function stopAutoPlayLogic() {
+      speechSynthesis.cancel();
+      if(autoPlayTimeout) {
+        clearTimeout(autoPlayTimeout);
+        autoPlayTimeout = null;
+      }
+    }
+    function stopAutoPlay() {
+      isAutoPlaying = false;
+      document.getElementById('autoPlay').checked = false;
+      stopAutoPlayLogic();
+    }
+    function toggleAutoPlayUI() {
+      isAutoPlaying ? stopAutoPlay() : startAutoPlay();
+    }
+    function triggerAutoPlayCycle() {
+      if(!isAutoPlaying || currentIndex >= cards.length) return;
+      const card = cards[currentIndex];
+      const tL = document.getElementById('termLang').value;
+      const utterance = new SpeechSynthesisUtterance(card.term);
+      utterance.lang = tL;
+      
+      utterance.onend = () => {
+        if(isAutoPlaying) {
+          autoPlayTimeout = setTimeout(() => {
+            if(currentIndex < cards.length - 1) {
+              currentIndex++; flipped=false; showCard();
+              triggerAutoPlayCycle();
+            } else finishReview();
+          }, 10000);
+        }
+      };
+      utterance.onerror = () => {
+        if(isAutoPlaying) {
+          autoPlayTimeout = setTimeout(() => {
+            if(currentIndex < cards.length - 1) {
+              currentIndex++; flipped=false; showCard();
+              triggerAutoPlayCycle();
+            } else finishReview();
+          }, 10000);
+        }
+      };
+      speechSynthesis.speak(utterance);
+    }
+    
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') nextCard();
+      if (e.key === 'ArrowLeft')  prevCard();
+    });
+
+    document.getElementById('darkModeToggle').addEventListener('change', e => { 
+      document.body.classList.toggle('dark-mode', e.target.checked); 
+    });
+
+    window.addEventListener('load', () => {
+      if(document.getElementById('shuffleCards').checked) shuffleArray(cards);
+      showCard();
+      if(document.getElementById('autoPlay').checked) startAutoPlay();
+    });
+  </script>
+</body>
+</html>
