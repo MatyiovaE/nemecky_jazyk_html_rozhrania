@@ -8,14 +8,34 @@
     body { font-family: system-ui, Courier bold, monospace; line-height: 1.5; padding: 16px; max-width: 900px; margin: 0 auto; }
     textarea { width: 100%; min-height: 200px; }
     .row { margin: 10px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .meta-row { background: #eef7ff; padding: 10px; border-radius: 8px; border: 1px solid #bce0fd; }
     label { font-weight: 600; }
     select, input[type="text"], input[type="number"] { padding: 8px; border: 1px solid #ccc; border-radius: 8px; }
     button { padding: 8px 12px; border: 1px solid #bbb; border-radius: 8px; background: #f6f6f6; cursor: pointer; }
     button:hover { background: #eee; }
+    .action-btn { background: #d4edda; border-color: #c3e6cb; }
+    .action-btn:hover { background: #c3e6cb; }
+    .json-btn { background: #fff3cd; border-color: #ffeeba; }
+    .json-btn:hover { background: #ffeeba; }
+    hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
   </style>
 </head>
 <body>
-  <h2>Text na predčítanie</h2>
+  <h2>Text na predčítanie (Generátor)</h2>
+
+  <div class="row meta-row">
+    <label for="metaSubject">📚 Predmet:</label>
+    <input id="metaSubject" type="text" placeholder="napr. Anglický jazyk" />
+    
+    <label for="metaTopic">📝 Téma:</label>
+    <input id="metaTopic" type="text" placeholder="napr. Minulý čas" />
+    
+    <label for="metaAuthor">👤 Autor:</label>
+    <input id="metaAuthor" type="text" placeholder="Meno autora" />
+    
+    <label for="metaYear">📅 Rok:</label>
+    <input id="metaYear" type="number" value="2025" style="width: 80px;" />
+  </div>
 
   <div class="row">
     <textarea id="text" placeholder="Sem vlož text."></textarea>
@@ -34,21 +54,21 @@
   <div class="row">
     <label for="rateSelect">🔄 Rýchlosť:</label>
     <select id="rateSelect">
-	  <option value="0.7">0.7×</option>
+      <option value="0.7">0.7×</option>
       <option value="0.8">0.8×</option>
       <option value="0.9">0.9×</option>
       <option value="1" selected>1×</option>
       <option value="1.2">1.2×</option>
       <option value="1.5">1.5×</option>
     </select>
-	</div>
+  </div>
 	
-<div class="row">
+  <div class="row">
     <label for="pitchRange">🎵 Výška: <span id="pitchValue">1</span></label>
     <input id="pitchRange" type="range" min="0" max="2" step="0.1" value="1" />
-</div>
+  </div>
 
-<div class="row">
+  <div class="row">
     <label for="pauseTitle">⏸️ Pauza po nadpise (ms):</label>
     <input id="pauseTitle" type="number" value="800" min="0" step="100" />
     <label for="pauseSentence">⏸️ Pauza po vete (ms):</label>
@@ -60,7 +80,15 @@
     <button id="btnSpeakFromCursor">▶️ Od kurzora</button>
     <button id="btnStop">⏹️ Stop</button>
     <button id="btnClean">🧼 Vyčistiť medzery v texte</button>
-    <button id="btnSave">💾 Uložiť ako HTML</button>
+    <button id="btnSave" class="action-btn">💾 Uložiť ako HTML</button>
+  </div>
+
+  <hr>
+
+  <div class="row">
+    <button id="btnExportJSON" class="json-btn">⬇️ Exportovať nastavenia (.json)</button>
+    <button id="btnImportJSONTrig" class="json-btn">⬆️ Importovať nastavenia (.json)</button>
+    <input type="file" id="jsonFileInput" accept=".json" style="display: none;" />
   </div>
 
  <script>
@@ -78,14 +106,12 @@
   let lastSelStart = 0;
   let lastSelEnd = 0;
 
-  // Helper: get currently selected voice
   function getSelectedVoice() {
     const select = document.getElementById("voiceSelect");
     const idx = Number(select.value);
     return voices[idx] || null;
   }
 
-  // Helper: persist voiceURI + lang
   function persistCurrentVoice() {
     const v = getSelectedVoice();
     if (v && v.voiceURI && v.lang) {
@@ -113,13 +139,10 @@
     localStorage.setItem(LS_KEYS.rate, e.target.value);
   });
 
-  document.getElementById("voiceSelect").addEventListener("change", () => {
-    persistCurrentVoice();
-  });
+  document.getElementById("voiceSelect").addEventListener("change", persistCurrentVoice);
 
   function updatePitchLabel() {
-    document.getElementById("pitchValue").textContent =
-      document.getElementById("pitchRange").value;
+    document.getElementById("pitchValue").textContent = document.getElementById("pitchRange").value;
   }
 
   function populateVoiceList() {
@@ -142,12 +165,8 @@
     });
 
     let targetIndex = -1;
-    if (savedURI) {
-      targetIndex = voices.findIndex(v => v.voiceURI === savedURI);
-    }
-    if (targetIndex < 0 && savedLang) {
-      targetIndex = voices.findIndex(v => v.lang === savedLang);
-    }
+    if (savedURI) targetIndex = voices.findIndex(v => v.voiceURI === savedURI);
+    if (targetIndex < 0 && savedLang) targetIndex = voices.findIndex(v => v.lang === savedLang);
     if (targetIndex < 0) {
       const def = voices.findIndex(v => v.default);
       targetIndex = def >= 0 ? def : (voices.length > 0 ? 0 : -1);
@@ -193,10 +212,7 @@
       }
     });
 
-    if (!restored && voiceSelect.options.length > 0) {
-      voiceSelect.selectedIndex = 0;
-    }
-
+    if (!restored && voiceSelect.options.length > 0) voiceSelect.selectedIndex = 0;
     persistCurrentVoice();
   }
 
@@ -211,7 +227,6 @@
     const chunks = splitTextIntoChunks(text);
     const pauseTitle = parseInt(document.getElementById("pauseTitle").value) || 1000;
     const pauseSentence = parseInt(document.getElementById("pauseSentence").value) || 400;
-
     const rate = parseFloat(document.getElementById("rateSelect").value);
     const pitch = parseFloat(document.getElementById("pitchRange").value);
     const voice = getSelectedVoice();
@@ -222,10 +237,7 @@
       const u = new SpeechSynthesisUtterance(chunks[index]);
       u.rate = rate;
       u.pitch = pitch;
-      if (voice) {
-        u.voice = voice;
-        u.lang = voice.lang;
-      }
+      if (voice) { u.voice = voice; u.lang = voice.lang; }
       u.onend = () => {
         index++;
         const pause = index === 1 ? pauseTitle : pauseSentence;
@@ -259,14 +271,8 @@
       const u = new SpeechSynthesisUtterance(chunks[index]);
       u.rate = rate;
       u.pitch = pitch;
-      if (voice) {
-        u.voice = voice;
-        u.lang = voice.lang;
-      }
-      u.onend = () => {
-        index++;
-        setTimeout(speakChunk, pauseSentence);
-      };
+      if (voice) { u.voice = voice; u.lang = voice.lang; }
+      u.onend = () => { index++; setTimeout(speakChunk, pauseSentence); };
       speechSynthesis.speak(u);
     }
 
@@ -274,76 +280,188 @@
     speakChunk();
   }
 
-  function stopSpeaking() {
-    speechSynthesis.cancel();
-  }
+  function stopSpeaking() { speechSynthesis.cancel(); }
 
   function cleanText() {
     const ta = document.getElementById("text");
-    ta.value = ta.value
-      .replace(/[ \t]+/g, " ")
-      .replace(/\n{3,}/g, "\n\n");
+    ta.value = ta.value.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n");
     localStorage.setItem(LS_KEYS.text, ta.value);
   }
 
- // --- Uloženie ako HTML ---
-    function saveAsHTML() {
-      const safeText = document.getElementById("text").value;
-      const voiceIndex = document.getElementById("voiceSelect").value;
-      const voice = voices[Number(voiceIndex)];
-      const selectedLang = (voice && voice.lang) || "sk-SK";
+  // --- Export a Import JSON ---
+  function exportJSON() {
+    const data = {
+      subject: document.getElementById("metaSubject").value,
+      topic: document.getElementById("metaTopic").value,
+      author: document.getElementById("metaAuthor").value,
+      year: document.getElementById("metaYear").value,
+      text: document.getElementById("text").value,
+      voiceURI: localStorage.getItem(LS_KEYS.voiceURI) || "",
+      rate: document.getElementById("rateSelect").value,
+      pitch: document.getElementById("pitchRange").value,
+      pauseTitle: document.getElementById("pauseTitle").value,
+      pauseSentence: document.getElementById("pauseSentence").value
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tts_nastavenia.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 
-      function escapeHTML(str) {
-        return str
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
+  document.getElementById("btnImportJSONTrig").addEventListener("click", () => {
+    document.getElementById("jsonFileInput").click();
+  });
+
+  document.getElementById("jsonFileInput").addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (data.subject !== undefined) document.getElementById("metaSubject").value = data.subject;
+        if (data.topic !== undefined) document.getElementById("metaTopic").value = data.topic;
+        if (data.author !== undefined) document.getElementById("metaAuthor").value = data.author;
+        if (data.year !== undefined) document.getElementById("metaYear").value = data.year;
+        if (data.text !== undefined) {
+          document.getElementById("text").value = data.text;
+          localStorage.setItem(LS_KEYS.text, data.text);
+        }
+        if (data.rate !== undefined) {
+          document.getElementById("rateSelect").value = data.rate;
+          localStorage.setItem(LS_KEYS.rate, data.rate);
+        }
+        if (data.pitch !== undefined) {
+          document.getElementById("pitchRange").value = data.pitch;
+          updatePitchLabel();
+        }
+        if (data.pauseTitle !== undefined) document.getElementById("pauseTitle").value = data.pauseTitle;
+        if (data.pauseSentence !== undefined) document.getElementById("pauseSentence").value = data.pauseSentence;
+        
+        if (data.voiceURI) {
+          localStorage.setItem(LS_KEYS.voiceURI, data.voiceURI);
+          initVoices(); // Znovu načíta a vyberie správny hlas
+        }
+      } catch (err) {
+        // Tiché zlyhanie - žiadne chybové okno podľa požiadavky
       }
+      // Reset inputu aby sa dal načítať ten istý súbor znova
+      document.getElementById("jsonFileInput").value = "";
+    };
+    reader.readAsText(file);
+  });
 
-      const htmlContent = `
-<!DOCTYPE html>
+  // --- Uloženie ako HTML ---
+  function saveAsHTML() {
+    const safeText = document.getElementById("text").value;
+    const voiceIndex = document.getElementById("voiceSelect").value;
+    const voice = voices[Number(voiceIndex)];
+    const selectedLang = (voice && voice.lang) || "sk-SK";
+    const selectedVoiceURI = (voice && voice.voiceURI) || "";
+
+    const mSubj = document.getElementById("metaSubject").value;
+    const mTop = document.getElementById("metaTopic").value;
+    const mAuth = document.getElementById("metaAuthor").value;
+    const mYear = document.getElementById("metaYear").value;
+
+    function escapeHTML(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Hlavička sa zobrazí len ak sú zadané aspoň nejaké údaje
+    let headerHTML = "";
+    if (mSubj || mTop || mAuth) {
+      headerHTML = `
+      <div class="metadata">
+        ${mTop ? `<h2>Téma: ${escapeHTML(mTop)}</h2>` : ''}
+        <p>
+          ${mSubj ? `<strong>Predmet:</strong> ${escapeHTML(mSubj)} | ` : ''}
+          ${mAuth ? `<strong>Autor:</strong> ${escapeHTML(mAuth)} ` : ''}
+          ${mYear ? `(${escapeHTML(mYear)})` : ''}
+        </p>
+      </div>`;
+    }
+
+    const htmlContent = `<!DOCTYPE html>
 <html lang="${selectedLang}">
 <head>
   <meta charset="UTF-8">
-  <title>Uložený text</title>
+  <title>${mTop ? escapeHTML(mTop) : 'Uložený text'}</title>
   <style>
-    body { font-family: system-ui, Courier bold, monospace; padding: 20px; }
-    #text { white-space: pre-wrap; margin-bottom: 1em; }
-    button, select { margin: 0.3em; padding: 0.4em 0.8em; }
-    .highlight { background-color: yellow; }
+    body { font-family: system-ui, Courier bold, monospace; padding: 20px; max-width: 900px; margin: 0 auto; line-height: 1.6; }
+    .metadata { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0d6efd; }
+    .metadata h2 { margin-top: 0; margin-bottom: 10px; color: #333; }
+    .metadata p { margin: 0; color: #555; }
+    #text { white-space: pre-wrap; margin-bottom: 1em; font-size: 1.1em; padding: 10px; border: 1px solid #eee; border-radius: 5px; }
+    .controls-panel { background: #eef7ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    .controls-row { margin-bottom: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    button, select, input[type="number"] { padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; background: #fff; }
+    button:hover { background: #e2e6ea; }
+    .highlight { background-color: yellow; border-radius: 3px; }
+    hr { border: 0; border-top: 1px solid #ddd; margin: 15px 0; }
   </style>
 </head>
 <body>
-  <div id="text">${escapeHTML(safeText)}</div>
 
-  <div>
-    <label for="rateSelect">🔄 Rýchlosť: </label>
-    <select id="rateSelect">
-      <option value="0.7">0.7×</option>
-	  <option value="0.8">0.8×</option>
-      <option value="0.9">0.9×</option>
-      <option value="1" selected>1× (normálna)</option>
-      <option value="1.2">1.2×</option>
-      <option value="1.5">1.5×</option>
-    </select>
+  ${headerHTML}
+
+  <div class="controls-panel">
+    <div class="controls-row">
+      <label for="rateSelect">🔄 Rýchlosť: </label>
+      <select id="rateSelect">
+        <option value="0.7">0.7×</option>
+        <option value="0.8">0.8×</option>
+        <option value="0.9">0.9×</option>
+        <option value="1" selected>1× (normálna)</option>
+        <option value="1.2">1.2×</option>
+        <option value="1.5">1.5×</option>
+      </select>
+    </div>
+    
+    <div class="controls-row">
+      <button onclick="speak()">▶️ Spustiť celé</button>
+      <button id="btnPause" onclick="togglePause()">⏸️ Pauza</button>
+      <button onclick="stopSpeaking()">⏹️ Zastaviť</button>
+    </div>
+
+    <hr>
+
+    <div class="controls-row">
+      <button onclick="speakSelection()">🗣️ Čítať označený výber</button>
+      <label for="repeatCount">🔁 Opakovať výber:</label>
+      <input type="number" id="repeatCount" value="1" min="1" max="10" style="width: 60px;" />
+      <small style="color: #666;">(Myšou označte slovo alebo vetu v texte nižšie)</small>
+    </div>
   </div>
 
-  <button onclick="speak()">▶️ Spustiť</button>
-  <button onclick="stopSpeaking()">⏹️ Zastaviť</button>
+  <div id="text">${escapeHTML(safeText)}</div>
 
   <script>
     const selectedLang = "${selectedLang}";
+    const selectedVoiceURI = "${selectedVoiceURI}";
+    let isPaused = false;
+    let mainChunks = [];
+    let currentMainIndex = 0;
 
-    // --- LocalStorage pre rýchlosť ---
     window.addEventListener("load", () => {
       const savedRate = localStorage.getItem("rate");
-      if (savedRate) {
-        document.getElementById("rateSelect").value = savedRate;
-      }
+      if (savedRate) document.getElementById("rateSelect").value = savedRate;
     });
+
     document.getElementById("rateSelect").addEventListener("change", e => {
       localStorage.setItem("rate", e.target.value);
     });
+
+    // Zabezpečenie správneho hlasu podľa vygenerovaného URI
+    function getCorrectVoice() {
+      const voices = speechSynthesis.getVoices();
+      let voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+      if (!voice) voice = voices.find(v => v.lang === selectedLang);
+      return voice;
+    }
 
     function splitTextIntoChunks(text) {
       return text.split(/(?<=[.?!])\\s+|\\n{2,}/).filter(p => p.trim().length > 0);
@@ -365,39 +483,105 @@
     }
 
     function speak() {
-      const chunks = prepareChunks();
+      stopSpeaking(); // Reset pred spustením nového
+      mainChunks = prepareChunks();
+      currentMainIndex = 0;
+      isPaused = false;
+      document.getElementById("btnPause").innerHTML = "⏸️ Pauza";
+      
+      speakNextChunk();
+    }
+
+    function speakNextChunk() {
+      if (currentMainIndex >= mainChunks.length) return;
+      
       const rate = parseFloat(document.getElementById("rateSelect").value);
+      const u = new SpeechSynthesisUtterance(mainChunks[currentMainIndex]);
+      u.rate = rate;
+      u.lang = selectedLang || "sk-SK";
+      
+      const v = getCorrectVoice();
+      if (v) u.voice = v;
 
-      let index = 0;
-      function speakChunk() {
-        if (index >= chunks.length) return;
-        const u = new SpeechSynthesisUtterance(chunks[index]);
-        u.rate = rate;
-        u.lang = selectedLang || "sk-SK";
+      u.onstart = () => {
+        document.querySelectorAll(".highlight").forEach(el => el.classList.remove("highlight"));
+        const el = document.getElementById("chunk-" + currentMainIndex);
+        if (el) el.classList.add("highlight");
+      };
 
-        u.onstart = () => {
-          document.querySelectorAll(".highlight").forEach(el => el.classList.remove("highlight"));
-          const el = document.getElementById("chunk-" + index);
-          if (el) el.classList.add("highlight");
-        };
+      let pauseTime = /[.?!]$/.test(mainChunks[currentMainIndex]) ? 600 : 800;
+      
+      u.onend = () => { 
+        currentMainIndex++; 
+        setTimeout(() => {
+            if(!isPaused) speakNextChunk();
+        }, pauseTime); 
+      };
 
-        let pause = /[.?!]$/.test(chunks[index]) ? 600 : 800;
-        u.onend = () => { index++; setTimeout(speakChunk, pause); };
-        speechSynthesis.speak(u);
+      speechSynthesis.speak(u);
+    }
+
+    function togglePause() {
+      if (!speechSynthesis.speaking && !isPaused) return;
+
+      if (isPaused) {
+        // Pokračovanie
+        isPaused = false;
+        document.getElementById("btnPause").innerHTML = "⏸️ Pauza";
+        speechSynthesis.resume();
+        // Ak sa pauza stlačila v čase medzi vetami (v timeoute), musíme manuálne posunúť ďalšiu
+        if (!speechSynthesis.speaking && currentMainIndex < mainChunks.length) {
+            speakNextChunk();
+        }
+      } else {
+        // Pozastavenie
+        isPaused = true;
+        document.getElementById("btnPause").innerHTML = "▶️ Pokračovať";
+        speechSynthesis.pause();
       }
-
-      speechSynthesis.cancel();
-      speakChunk();
     }
 
     function stopSpeaking() {
       speechSynthesis.cancel();
+      isPaused = false;
+      document.getElementById("btnPause").innerHTML = "⏸️ Pauza";
       document.querySelectorAll(".highlight").forEach(el => el.classList.remove("highlight"));
+      currentMainIndex = mainChunks.length; // Ukončí slučku
+    }
+
+    // --- Čítanie označeného výberu s opakovaním ---
+    async function speakSelection() {
+      const selectedText = window.getSelection().toString().trim();
+      if (!selectedText) {
+          alert("Najprv označte myšou časť textu, ktorú chcete prečítať.");
+          return;
+      }
+
+      stopSpeaking(); // Zastaví hlavné čítanie, aby sa neprekrývali
+      
+      const repeats = parseInt(document.getElementById('repeatCount').value) || 1;
+      const rate = parseFloat(document.getElementById("rateSelect").value);
+      const targetVoice = getCorrectVoice();
+
+      for (let i = 0; i < repeats; i++) {
+          await new Promise(resolve => {
+              const u = new SpeechSynthesisUtterance(selectedText);
+              u.rate = rate;
+              u.lang = selectedLang || "sk-SK";
+              if (targetVoice) u.voice = targetVoice;
+              u.onend = resolve;
+              speechSynthesis.speak(u);
+          });
+          
+          // Malá pauza medzi opakovaniami
+          if (i < repeats - 1) {
+              await new Promise(r => setTimeout(r, 600));
+          }
+      }
     }
   <\/script>
 </body>
-</html>
-`;
+</html>`;
     const blob = new Blob([htmlContent], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -407,12 +591,12 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  // event listeners
   document.getElementById("btnSpeak").addEventListener("click", speak);
   document.getElementById("btnSpeakFromCursor").addEventListener("click", speakFromCursor);
   document.getElementById("btnStop").addEventListener("click", stopSpeaking);
   document.getElementById("btnClean").addEventListener("click", cleanText);
   document.getElementById("btnSave").addEventListener("click", saveAsHTML);
+  document.getElementById("btnExportJSON").addEventListener("click", exportJSON);
   document.getElementById("languageSearch").addEventListener("input", filterVoices);
   document.getElementById("pitchRange").addEventListener("input", updatePitchLabel);
 
