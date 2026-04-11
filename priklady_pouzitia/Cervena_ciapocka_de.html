@@ -1,17 +1,63 @@
-
 <!DOCTYPE html>
-<html lang="de-DE">
+<html lang="de-AT">
 <head>
   <meta charset="UTF-8">
-  <title>Červená čiapočka - nemecky</title>
+  <title>Rotkäppchen - Červená čiapočka</title>
   <style>
-    body { font-family: system-ui, Courier bold, monospace; padding: 20px; }
-    #text { white-space: pre-wrap; margin-bottom: 1em; }
-    button, select { margin: 0.3em; padding: 0.4em 0.8em; }
-    .highlight { background-color: yellow; }
+    body { font-family: system-ui, Courier bold, monospace; padding: 20px; max-width: 900px; margin: 0 auto; line-height: 1.6; }
+    .metadata { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0d6efd; }
+    .metadata h2 { margin-top: 0; margin-bottom: 10px; color: #333; }
+    .metadata p { margin: 0; color: #555; }
+    #text { white-space: pre-wrap; margin-bottom: 1em; font-size: 1.1em; padding: 10px; border: 1px solid #eee; border-radius: 5px; }
+    .controls-panel { background: #eef7ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    .controls-row { margin-bottom: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    button, select, input[type="number"] { padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; background: #fff; }
+    button:hover { background: #e2e6ea; }
+    .highlight { background-color: yellow; border-radius: 3px; }
+    hr { border: 0; border-top: 1px solid #ddd; margin: 15px 0; }
   </style>
 </head>
 <body>
+
+  
+      <div class="metadata">
+        <h2>Téma: Rotkäppchen - Červená čiapočka</h2>
+        <p>
+          <strong>Predmet:</strong> NEJ | 
+          <strong>Autor:</strong> Mgr. Erika Matyiová 
+          (2026)
+        </p>
+      </div>
+
+  <div class="controls-panel">
+    <div class="controls-row">
+      <label for="rateSelect">🔄 Rýchlosť: </label>
+      <select id="rateSelect">
+        <option value="0.7">0.7×</option>
+        <option value="0.8">0.8×</option>
+        <option value="0.9">0.9×</option>
+        <option value="1" selected>1× (normálna)</option>
+        <option value="1.2">1.2×</option>
+        <option value="1.5">1.5×</option>
+      </select>
+    </div>
+    
+    <div class="controls-row">
+      <button onclick="speak()">▶️ Spustiť celé</button>
+      <button id="btnPause" onclick="togglePause()">⏸️ Pauza</button>
+      <button onclick="stopSpeaking()">⏹️ Zastaviť</button>
+    </div>
+
+    <hr>
+
+    <div class="controls-row">
+      <button onclick="speakSelection()">🗣️ Čítať označený výber</button>
+      <label for="repeatCount">🔁 Opakovať výber:</label>
+      <input type="number" id="repeatCount" value="1" min="1" max="10" style="width: 60px;" />
+      <small style="color: #666;">(Myšou označte slovo alebo vetu v texte nižšie)</small>
+    </div>
+  </div>
+
   <div id="text">Rotkäppchen
 
 Es war einmal ein kleines Mädchen. Alle nannten es Rotkäppchen, weil es immer ein rotes Käppchen trug. Seine Großmutter hatte es ihr geschenkt.
@@ -34,34 +80,29 @@ Rotkäppchen versprach: „Ich gehe nie wieder vom Weg ab und höre auf meine Mu
 
 Und so lebten sie glücklich und sicher weiter.</div>
 
-  <div>
-    <label for="rateSelect">🔄 Rýchlosť: </label>
-    <select id="rateSelect">
-      <option value="0.7">0.7×</option>
-	  <option value="0.8">0.8×</option>
-      <option value="0.9">0.9×</option>
-      <option value="1" selected>1× (normálna)</option>
-      <option value="1.2">1.2×</option>
-      <option value="1.5">1.5×</option>
-    </select>
-  </div>
-
-  <button onclick="speak()">▶️ Spustiť</button>
-  <button onclick="stopSpeaking()">⏹️ Zastaviť</button>
-
   <script>
-    const selectedLang = "de-DE";
+    const selectedLang = "de-AT";
+    const selectedVoiceURI = "Microsoft Ingrid Online (Natural) - German (Austria)";
+    let isPaused = false;
+    let mainChunks = [];
+    let currentMainIndex = 0;
 
-    // --- LocalStorage pre rýchlosť ---
     window.addEventListener("load", () => {
       const savedRate = localStorage.getItem("rate");
-      if (savedRate) {
-        document.getElementById("rateSelect").value = savedRate;
-      }
+      if (savedRate) document.getElementById("rateSelect").value = savedRate;
     });
+
     document.getElementById("rateSelect").addEventListener("change", e => {
       localStorage.setItem("rate", e.target.value);
     });
+
+    // Zabezpečenie správneho hlasu podľa vygenerovaného URI
+    function getCorrectVoice() {
+      const voices = speechSynthesis.getVoices();
+      let voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+      if (!voice) voice = voices.find(v => v.lang === selectedLang);
+      return voice;
+    }
 
     function splitTextIntoChunks(text) {
       return text.split(/(?<=[.?!])\s+|\n{2,}/).filter(p => p.trim().length > 0);
@@ -83,34 +124,101 @@ Und so lebten sie glücklich und sicher weiter.</div>
     }
 
     function speak() {
-      const chunks = prepareChunks();
+      stopSpeaking(); // Reset pred spustením nového
+      mainChunks = prepareChunks();
+      currentMainIndex = 0;
+      isPaused = false;
+      document.getElementById("btnPause").innerHTML = "⏸️ Pauza";
+      
+      speakNextChunk();
+    }
+
+    function speakNextChunk() {
+      if (currentMainIndex >= mainChunks.length) return;
+      
       const rate = parseFloat(document.getElementById("rateSelect").value);
+      const u = new SpeechSynthesisUtterance(mainChunks[currentMainIndex]);
+      u.rate = rate;
+      u.lang = selectedLang || "sk-SK";
+      
+      const v = getCorrectVoice();
+      if (v) u.voice = v;
 
-      let index = 0;
-      function speakChunk() {
-        if (index >= chunks.length) return;
-        const u = new SpeechSynthesisUtterance(chunks[index]);
-        u.rate = rate;
-        u.lang = selectedLang || "sk-SK";
+      u.onstart = () => {
+        document.querySelectorAll(".highlight").forEach(el => el.classList.remove("highlight"));
+        const el = document.getElementById("chunk-" + currentMainIndex);
+        if (el) el.classList.add("highlight");
+      };
 
-        u.onstart = () => {
-          document.querySelectorAll(".highlight").forEach(el => el.classList.remove("highlight"));
-          const el = document.getElementById("chunk-" + index);
-          if (el) el.classList.add("highlight");
-        };
+      let pauseTime = /[.?!]$/.test(mainChunks[currentMainIndex]) ? 600 : 800;
+      
+      u.onend = () => { 
+        currentMainIndex++; 
+        setTimeout(() => {
+            if(!isPaused) speakNextChunk();
+        }, pauseTime); 
+      };
 
-        let pause = /[.?!]$/.test(chunks[index]) ? 600 : 800;
-        u.onend = () => { index++; setTimeout(speakChunk, pause); };
-        speechSynthesis.speak(u);
+      speechSynthesis.speak(u);
+    }
+
+    function togglePause() {
+      if (!speechSynthesis.speaking && !isPaused) return;
+
+      if (isPaused) {
+        // Pokračovanie
+        isPaused = false;
+        document.getElementById("btnPause").innerHTML = "⏸️ Pauza";
+        speechSynthesis.resume();
+        // Ak sa pauza stlačila v čase medzi vetami (v timeoute), musíme manuálne posunúť ďalšiu
+        if (!speechSynthesis.speaking && currentMainIndex < mainChunks.length) {
+            speakNextChunk();
+        }
+      } else {
+        // Pozastavenie
+        isPaused = true;
+        document.getElementById("btnPause").innerHTML = "▶️ Pokračovať";
+        speechSynthesis.pause();
       }
-
-      speechSynthesis.cancel();
-      speakChunk();
     }
 
     function stopSpeaking() {
       speechSynthesis.cancel();
+      isPaused = false;
+      document.getElementById("btnPause").innerHTML = "⏸️ Pauza";
       document.querySelectorAll(".highlight").forEach(el => el.classList.remove("highlight"));
+      currentMainIndex = mainChunks.length; // Ukončí slučku
+    }
+
+    // --- Čítanie označeného výberu s opakovaním ---
+    async function speakSelection() {
+      const selectedText = window.getSelection().toString().trim();
+      if (!selectedText) {
+          alert("Najprv označte myšou časť textu, ktorú chcete prečítať.");
+          return;
+      }
+
+      stopSpeaking(); // Zastaví hlavné čítanie, aby sa neprekrývali
+      
+      const repeats = parseInt(document.getElementById('repeatCount').value) || 1;
+      const rate = parseFloat(document.getElementById("rateSelect").value);
+      const targetVoice = getCorrectVoice();
+
+      for (let i = 0; i < repeats; i++) {
+          await new Promise(resolve => {
+              const u = new SpeechSynthesisUtterance(selectedText);
+              u.rate = rate;
+              u.lang = selectedLang || "sk-SK";
+              if (targetVoice) u.voice = targetVoice;
+              u.onend = resolve;
+              speechSynthesis.speak(u);
+          });
+          
+          // Malá pauza medzi opakovaniami
+          if (i < repeats - 1) {
+              await new Promise(r => setTimeout(r, 600));
+          }
+      }
     }
   </script>
 </body>
