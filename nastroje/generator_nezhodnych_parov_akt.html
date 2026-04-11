@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor kartičiek s nezhodnými pármi</title>
+    <style>
+        body, input, textarea, button {
+            font-family: 'Monaco', monospace;
+            font-size: 16px;
+        }
+        body {
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #222;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"], textarea {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 200px;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            margin-bottom: 30px;
+        }
+        button {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .btn-generate {
+            background-color: #28a745;
+            width: 100%;
+            font-size: 16px;
+            padding: 15px;
+        }
+        .btn-generate:hover {
+            background-color: #218838;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor kartičiek s nezhodnými pármi</h1>
+
+    <div class="form-group">
+        <label for="author">Autor:</label>
+        <input type="text" id="author" placeholder="Meno autora">
+    </div>
+
+    <div class="form-group">
+        <label for="year">Rok:</label>
+        <input type="number" id="year" placeholder="napr. 2026">
+    </div>
+
+    <div class="form-group">
+        <label for="subject">Predmet:</label>
+        <input type="text" id="subject" placeholder="napr. Biológia">
+    </div>
+
+    <div class="form-group">
+        <label for="topic">Téma:</label>
+        <input type="text" id="topic" placeholder="napr. Bunka">
+    </div>
+
+    <div class="form-group">
+        <label for="pairsInput">Páry (Pojem [TAB] Definícia):</label>
+        <textarea id="pairsInput" placeholder="Bunka&#9;Základná stavebná jednotka organizmov.&#10;Mitochondria&#9;Energetické centrum bunky."></textarea>
+        <div class="help-text">Každý pár zadajte na nový riadok. Medzi pojmom a definíciou použite klávesu TAB. Je povolené používať HTML tagy (napr. &lt;b&gt;, &lt;i&gt;, &lt;br&gt;).</div>
+    </div>
+
+    <div class="button-group">
+        <button onclick="exportJSON()">Exportovať nastavenia (.json)</button>
+        <button onclick="document.getElementById('fileInput').click()">Importovať nastavenia (.json)</button>
+        <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="importJSON(event)">
+    </div>
+
+ 
+    <hr style="border: 1px solid #eee; margin: 30px 0;">
+
+    <button class="btn-generate" onclick="generateCards()">Vygenerovať kartičky</button>
+<br><br>
+        <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+		<br><br>
+    <script>
+        // Umožnenie písania TABu priamo do textarea
+        document.getElementById('pairsInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                let start = this.selectionStart;
+                let end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+            }
+        });
+
+        // Export do JSON
+        function exportJSON() {
+            const data = {
+                author: document.getElementById('author').value,
+                year: document.getElementById('year').value,
+                subject: document.getElementById('subject').value,
+                topic: document.getElementById('topic').value,
+                pairs: document.getElementById('pairsInput').value
+            };
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "nastavenia_karticiek.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        // Import z JSON (tiché načítanie bez chybových hlásení)
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.author !== undefined) document.getElementById('author').value = data.author;
+                    if (data.year !== undefined) document.getElementById('year').value = data.year;
+                    if (data.subject !== undefined) document.getElementById('subject').value = data.subject;
+                    if (data.topic !== undefined) document.getElementById('topic').value = data.topic;
+                    if (data.pairs !== undefined) document.getElementById('pairsInput').value = data.pairs;
+                } catch (error) {
+                    // Tichý pád - zámerne prázdny blok pre ignorovanie chýb
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; 
+        }
+
+function sanitizeFilename(str) {
+    if (!str) return 'karticky';
+    return str
+        .normalize('NFD')                          // Rozloží znaky (napr. á -> a + ´)
+        .replace(/[\u0300-\u036f]/g, "")           // Odstráni diakritiku
+        .replace(/[^a-z0-9]/gi, '_')               // Všetko okrem písmen a čísel zmení na _
+        .replace(/_+/g, '_')                       // Zmení viac podčiarkovníkov za sebou na jeden
+        .replace(/^_+|_+$/g, '')                   // Odstráni podčiarkovníky na začiatku a konci
+        .toLowerCase();                            // (Voliteľné) zmení na malé písmená
+}
+
+        // Generovanie kartičiek v novom okne
+        function generateCards() {
+            const author = document.getElementById('author').value;
+            const year = document.getElementById('year').value;
+            const subject = document.getElementById('subject').value;
+            const topic = document.getElementById('topic').value;
+			const fileName = sanitizeFilename(topic); // Vyčistenie názvu témy
+            const rawPairs = document.getElementById('pairsInput').value;
+
+            const lines = rawPairs.split('\n');
+            let terms = [];
+            let defs = [];
+
+            lines.forEach(line => {
+                const parts = line.split('\t');
+                if (parts.length >= 2 && line.trim() !== '') {
+                    terms.push(parts[0].trim());
+                    defs.push(parts.slice(1).join('\t').trim());
+                }
+            });
+
+            if (terms.length < 2) {
+                alert("Pre vytvorenie nezhodných párov musíte zadať aspoň 2 platné riadky s pojmami a definíciami.");
+                return;
+            }
+            
+            // 1. Zamiešame poradie (aby to bolo náhodné)
+            let indices = Array.from({length: terms.length}, (_, i) => i);
+            indices.sort(() => Math.random() - 0.5);
+
+            let cardsHTML = '';
+            for (let i = 0; i < indices.length; i++) {
+                let termIndex = indices[i];
+                let defIndex = indices[(i + 1) % indices.length]; 
+
+                let termHTML = terms[termIndex];
+                let defHTML = defs[defIndex];
+
+                cardsHTML += `
+                    <div class="card">
+                        <div class="square term">${termHTML}</div>
+                        <div class="square def">${defHTML}</div>
+                    </div>
+                `;
+            }
+
+            const headerInfo = [author, year, subject, topic].filter(item => item !== "").join(" | ");
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="sk">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${fileName}</title>
+                    <style>
+                        body {
+                            font-family: 'Monaco', monospace;
+                            margin: 0;
+                            padding: 20px;
+                            color: #000;
+                        }
+                        .header {
+                            width: 100%;
+                            text-align: center;
+                            margin-bottom: 10mm;
+                            font-size: 16px;
+                            font-weight: bold;
+                        }
+                        .cards-container {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 0; 
+                            align-content: flex-start;
+                        }
+                        .card {
+                            display: flex;
+                            flex-direction: column;
+                            
+                            /* --- TU NASTAVUJETE ROZMERY KARTIČKY --- */
+                            width: 4.5cm;  /* Šírka rozšírená na 4.5 cm */
+                            height: 8cm;   /* Celková výška (2x 4cm) */
+                            margin: 2mm;   /* Medzera medzi kartičkami (znížená z 5mm) */
+                            /* -------------------------------------- */
+                            
+                            box-sizing: border-box;
+                            page-break-inside: avoid; 
+                            border: 2px solid #000;
+                        }
+                        .square {
+                            width: 100%;
+                            height: 4cm;
+                            box-sizing: border-box;
+                            padding: 4mm;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            text-align: center;
+                            overflow: hidden;
+                            word-wrap: break-word;
+                            
+                            /* -------- TU MÔŽETE ZMENIŤ VEĽKOSŤ TEXTU -------- */
+                            font-size: 20px; /* Zvýšené z pôvodných 12px na 60px */
+                            /* ------------------------------------------------ */
+                        }
+                        .term {
+                            font-weight: bold;
+                            border-bottom: 1px solid #000;
+                        }
+                        .def {
+                            font-weight: normal; 
+                        }
+                        
+                        @media print {
+                            body {
+                                padding: 0;
+                            }
+                            @page {
+                                size: A4 portrait;
+                                /* Zmenšené okraje: 5mm hore/dole, 3mm vľavo/vpravo pre 4 stĺpce vedľa seba */
+                                margin: 5mm 3mm; 
+                            }
+                            .header {
+                                /* Znížená medzera pod hlavičkou pre natlačenie 3 riadkov na prvú stranu */
+                                margin-bottom: 2mm; 
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${headerInfo ? `<div class="header">${headerInfo}</div>` : ''}
+                    <div class="cards-container">
+                        ${cardsHTML}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    </script>
+</body>
+</html>
