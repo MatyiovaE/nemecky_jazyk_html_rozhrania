@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>Generátor ozvučených tlačidiel (nemecko-slovenský)</title>
+  <style>
+    body { font-family: Courier bold, monospace; padding: 2rem; max-width: 1000px; margin: auto; }
+    textarea { width: 100%; height: 200px; font-family: monospace; margin-bottom: 1rem; }
+    label { display: block; margin-top: 1rem; }
+    select, button, input { margin-top: 0.5rem; padding: 0.4rem; }
+    .btn-group { margin-top: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    hr { margin: 2rem 0; border: 0; border-top: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>🗣️ Generátor ozvučených tlačidiel (nemecko-slovenský)</h1>
+  <p>Vložte dvojstĺpcový text oddelený tabulátorom (napr. <code>Guten Tag![TAB]Dobrý deň!</code>)</p>
+  <textarea id="inputText" placeholder="Hund[TAB]pes&#10;Wie geht es dir?[TAB]Ako sa máš?&#10;Danke![TAB]Ďakujem!"></textarea>
+
+  <label>
+    Jazyk stĺpca 1:
+    <select id="lang1">
+      <option value="de-DE">Nemčina (Nemecko - de-DE)</option>
+      <option value="de-AT">Nemčina (Rakúsko - de-AT)</option>
+      <option value="sk-SK">Slovenčina (sk-SK)</option>
+    </select>
+  </label>
+
+  <label>
+    Jazyk stĺpca 2:
+    <select id="lang2">
+      <option value="sk-SK">Slovenčina (sk-SK)</option>
+      <option value="de-DE">Nemčina (Nemecko - de-DE)</option>
+      <option value="de-AT">Nemčina (Rakúsko - de-AT)</option>
+    </select>
+  </label>
+
+  <label>
+    Zvýrazni hrubým písmom:
+    <select id="boldColumn">
+      <option value="1">Stĺpec 1</option>
+      <option value="2">Stĺpec 2</option>
+    </select>
+  </label>
+
+  <label>
+    Predmet:
+    <input type="text" id="subjectInput" placeholder="Napr. Nemecký jazyk" style="width: 100%;">
+  </label>
+
+  <label>
+    Téma:
+    <input type="text" id="topicInput" placeholder="Napr. Lekcia 1" style="width: 100%;">
+  </label>
+
+  <label>
+    Autor:
+    <input type="text" id="authorInput" placeholder="Meno autora" style="width: 100%;">
+  </label>
+
+  <label>
+    Rok:
+    <input type="number" id="yearInput" placeholder="2026" style="width: 100%;">
+  </label>
+
+  <div class="btn-group">
+    <button onclick="generate()">Generovať zoznam na čítanie</button>
+    <button onclick="downloadHTML()">Uložiť ako súbor HTML</button>
+  </div>
+  
+  <hr>
+
+  <div class="btn-group">
+    <button onclick="exportJSON()">💾 Exportovať nastavenia (.json)</button>
+    <button onclick="document.getElementById('importFile').click()">📂 Importovať nastavenia (.json)</button>
+    <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(event)">
+  </div>
+
+<script>
+/* --- Uloženie a načítanie vstupov z localStorage --- */
+function saveInputs() {
+  try {
+    localStorage.setItem("inputText", document.getElementById("inputText").value);
+    localStorage.setItem("lang1", document.getElementById("lang1").value);
+    localStorage.setItem("lang2", document.getElementById("lang2").value);
+    localStorage.setItem("boldColumn", document.getElementById("boldColumn").value);
+    localStorage.setItem("subjectInput", document.getElementById("subjectInput").value);
+    localStorage.setItem("topicInput", document.getElementById("topicInput").value);
+    localStorage.setItem("authorInput", document.getElementById("authorInput").value);
+    localStorage.setItem("yearInput", document.getElementById("yearInput").value);
+  } catch (e) {}
+}
+
+function loadInputs() {
+  try {
+    if(localStorage.getItem("inputText")) document.getElementById("inputText").value = localStorage.getItem("inputText");
+    if(localStorage.getItem("lang1")) document.getElementById("lang1").value = localStorage.getItem("lang1");
+    if(localStorage.getItem("lang2")) document.getElementById("lang2").value = localStorage.getItem("lang2");
+    if(localStorage.getItem("boldColumn")) document.getElementById("boldColumn").value = localStorage.getItem("boldColumn");
+    
+    if(localStorage.getItem("subjectInput")) document.getElementById("subjectInput").value = localStorage.getItem("subjectInput");
+    else if(localStorage.getItem("titleInput")) document.getElementById("subjectInput").value = localStorage.getItem("titleInput");
+    
+    if(localStorage.getItem("topicInput")) document.getElementById("topicInput").value = localStorage.getItem("topicInput");
+    if(localStorage.getItem("authorInput")) document.getElementById("authorInput").value = localStorage.getItem("authorInput");
+    if(localStorage.getItem("yearInput")) document.getElementById("yearInput").value = localStorage.getItem("yearInput");
+  } catch (e) {}
+}
+
+window.addEventListener("load", loadInputs);
+document.querySelectorAll("#inputText, #lang1, #lang2, #boldColumn, #subjectInput, #topicInput, #authorInput, #yearInput")
+  .forEach(el => el.addEventListener("input", saveInputs));
+
+function exportJSON() {
+  const data = {
+    inputText: document.getElementById("inputText").value,
+    lang1: document.getElementById("lang1").value,
+    lang2: document.getElementById("lang2").value,
+    boldColumn: document.getElementById("boldColumn").value,
+    subjectInput: document.getElementById("subjectInput").value,
+    topicInput: document.getElementById("topicInput").value,
+    authorInput: document.getElementById("authorInput").value,
+    yearInput: document.getElementById("yearInput").value
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nastavenia_generatora.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.inputText !== undefined) document.getElementById("inputText").value = data.inputText;
+      if (data.lang1 !== undefined) document.getElementById("lang1").value = data.lang1;
+      if (data.lang2 !== undefined) document.getElementById("lang2").value = data.lang2;
+      if (data.boldColumn !== undefined) document.getElementById("boldColumn").value = data.boldColumn;
+      if (data.subjectInput !== undefined) document.getElementById("subjectInput").value = data.subjectInput;
+      else if (data.titleInput !== undefined) document.getElementById("subjectInput").value = data.titleInput;
+      if (data.topicInput !== undefined) document.getElementById("topicInput").value = data.topicInput;
+      if (data.authorInput !== undefined) document.getElementById("authorInput").value = data.authorInput;
+      if (data.yearInput !== undefined) document.getElementById("yearInput").value = data.yearInput;
+      saveInputs();
+    } catch (error) { }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+const textarea = document.getElementById('inputText');
+textarea.addEventListener('keydown', function(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const start = this.selectionStart;
+    const end = this.selectionEnd;
+    this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+    this.selectionStart = this.selectionEnd = start + 1;
+  }
+});
+
+function getGeneratedHTML() {
+  const subject = document.getElementById('subjectInput').value.trim() || 'Neznámy predmet';
+  const topic = document.getElementById('topicInput').value.trim() || '';
+  const author = document.getElementById('authorInput').value.trim() || 'Neznámy autor';
+  const year = document.getElementById('yearInput').value.trim() || new Date().getFullYear();
+  const text = document.getElementById('inputText').value.trim();
+  const lang1 = document.getElementById('lang1').value;
+  const lang2 = document.getElementById('lang2').value;
+  const boldCol = document.getElementById('boldColumn').value;
+  const rate = 1.0;
+  const pitch = 1.0;
+
+  const lines = text.split('\n').filter(l => l.trim() !== '').map(line => line.split('\t'));
+  const headerTitle = subject + (topic ? ' - ' + topic : '');
+
+  const builderScriptJS = `
+function generateBuilder() {
+  const checkboxes = document.querySelectorAll('.phrase-cb:checked');
+  if(checkboxes.length === 0) { alert('Najprv označte frázy zaškrtnutím.'); return; }
+  const selected = Array.from(checkboxes).map(cb => ({ c1: cb.dataset.c1, c2: cb.dataset.c2 }));
+
+  const subject = ${JSON.stringify(subject)};
+  const topic = ${JSON.stringify(topic)};
+  const author = ${JSON.stringify(author)};
+  const year = ${JSON.stringify(year)};
+  const lang1 = ${JSON.stringify(lang1)};
+  const lang2 = ${JSON.stringify(lang2)};
+
+  let p3 = [];
+  p3.push("<!DOCTYPE html>");
+  p3.push("<html lang='sk'><head><meta charset='UTF-8'><title>Výber ozvučených fráz</title>");
+  p3.push("<style>");
+  p3.push("body { font-family: sans-serif; padding: 2rem; max-width: 1000px; margin: auto; background: #f4f7f6; }");
+  p3.push(".meta-info { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #ccc; color: #444; }");
+  p3.push(".split-btn { display: inline-flex; flex-direction: column; border: 2px solid #2c3e50; border-radius: 8px; overflow: hidden; margin: 8px; cursor: pointer; user-select: none; vertical-align: top; width: 220px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s, box-shadow 0.1s; background: white; }");
+  p3.push(".split-btn:hover { box-shadow: 0 6px 10px rgba(0,0,0,0.15); transform: translateY(-2px); }");
+  p3.push(".split-btn:active { transform: scale(0.96); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }");
+  p3.push(".top-half { background: #fff066; padding: 15px 10px; font-weight: bold; text-align: center; border-bottom: 1px solid #2c3e50; font-size: 1.1em; color: #1a252f; min-height: 40px; display: flex; align-items: center; justify-content: center; }");
+  p3.push(".bottom-half { background: #fffde7; padding: 15px 10px; text-align: center; font-size: 1em; color: #333; min-height: 40px; display: flex; align-items: center; justify-content: center; }");
+  p3.push(".container { min-height: 120px; padding: 15px; border: 2px dashed #bdc3c7; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; background: #fff; }");
+  p3.push(".action-btn { padding: 12px 20px; font-weight: bold; cursor: pointer; margin-top: 10px; background: #27ae60; color: white; border: none; border-radius: 5px; font-size: 1.1em; transition: background 0.2s; }");
+  p3.push(".action-btn:hover { background: #219150; }");
+  p3.push(".line-break-btn { margin: 8px; padding: 10px 20px; border: 2px dashed #95a5a6; border-radius: 8px; cursor: pointer; background: #ecf0f1; display: inline-flex; align-items: center; justify-content: center; min-height: 80px; box-sizing: border-box; font-weight: bold; color: #7f8c8d; transition: background 0.2s; }");
+  p3.push(".line-break-btn:hover { background: #bdc3c7; color: #2c3e50; }");
+  p3.push(".flex-break { flex-basis: 100%; height: 2px; background: #e0e0e0; margin: 10px 0; border-radius: 2px; }");
+  p3.push("</style></head><body>");
+
+  p3.push("<h1>Výber ozvučených fráz</h1>");
+  p3.push("<div class='meta-info'><b>Predmet:</b> " + subject + " | <b>Téma:</b> " + topic + " | <b>Autor:</b> " + author + " | <b>Rok:</b> " + year + "</div>");
+
+  p3.push("<h3>Dostupné frázy (kliknutím pridáte do výberu):</h3>");
+  p3.push("<div id='palette' class='container'>");
+  selected.forEach(item => {
+    const safeC1 = item.c1.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+    const safeC2 = item.c2.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+    p3.push("<div class='split-btn' data-c1='" + safeC1 + "' data-c2='" + safeC2 + "'>");
+    p3.push("<div class='top-half'>" + item.c1 + "</div>");
+    p3.push("<div class='bottom-half'>" + item.c2 + "</div>");
+    p3.push("</div>");
+  });
+  p3.push("<div class='line-break-btn' id='addBreakBtn'>+ Vložiť zalomenie riadka</div>");
+  p3.push("</div>");
+
+  p3.push("<h3>Váš výber (kliknutím frázu alebo zalomenie odstránite):</h3>");
+  p3.push("<div id='sequence' class='container'></div>");
+  p3.push("<button onclick='generateFinalSummary()' class='action-btn'>Generovať súhrn v uvedenom poradí</button>");
+
+  p3.push("<script>");
+  p3.push("const lang1 = " + JSON.stringify(lang1) + ";");
+  p3.push("const lang2 = " + JSON.stringify(lang2) + ";");
+  p3.push("const subject = " + JSON.stringify(subject) + ";");
+  p3.push("const topic = " + JSON.stringify(topic) + ";");
+  p3.push("const author = " + JSON.stringify(author) + ";");
+  p3.push("const year = " + JSON.stringify(year) + ";");
+
+  p3.push("document.getElementById('palette').addEventListener('click', function(e) {");
+  p3.push("  let btn = e.target.closest('.split-btn');");
+  p3.push("  if(btn) {");
+  p3.push("    let clone = btn.cloneNode(true);");
+  p3.push("    document.getElementById('sequence').appendChild(clone);");
+  p3.push("  }");
+  p3.push("});");
+
+  p3.push("document.getElementById('addBreakBtn').addEventListener('click', function() {");
+  p3.push("  let brk = document.createElement('div');");
+  p3.push("  brk.className = 'flex-break';");
+  p3.push("  document.getElementById('sequence').appendChild(brk);");
+  p3.push("});");
+
+  p3.push("document.getElementById('sequence').addEventListener('click', function(e) {");
+  p3.push("  let btn = e.target.closest('.split-btn');");
+  p3.push("  if(btn) btn.remove();");
+  p3.push("  let brk = e.target.closest('.flex-break');");
+  p3.push("  if(brk) brk.remove();");
+  p3.push("});");
+
+  const genFunc = function generateFinalSummary() {
+      const items = document.getElementById('sequence').children;
+      if(items.length === 0) { alert('Váš výber je prázdny.'); return; }
+
+      let p4 = [];
+      p4.push('<!DOCTYPE html>');
+      p4.push('<html lang="sk"><head><meta charset="UTF-8"><title>Súhrn fráz</title>');
+      p4.push('<style>');
+      p4.push('body { font-family: sans-serif; padding: 2rem; max-width: 1000px; margin: auto; background: #f4f7f6; }');
+      p4.push('.meta-info { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #ccc; color: #444; }');
+      
+      // Základné štýly pre tlačidlá
+      p4.push('.split-btn { display: inline-flex; flex-direction: column; border: 2px solid #2c3e50; border-radius: 8px; overflow: hidden; margin: 8px; cursor: pointer; user-select: none; vertical-align: top; width: 220px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s, box-shadow 0.1s; background: white; position: relative; }');
+      p4.push('.split-btn:not(.expanded):active { transform: scale(0.96); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }');
+      p4.push('.top-half { background: #fff36b; padding: 15px 10px; font-weight: bold; text-align: center; border-bottom: 1px solid #2c3e50; font-size: 1.1em; color: #1a252f; min-height: 40px; display: flex; align-items: center; justify-content: center; }');
+      p4.push('.bottom-half { background: #fffde7; padding: 15px 10px; text-align: center; font-size: 1em; color: #333; min-height: 40px; display: flex; align-items: center; justify-content: center; }');
+      
+      // Štýly pre zväčšený (celoobrazovkový) režim
+      p4.push('.split-btn.expanded { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; border-radius: 0; border: none; flex-direction: column; justify-content: center; cursor: default; }');
+      p4.push('.split-btn.expanded .top-half, .split-btn.expanded .bottom-half { flex: 1; font-size: 12vmin; padding: 20px; cursor: pointer; transition: background 0.2s; }');
+      p4.push('.split-btn.expanded .top-half:hover { background: #fff066; }');
+      p4.push('.split-btn.expanded .bottom-half:hover { background: #fff7b3; }');
+      
+      // Tlačidlo "X" na zavretie
+      p4.push('.close-btn { display: none; position: absolute; top: 20px; right: 30px; font-size: 50px; font-weight: bold; color: #2c3e50; cursor: pointer; z-index: 10000; user-select: none; background: rgba(255,255,255,0.8); border-radius: 50%; width: 60px; height: 60px; text-align: center; line-height: 55px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s; }');
+      p4.push('.close-btn:hover { transform: scale(1.1); background: white; }');
+      p4.push('.split-btn.expanded .close-btn { display: block; }');
+
+      p4.push('.sequence-container { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; }');
+      p4.push('.flex-break { flex-basis: 100%; height: 0px; margin: 15px 0; }');
+      p4.push('.controls { margin-bottom: 2rem; background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; z-index: 10; }');
+      p4.push('</style></head><body>');
+      p4.push('<h1>Súhrn fráz</h1>');
+      p4.push('<div class="meta-info"><b>Predmet:</b> ' + subject + ' | <b>Téma:</b> ' + topic + ' | <b>Autor:</b> ' + author + ' | <b>Rok:</b> ' + year + '</div>');
+      p4.push('<div class="controls">');
+      p4.push('  <label>Rýchlosť: <input type="range" id="rate" min="0.6" max="1.4" step="0.1" value="1.0"> <span id="rateVal">1.0</span></label>');
+      p4.push('  &nbsp;&nbsp;&nbsp;');
+      p4.push('  <label>Výška: <input type="range" id="pitch" min="0.8" max="1.4" step="0.1" value="1.0"> <span id="pitchVal">1.0</span></label>');
+      p4.push('</div>');
+      p4.push('<div id="play-area" class="sequence-container">');
+
+      for(let item of items) {
+        if(item.classList.contains('flex-break')) {
+           p4.push('  <div class="flex-break"></div>');
+        } else if(item.classList.contains('split-btn')) {
+           const c1 = item.dataset.c1;
+           const c2 = item.dataset.c2;
+           p4.push('  <div class="split-btn">');
+           p4.push('    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>');
+           p4.push('    <div class="top-half" data-text="' + c1.replace(/"/g, '&quot;') + '" data-lang="' + lang1 + '">' + item.querySelector('.top-half').innerHTML + '</div>');
+           p4.push('    <div class="bottom-half" data-text="' + c2.replace(/"/g, '&quot;') + '" data-lang="' + lang2 + '">' + item.querySelector('.bottom-half').innerHTML + '</div>');
+           p4.push('  </div>');
+        }
+      }
+
+      p4.push('</div>');
+      p4.push('<script>');
+      p4.push('document.getElementById("rate").addEventListener("input", e => document.getElementById("rateVal").textContent = e.target.value);');
+      p4.push('document.getElementById("pitch").addEventListener("input", e => document.getElementById("pitchVal").textContent = e.target.value);');
+      p4.push('function speak(text, lang) {');
+      p4.push('  if (!text) return;');
+      p4.push('  speechSynthesis.cancel();');
+      p4.push('  const utter = new SpeechSynthesisUtterance(text);');
+      p4.push('  utter.lang = lang;');
+      p4.push('  const voices = speechSynthesis.getVoices();');
+      p4.push('  const selectedVoice = voices.find(v => v.lang === lang || v.lang.replace("_", "-") === lang);');
+      p4.push('  if (selectedVoice) utter.voice = selectedVoice;');
+      p4.push('  utter.rate = parseFloat(document.getElementById("rate").value);');
+      p4.push('  utter.pitch = parseFloat(document.getElementById("pitch").value);');
+      p4.push('  speechSynthesis.speak(utter);');
+      p4.push('}');
+      p4.push('document.getElementById("play-area").addEventListener("click", function(e) {');
+      p4.push('  let btn = e.target.closest(".split-btn");');
+      p4.push('  if (!btn) return;');
+      
+      // Ak užívateľ klikne na "X"
+      p4.push('  if (e.target.classList.contains("close-btn")) {');
+      p4.push('    btn.classList.remove("expanded");');
+      p4.push('    e.stopPropagation();'); // Zastaví event, aby sa hneď znova neotvoril
+      p4.push('    return;');
+      p4.push('  }');
+      
+      // Ak tlačidlo nie je zväčšené, zväčši ho (a neprehrávaj zvuk)
+      p4.push('  if (!btn.classList.contains("expanded")) {');
+      p4.push('    btn.classList.add("expanded");');
+      p4.push('  } else if (e.target.classList.contains("top-half") || e.target.classList.contains("bottom-half")) {');
+      // Ak je už zväčšené a klikne na texty, prehraj zvuk
+      p4.push('    speak(e.target.dataset.text, e.target.dataset.lang);');
+      p4.push('  }');
+      p4.push('});');
+      p4.push('<\\/script>');
+      p4.push('</body></html>');
+      
+      const blob4 = new Blob([p4.join('\\n')], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob4);
+      a.download = 'suhrn_fraz.html';
+      a.click();
+  };
+
+  p3.push(genFunc.toString());
+
+  p3.push("<" + "/script>");
+  p3.push("</body></html>");
+
+  const blob3 = new Blob([p3.join('\\n')], { type: 'text/html' });
+  window.open(URL.createObjectURL(blob3), '_blank');
+}
+`;
+
+  return `
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="author" content="${author.replace(/"/g, '&quot;')}">
+  <meta name="year" content="${year}">
+  <title>${headerTitle.replace(/"/g, '&quot;')}</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; max-width: 900px; margin: auto; }
+    header { border-bottom: 2px solid #333; padding-bottom: 1rem; margin-bottom: 2rem; }
+    .meta-info { color: #555; font-size: 0.9rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th { padding: 0.5rem; border-bottom: 2px solid #ccc; text-align: left; }
+    td { padding: 0.5rem; border-bottom: 1px solid #ccc; vertical-align: middle; }
+    .bold { font-weight: bold; }
+    .icon { cursor: pointer; margin-right: 0.5rem; color: #0077cc; }
+    .controls { margin-top: 1rem; background: #f9f9f9; padding: 1rem; border-radius: 5px; margin-bottom: 1.5rem; }
+    .btn-generate-builder { padding: 0.7rem 1.2rem; background: #0077cc; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1rem; margin-bottom: 1rem; }
+    .btn-generate-builder:hover { background: #005fa3; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>${headerTitle}</h1>
+    <div class="meta-info"><b>Predmet:</b> ${subject} | <b>Téma:</b> ${topic} | <b>Autor:</b> ${author} | <b>Rok:</b> ${year}</div>
+  </header>
+
+  <button onclick="generateBuilder()" class="btn-generate-builder">Vygenerovať klikateľné tlačidlá z vyznačených fráz</button>
+
+  <div class="controls">
+    <label>Rýchlosť: <input type="range" id="rate" min="0.6" max="1.4" step="0.1" value="${rate}"> <span id="rateVal">${rate}</span></label>
+    &nbsp;&nbsp;&nbsp;
+    <label>Výška: <input type="range" id="pitch" min="0.8" max="1.4" step="0.1" value="${pitch}"> <span id="pitchVal">${pitch}</span></label>
+  </div>
+  
+  <table id="table">
+    <tr>
+      <th style="width: 30px;"><input type="checkbox" title="Označiť/Odznačiť všetko" onclick="const cbs = document.querySelectorAll('.phrase-cb'); cbs.forEach(cb => cb.checked = this.checked);"></th>
+      <th>Stĺpec 1</th>
+      <th>Stĺpec 2</th>
+    </tr>
+    ${lines.map(([col1, col2]) => `
+      <tr>
+        <td><input type="checkbox" class="phrase-cb" data-c1="${(col1 || '').replace(/"/g, '&quot;')}" data-c2="${(col2 || '').replace(/"/g, '&quot;')}"></td>
+        <td>
+          <span class="icon" onclick="speak('${(col1 || '').replace(/'/g, "\\'")}', '${lang1}')">🔊</span>
+          <span class="${boldCol === '1' ? 'bold' : ''}">${col1 || ''}</span>
+        </td>
+        <td>
+          <span class="icon" onclick="speak('${(col2 || '').replace(/'/g, "\\'")}', '${lang2}')">🔊</span>
+          <span class="${boldCol === '2' ? 'bold' : ''}">${col2 || ''}</span>
+        </td>
+      </tr>
+    `).join('')}
+  </table>
+
+  <script>
+    document.getElementById('rate').addEventListener('input', e => document.getElementById('rateVal').textContent = e.target.value);
+    document.getElementById('pitch').addEventListener('input', e => document.getElementById('pitchVal').textContent = e.target.value);
+
+    function speak(text, lang) {
+      if (!text) return;
+      speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = lang;
+      const voices = speechSynthesis.getVoices();
+      const selectedVoice = voices.find(v => v.lang === lang || v.lang.replace('_', '-') === lang);
+      if (selectedVoice) utter.voice = selectedVoice;
+      utter.rate = parseFloat(document.getElementById('rate').value);
+      utter.pitch = parseFloat(document.getElementById('pitch').value);
+      speechSynthesis.speak(utter);
+    }
+  <${'/'}script>
+  <script>
+  ${builderScriptJS}
+  <${'/'}script>
+</body>
+</html>`;
+}
+
+function generate() {
+  const newWindow = window.open('', '_blank');
+  newWindow.document.write(getGeneratedHTML());
+  newWindow.document.close();
+}
+
+function downloadHTML() {
+  const subject = document.getElementById('subjectInput').value.trim() || 'zoznam';
+  const blob = new Blob([getGeneratedHTML()], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${subject.replace(/\s+/g, '_')}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+</script>
+
+<br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+<br><br>
+</body>
+</html>
