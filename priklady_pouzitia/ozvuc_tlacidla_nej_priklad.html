@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="sk"><head><meta charset="UTF-8"><title>Na hodine - súhrn fráz</title>
+<style>
+body { font-family: sans-serif; padding: 2rem; max-width: 1000px; margin: auto; background: #f4f7f6; }
+.meta-info { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #ccc; color: #444; }
+.split-btn { display: inline-flex; flex-direction: column; border: 2px solid #2c3e50; border-radius: 8px; overflow: hidden; margin: 8px; cursor: pointer; user-select: none; vertical-align: top; width: 220px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s, box-shadow 0.1s; background: white; position: relative; }
+.split-btn:not(.expanded):active { transform: scale(0.96); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.top-half { background: #fff36b; padding: 15px 10px; font-weight: bold; text-align: center; border-bottom: 1px solid #2c3e50; font-size: 1.1em; color: #1a252f; min-height: 40px; display: flex; align-items: center; justify-content: center; }
+.bottom-half { background: #fffde7; padding: 15px 10px; text-align: center; font-size: 1em; color: #333; min-height: 40px; display: flex; align-items: center; justify-content: center; }
+.split-btn.expanded { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; margin: 0; border-radius: 0; border: none; flex-direction: column; justify-content: center; cursor: default; }
+.split-btn.expanded .top-half, .split-btn.expanded .bottom-half { flex: 1; font-size: 12vmin; padding: 20px; cursor: pointer; transition: background 0.2s; }
+.split-btn.expanded .top-half:hover { background: #fff066; }
+.split-btn.expanded .bottom-half:hover { background: #fff7b3; }
+.close-btn { display: none; position: absolute; top: 20px; right: 30px; font-size: 50px; font-weight: bold; color: #2c3e50; cursor: pointer; z-index: 10000; user-select: none; background: rgba(255,255,255,0.8); border-radius: 50%; width: 60px; height: 60px; text-align: center; line-height: 55px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s; }
+.close-btn:hover { transform: scale(1.1); background: white; }
+.split-btn.expanded .close-btn { display: block; }
+.sequence-container { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; }
+.flex-break { flex-basis: 100%; height: 0px; margin: 15px 0; }
+.controls { margin-bottom: 2rem; background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; z-index: 10; }
+</style></head><body>
+<h1>Na hodine - súhrn fráz</h1>
+<div class="meta-info"><b>Predmet:</b> Nemecký jazyk | <b>Téma:</b> Frázy na hodine | <b>Autor:</b> Mgr. Erika Matyiová | <b>Rok:</b> 2026</div>
+<div class="controls">
+  <label>Rýchlosť: <input type="range" id="rate" min="0.6" max="1.4" step="0.1" value="1.0"> <span id="rateVal">1.0</span></label>
+  &nbsp;&nbsp;&nbsp;
+  <label>Výška: <input type="range" id="pitch" min="0.8" max="1.4" step="0.1" value="1.0"> <span id="pitchVal">1.0</span></label>
+</div>
+<div id="play-area" class="sequence-container">
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Guten Tag!" data-lang="de-AT">Guten Tag!</div>
+    <div class="bottom-half" data-text="Dobrý deň!" data-lang="sk-SK">Dobrý deň!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Setzt euch!" data-lang="de-AT">Setzt euch!</div>
+    <div class="bottom-half" data-text="Sadnite si!" data-lang="sk-SK">Sadnite si!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Stühle runter, bitte!" data-lang="de-AT">Stühle runter, bitte!</div>
+    <div class="bottom-half" data-text="Zložte prosím stoličky!" data-lang="sk-SK">Zložte prosím stoličky!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Wie geht es euch?" data-lang="de-AT">Wie geht es euch?</div>
+    <div class="bottom-half" data-text="Ako sa máte? (tykanie v množnom čísle)" data-lang="sk-SK">Ako sa máte? (tykanie v množnom čísle)</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Wie geht es dir?" data-lang="de-AT">Wie geht es dir?</div>
+    <div class="bottom-half" data-text="Ako sa máš?" data-lang="sk-SK">Ako sa máš?</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Wie geht es Ihnen?" data-lang="de-AT">Wie geht es Ihnen?</div>
+    <div class="bottom-half" data-text="Ako sa máte? (vykanie)" data-lang="sk-SK">Ako sa máte? (vykanie)</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Danke, gut." data-lang="de-AT">Danke, gut.</div>
+    <div class="bottom-half" data-text="Ďakujem, dobre." data-lang="sk-SK">Ďakujem, dobre.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Es geht, danke." data-lang="de-AT">Es geht, danke.</div>
+    <div class="bottom-half" data-text="Ujde to, ďakujem." data-lang="sk-SK">Ujde to, ďakujem.</div>
+  </div>
+  <div class="flex-break"></div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Frau Lehrerin, ich möchte mich entschuldigen." data-lang="de-AT">Frau Lehrerin, ich möchte mich entschuldigen.</div>
+    <div class="bottom-half" data-text="Pani učiteľka, chcel/chcela by som sa ospravedlniť." data-lang="sk-SK">Pani učiteľka, chcel/chcela by som sa ospravedlniť.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Ich habe mein Kursbuch zu Hause vergessen." data-lang="de-AT">Ich habe mein Kursbuch zu Hause vergessen.</div>
+    <div class="bottom-half" data-text="Zabudol/Zabudla som si doma učebnicu. " data-lang="sk-SK">Zabudol/Zabudla som si doma učebnicu. </div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Ich habe mein Arbeitsbuch zu Hause vergessen." data-lang="de-AT">Ich habe mein Arbeitsbuch zu Hause vergessen.</div>
+    <div class="bottom-half" data-text="Zabudol/Zabudla som si pracovný zošit." data-lang="sk-SK">Zabudol/Zabudla som si pracovný zošit.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Ich habe mein Heft zu Hause vergessen." data-lang="de-AT">Ich habe mein Heft zu Hause vergessen.</div>
+    <div class="bottom-half" data-text="Zabudol/Zabudla som si doma zošit." data-lang="sk-SK">Zabudol/Zabudla som si doma zošit.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Ich habe vergessen, meine Hausaufgabe zu schreiben." data-lang="de-AT">Ich habe vergessen, meine Hausaufgabe zu schreiben.</div>
+    <div class="bottom-half" data-text="Zabudol/Zabudla som si napísať domácu úlohu." data-lang="sk-SK">Zabudol/Zabudla som si napísať domácu úlohu.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Ich bin leider nicht vorbereitet." data-lang="de-AT">Ich bin leider nicht vorbereitet.</div>
+    <div class="bottom-half" data-text="Nie som žiaľ pripravený/pripravená." data-lang="sk-SK">Nie som žiaľ pripravený/pripravená.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="In diesem Fall schreib bitte in dein Notizheft." data-lang="de-AT">In diesem Fall schreib bitte in dein Notizheft.</div>
+    <div class="bottom-half" data-text="V tom prípade píš do svojho poznámkového zošita." data-lang="sk-SK">V tom prípade píš do svojho poznámkového zošita.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Zu Hause schreib bitte deine Notizen in dein Heft ab." data-lang="de-AT">Zu Hause schreib bitte deine Notizen in dein Heft ab.</div>
+    <div class="bottom-half" data-text="Doma si prepíš svoje poznámky do zošita." data-lang="sk-SK">Doma si prepíš svoje poznámky do zošita.</div>
+  </div>
+  <div class="flex-break"></div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Ich werde heute prüfen." data-lang="de-AT">Ich werde heute prüfen.</div>
+    <div class="bottom-half" data-text="Budem dnes skúšať." data-lang="sk-SK">Budem dnes skúšať.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Ihr werdet heute einen Test schreiben." data-lang="de-AT">Ihr werdet heute einen Test schreiben.</div>
+    <div class="bottom-half" data-text="Dnes si napíšete test." data-lang="sk-SK">Dnes si napíšete test.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Setz dich allein hin." data-lang="de-AT">Setz dich allein hin.</div>
+    <div class="bottom-half" data-text="Sadni si sám (bez spolužiakov vedľa teba)." data-lang="sk-SK">Sadni si sám (bez spolužiakov vedľa teba).</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Habt ihr Fragen?" data-lang="de-AT">Habt ihr Fragen?</div>
+    <div class="bottom-half" data-text="Máte otázky?" data-lang="sk-SK">Máte otázky?</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Hast du Fragen?" data-lang="de-AT">Hast du Fragen?</div>
+    <div class="bottom-half" data-text="Máš otázky?" data-lang="sk-SK">Máš otázky?</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Ich habe keine Fragen." data-lang="de-AT">Ich habe keine Fragen.</div>
+    <div class="bottom-half" data-text="Nemám otázky." data-lang="sk-SK">Nemám otázky.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Was ist nicht klar?" data-lang="de-AT">Was ist nicht klar?</div>
+    <div class="bottom-half" data-text="Čo nie je jasné?" data-lang="sk-SK">Čo nie je jasné?</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Alles ist klar." data-lang="de-AT">Alles ist klar.</div>
+    <div class="bottom-half" data-text="Všetko je jasné." data-lang="sk-SK">Všetko je jasné.</div>
+  </div>
+  <div class="flex-break"></div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Noch einmal, bitte!" data-lang="de-AT">Noch einmal, bitte!</div>
+    <div class="bottom-half" data-text="Ešte raz, prosím!" data-lang="sk-SK">Ešte raz, prosím!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Alles in Ordnung?" data-lang="de-AT">Alles in Ordnung?</div>
+    <div class="bottom-half" data-text="Všetko v poriadku?" data-lang="sk-SK">Všetko v poriadku?</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Fehlt dir etwas?" data-lang="de-AT">Fehlt dir etwas?</div>
+    <div class="bottom-half" data-text="Je ti niečo?" data-lang="sk-SK">Je ti niečo?</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Mir fehlt nichts." data-lang="de-AT">Mir fehlt nichts.</div>
+    <div class="bottom-half" data-text="Nič mi nie je." data-lang="sk-SK">Nič mi nie je.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Verstehst du das?" data-lang="de-AT">Verstehst du das?</div>
+    <div class="bottom-half" data-text="Rozumieš tomu?" data-lang="sk-SK">Rozumieš tomu?</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Ja, ich verstehe das." data-lang="de-AT">Ja, ich verstehe das.</div>
+    <div class="bottom-half" data-text="Áno, rozumiem tomu." data-lang="sk-SK">Áno, rozumiem tomu.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Versteht ihr das?" data-lang="de-AT">Versteht ihr das?</div>
+    <div class="bottom-half" data-text="Rozumiete tomu?" data-lang="sk-SK">Rozumiete tomu?</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Öffnet eure Bücher auf Seite ..." data-lang="de-AT">Öffnet eure Bücher auf Seite ...</div>
+    <div class="bottom-half" data-text="Otvorte si knihy na strane..." data-lang="sk-SK">Otvorte si knihy na strane...</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Entschuldigung, könnten Sie das bitte wiederholen?" data-lang="de-AT">Entschuldigung, könnten Sie das bitte wiederholen?</div>
+    <div class="bottom-half" data-text="Prepáčte, mohli by ste to prosím zopakovať?" data-lang="sk-SK">Prepáčte, mohli by ste to prosím zopakovať?</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Schreibt ins Heft." data-lang="de-AT">Schreibt ins Heft.</div>
+    <div class="bottom-half" data-text="Napíšte do zošita." data-lang="sk-SK">Napíšte do zošita.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Schreibt den Text ab." data-lang="de-AT">Schreibt den Text ab.</div>
+    <div class="bottom-half" data-text="Prepíšte text." data-lang="sk-SK">Prepíšte text.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Lernt den Dialog." data-lang="de-AT">Lernt den Dialog.</div>
+    <div class="bottom-half" data-text="Naučte sa dialóg." data-lang="sk-SK">Naučte sa dialóg.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Spielt den Dialog." data-lang="de-AT">Spielt den Dialog.</div>
+    <div class="bottom-half" data-text="Zahrajte dialóg." data-lang="sk-SK">Zahrajte dialóg.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Übung" data-lang="de-AT">Übung</div>
+    <div class="bottom-half" data-text="cvičenie" data-lang="sk-SK">cvičenie</div>
+  </div>
+  <div class="flex-break"></div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Stört nicht!" data-lang="de-AT">Stört nicht!</div>
+    <div class="bottom-half" data-text="Nevyrušujte!" data-lang="sk-SK">Nevyrušujte!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Ruhe, bitte!" data-lang="de-AT">Ruhe, bitte!</div>
+    <div class="bottom-half" data-text="Ticho, prosím!" data-lang="sk-SK">Ticho, prosím!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Dreh dich um!" data-lang="de-AT">Dreh dich um!</div>
+    <div class="bottom-half" data-text="Otoč sa!" data-lang="sk-SK">Otoč sa!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Sprich nicht!" data-lang="de-AT">Sprich nicht!</div>
+    <div class="bottom-half" data-text="Nerozprávaj!" data-lang="sk-SK">Nerozprávaj!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Jetzt sprich!" data-lang="de-AT">Jetzt sprich!</div>
+    <div class="bottom-half" data-text="Teraz rozprávaj!" data-lang="sk-SK">Teraz rozprávaj!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Sei bitte still!" data-lang="de-AT">Sei bitte still!</div>
+    <div class="bottom-half" data-text="Buď prosím ticho!" data-lang="sk-SK">Buď prosím ticho!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Stummmodus, bitte!" data-lang="de-AT">Stummmodus, bitte!</div>
+    <div class="bottom-half" data-text="Tichý režim, prosím!" data-lang="sk-SK">Tichý režim, prosím!</div>
+  </div>
+  <div class="flex-break"></div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Einzellarbeit, bitte!" data-lang="de-AT">Einzellarbeit, bitte!</div>
+    <div class="bottom-half" data-text="Samostatná práca, prosím!" data-lang="sk-SK">Samostatná práca, prosím!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Bist du fertig?" data-lang="de-AT">Bist du fertig?</div>
+    <div class="bottom-half" data-text="Si hotový?" data-lang="sk-SK">Si hotový?</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Arbeitet zu zweit!" data-lang="de-AT">Arbeitet zu zweit!</div>
+    <div class="bottom-half" data-text="Pracujte vo dvojici!" data-lang="sk-SK">Pracujte vo dvojici!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Seid ihr fertig?" data-lang="de-AT">Seid ihr fertig?</div>
+    <div class="bottom-half" data-text="Ste hotoví?" data-lang="sk-SK">Ste hotoví?</div>
+  </div>
+  <div class="flex-break"></div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Die Stunde ist zu Ende." data-lang="de-AT">Die Stunde ist zu Ende.</div>
+    <div class="bottom-half" data-text="Hodina sa skončila." data-lang="sk-SK">Hodina sa skončila.</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Macht bitte Ordnung in der Klasse!" data-lang="de-AT">Macht bitte Ordnung in der Klasse!</div>
+    <div class="bottom-half" data-text="Urobte prosím poriadok v triede!" data-lang="sk-SK">Urobte prosím poriadok v triede!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Stühle hoch, bitte!" data-lang="de-AT">Stühle hoch, bitte!</div>
+    <div class="bottom-half" data-text="Vyložte stoličky, prosím!" data-lang="sk-SK">Vyložte stoličky, prosím!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Lasst uns verabschieden!" data-lang="de-AT">Lasst uns verabschieden!</div>
+    <div class="bottom-half" data-text="Rozlúčme sa!" data-lang="sk-SK">Rozlúčme sa!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Bis morgen!" data-lang="de-AT">Bis morgen!</div>
+    <div class="bottom-half" data-text="Uvidíme sa zajtra!" data-lang="sk-SK">Uvidíme sa zajtra!</div>
+  </div>
+  <div class="split-btn">
+    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>
+    <div class="top-half" data-text="Auf Wiedersehen!" data-lang="de-AT">Auf Wiedersehen!</div>
+    <div class="bottom-half" data-text="Dovidenia!" data-lang="sk-SK">Dovidenia!</div>
+  </div>
+</div>
+<script>
+document.getElementById("rate").addEventListener("input", e => document.getElementById("rateVal").textContent = e.target.value);
+document.getElementById("pitch").addEventListener("input", e => document.getElementById("pitchVal").textContent = e.target.value);
+function speak(text, lang) {
+  if (!text) return;
+  speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = lang;
+  const voices = speechSynthesis.getVoices();
+  const selectedVoice = voices.find(v => v.lang === lang || v.lang.replace("_", "-") === lang);
+  if (selectedVoice) utter.voice = selectedVoice;
+  utter.rate = parseFloat(document.getElementById("rate").value);
+  utter.pitch = parseFloat(document.getElementById("pitch").value);
+  speechSynthesis.speak(utter);
+}
+document.getElementById("play-area").addEventListener("click", function(e) {
+  let btn = e.target.closest(".split-btn");
+  if (!btn) return;
+  if (e.target.classList.contains("close-btn")) {
+    btn.classList.remove("expanded");
+    e.stopPropagation();
+    return;
+  }
+  if (!btn.classList.contains("expanded")) {
+    btn.classList.add("expanded");
+  } else if (e.target.classList.contains("top-half") || e.target.classList.contains("bottom-half")) {
+    speak(e.target.dataset.text, e.target.dataset.lang);
+  }
+});
+</script>
+</body></html>
