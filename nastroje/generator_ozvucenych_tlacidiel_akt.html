@@ -210,6 +210,17 @@ function generateBuilder() {
   p3.push(".line-break-btn { margin: 8px; padding: 10px 20px; border: 2px dashed #95a5a6; border-radius: 8px; cursor: pointer; background: #ecf0f1; display: inline-flex; align-items: center; justify-content: center; min-height: 80px; box-sizing: border-box; font-weight: bold; color: #7f8c8d; transition: background 0.2s; }");
   p3.push(".line-break-btn:hover { background: #bdc3c7; color: #2c3e50; }");
   p3.push(".flex-break { flex-basis: 100%; height: 2px; background: #e0e0e0; margin: 10px 0; border-radius: 2px; }");
+  
+  /* Tabs styles for Builder */
+  p3.push(".tabs-header { display: flex; gap: 5px; margin-bottom: 0px; border-bottom: 2px solid #ccc; padding-bottom: 0px; overflow-x: auto; }");
+  p3.push(".tab-btn { padding: 10px 20px; cursor: pointer; background: #ecf0f1; border: 1px solid #bdc3c7; border-bottom: none; border-radius: 8px 8px 0 0; font-weight: bold; margin-bottom: -2px; position: relative; z-index: 1; user-select: none; transition: background 0.2s; display: flex; align-items: center; }");
+  p3.push(".tab-btn:hover { background: #e0e6e8; }");
+  p3.push(".tab-btn.active { background: #fff; color: #27ae60; border-color: #bdc3c7; border-bottom-color: #fff; z-index: 3; }");
+  p3.push(".tab-content { display: none; min-height: 150px; padding: 15px; border: 2px solid #bdc3c7; border-radius: 0 8px 8px 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; background: #fff; }");
+  p3.push(".tab-content.active { display: flex; }");
+  p3.push(".add-tab-btn { background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 15px; }");
+  p3.push(".add-tab-btn:hover { background: #2980b9; }");
+
   p3.push("</style></head><body>");
 
   p3.push("<h1>Výber ozvučených fráz</h1>");
@@ -228,9 +239,14 @@ function generateBuilder() {
   p3.push("<div class='line-break-btn' id='addBreakBtn'>+ Vložiť zalomenie riadka</div>");
   p3.push("</div>");
 
-  p3.push("<h3>Váš výber (kliknutím frázu alebo zalomenie odstránite):</h3>");
-  p3.push("<div id='sequence' class='container'></div>");
-  p3.push("<button onclick='generateFinalSummary()' class='action-btn'>Generovať súhrn v uvedenom poradí</button>");
+  p3.push("<h3>Váš výber (zoskupený do kategórií):</h3>");
+  p3.push("<p style='color: #666; font-size: 0.9em; margin-top: -10px;'>Frázy sa pridávajú do aktuálne otvorenej skupiny. Skupinu môžete premenovať kliknutím na ikonu ceruzky (✏️).</p>");
+  p3.push("<button class='add-tab-btn' id='addTabBtn'>+ Pridať novú skupinu (uško)</button>");
+  
+  p3.push("<div id='tabs-header' class='tabs-header'></div>");
+  p3.push("<div id='tabs-container'></div>");
+  
+  p3.push("<button onclick='generateFinalSummary()' class='action-btn'>Generovať finálny súhrn v skupinách</button>");
 
   p3.push("<script>");
   p3.push("const lang1 = " + JSON.stringify(lang1) + ";");
@@ -240,21 +256,73 @@ function generateBuilder() {
   p3.push("const author = " + JSON.stringify(author) + ";");
   p3.push("const year = " + JSON.stringify(year) + ";");
 
+  p3.push("let tabCount = 0;");
+  p3.push("function createTab(name) {");
+  p3.push("  tabCount++;");
+  p3.push("  const tabId = 'tab-' + tabCount;");
+  p3.push("  const tabBtn = document.createElement('div');");
+  p3.push("  tabBtn.className = 'tab-btn';");
+  p3.push("  tabBtn.dataset.target = tabId;");
+  p3.push("  tabBtn.onclick = (e) => { if(!e.target.classList.contains('tedit')) switchTab(tabId); };");
+  
+  p3.push("  const spanName = document.createElement('span');");
+  p3.push("  spanName.className = 'tname';");
+  p3.push("  spanName.textContent = name;");
+  p3.push("  const spanEdit = document.createElement('span');");
+  p3.push("  spanEdit.className = 'tedit';");
+  p3.push("  spanEdit.style.cssText = 'font-size:0.9em; margin-left:8px; cursor:pointer;';");
+  p3.push("  spanEdit.title = 'Premenovať';");
+  p3.push("  spanEdit.textContent = '✏️';");
+  p3.push("  tabBtn.appendChild(spanName);");
+  p3.push("  tabBtn.appendChild(spanEdit);");
+  
+  p3.push("  document.getElementById('tabs-header').appendChild(tabBtn);");
+  p3.push("  const tabContent = document.createElement('div');");
+  p3.push("  tabContent.id = tabId;");
+  p3.push("  tabContent.className = 'tab-content sequence-container';");
+  p3.push("  document.getElementById('tabs-container').appendChild(tabContent);");
+  p3.push("  switchTab(tabId);");
+  p3.push("}");
+  
+  p3.push("function switchTab(tabId) {");
+  p3.push("  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.target === tabId));");
+  p3.push("  document.querySelectorAll('.tab-content').forEach(content => content.classList.toggle('active', content.id === tabId));");
+  p3.push("}");
+
+  p3.push("document.getElementById('addTabBtn').addEventListener('click', function() {");
+  p3.push("  const name = prompt('Zadajte názov novej skupiny:', 'Nová skupina');");
+  p3.push("  if (name) createTab(name);");
+  p3.push("});");
+
+  p3.push("document.getElementById('tabs-header').addEventListener('click', function(e) {");
+  p3.push("  if(e.target.classList.contains('tedit')) {");
+  p3.push("    e.stopPropagation();");
+  p3.push("    let btn = e.target.closest('.tab-btn');");
+  p3.push("    let span = btn.querySelector('.tname');");
+  p3.push("    let newName = prompt('Zadajte nový názov skupiny:', span.textContent);");
+  p3.push("    if(newName) span.textContent = newName;");
+  p3.push("  }");
+  p3.push("});");
+
+  p3.push("createTab('Skupina 1');");
+
   p3.push("document.getElementById('palette').addEventListener('click', function(e) {");
   p3.push("  let btn = e.target.closest('.split-btn');");
   p3.push("  if(btn) {");
   p3.push("    let clone = btn.cloneNode(true);");
-  p3.push("    document.getElementById('sequence').appendChild(clone);");
+  p3.push("    let activeContent = document.querySelector('.tab-content.active');");
+  p3.push("    if(activeContent) activeContent.appendChild(clone);");
   p3.push("  }");
   p3.push("});");
 
   p3.push("document.getElementById('addBreakBtn').addEventListener('click', function() {");
   p3.push("  let brk = document.createElement('div');");
   p3.push("  brk.className = 'flex-break';");
-  p3.push("  document.getElementById('sequence').appendChild(brk);");
+  p3.push("  let activeContent = document.querySelector('.tab-content.active');");
+  p3.push("  if(activeContent) activeContent.appendChild(brk);");
   p3.push("});");
 
-  p3.push("document.getElementById('sequence').addEventListener('click', function(e) {");
+  p3.push("document.getElementById('tabs-container').addEventListener('click', function(e) {");
   p3.push("  let btn = e.target.closest('.split-btn');");
   p3.push("  if(btn) btn.remove();");
   p3.push("  let brk = e.target.closest('.flex-break');");
@@ -262,8 +330,10 @@ function generateBuilder() {
   p3.push("});");
 
   const genFunc = function generateFinalSummary() {
-      const items = document.getElementById('sequence').children;
-      if(items.length === 0) { alert('Váš výber je prázdny.'); return; }
+      const tabContents = document.querySelectorAll('.tab-content');
+      let totalItems = 0;
+      tabContents.forEach(tc => totalItems += tc.children.length);
+      if(totalItems === 0) { alert('Váš výber je úplne prázdny. Pridajte frázy aspoň do jednej skupiny.'); return; }
 
       let p4 = [];
       p4.push('<!DOCTYPE html>');
@@ -289,35 +359,75 @@ function generateBuilder() {
       p4.push('.close-btn:hover { transform: scale(1.1); background: white; }');
       p4.push('.split-btn.expanded .close-btn { display: block; }');
 
-      p4.push('.sequence-container { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; }');
+      // Štýly pre finálne ušká
+      p4.push('.tabs-header { display: flex; gap: 5px; margin-bottom: 0px; border-bottom: 2px solid #ccc; padding-bottom: 0px; overflow-x: auto; }');
+      p4.push('.tab-btn { padding: 12px 24px; cursor: pointer; background: #ecf0f1; border: 1px solid #bdc3c7; border-bottom: none; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 1.1em; margin-bottom: -2px; position: relative; z-index: 1; user-select: none; transition: background 0.2s; white-space: nowrap; }');
+      p4.push('.tab-btn:not(.active):hover { background: #e0e6e8; }');
+      p4.push('.tab-btn.active { background: #fff; color: #27ae60; border-color: #bdc3c7; border-bottom-color: #fff; z-index: 3; }');
+      p4.push('.tab-content { display: none; min-height: 150px; padding: 20px; border: 2px solid #bdc3c7; border-radius: 0 8px 8px 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; background: #fff; }');
+      p4.push('.tab-content.active { display: flex; }');
+
       p4.push('.flex-break { flex-basis: 100%; height: 0px; margin: 15px 0; }');
       p4.push('.controls { margin-bottom: 2rem; background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; z-index: 10; }');
       p4.push('</style></head><body>');
       p4.push('<h1>Súhrn fráz</h1>');
       p4.push('<div class="meta-info"><b>Predmet:</b> ' + subject + ' | <b>Téma:</b> ' + topic + ' | <b>Autor:</b> ' + author + ' | <b>Rok:</b> ' + year + '</div>');
+      p4.push('<h3>Po kliknutí na hociktoré tlačidlo sa dané tlačidlo zväčší na celú obrazovku. Horná i dolná časť tlačidla sú ozvučené podľa zadefinovaného jazyka v generátore. Tlačidlo zatvoríte pomocou "x" v pravej hornej časti.<br>');
+      p4.push('Ideálny výsledok dosiahnete v aktuálnom prehliadači Microsoft Edge.</h3>');
       p4.push('<div class="controls">');
       p4.push('  <label>Rýchlosť: <input type="range" id="rate" min="0.6" max="1.4" step="0.1" value="1.0"> <span id="rateVal">1.0</span></label>');
       p4.push('  &nbsp;&nbsp;&nbsp;');
       p4.push('  <label>Výška: <input type="range" id="pitch" min="0.8" max="1.4" step="0.1" value="1.0"> <span id="pitchVal">1.0</span></label>');
       p4.push('</div>');
-      p4.push('<div id="play-area" class="sequence-container">');
 
-      for(let item of items) {
-        if(item.classList.contains('flex-break')) {
-           p4.push('  <div class="flex-break"></div>');
-        } else if(item.classList.contains('split-btn')) {
-           const c1 = item.dataset.c1;
-           const c2 = item.dataset.c2;
-           p4.push('  <div class="split-btn">');
-           p4.push('    <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>');
-           p4.push('    <div class="top-half" data-text="' + c1.replace(/"/g, '&quot;') + '" data-lang="' + lang1 + '">' + item.querySelector('.top-half').innerHTML + '</div>');
-           p4.push('    <div class="bottom-half" data-text="' + c2.replace(/"/g, '&quot;') + '" data-lang="' + lang2 + '">' + item.querySelector('.bottom-half').innerHTML + '</div>');
-           p4.push('  </div>');
-        }
+      // Generovanie ušiek pre finálny pohľad
+      p4.push('<div class="tabs-header" id="final-tabs-header">');
+      let tabIndex = 0;
+      let firstFilledTabFound = false;
+      for(let tc of tabContents) {
+          if (tc.children.length === 0) { tabIndex++; continue; } // Ignoruje prázdne skupiny vo finále
+          let tabId = tc.id;
+          let headerBtn = document.querySelector(".tab-btn[data-target='" + tabId + "'] .tname");
+          let tabName = headerBtn ? headerBtn.textContent : "Skupina " + (tabIndex + 1);
+          let activeClass = !firstFilledTabFound ? "active" : "";
+          p4.push('  <div class="tab-btn ' + activeClass + '" data-target="final-tab-' + tabIndex + '" onclick="switchFinalTab(&quot;final-tab-' + tabIndex + '&quot;)">' + tabName + '</div>');
+          firstFilledTabFound = true;
+          tabIndex++;
       }
-
       p4.push('</div>');
+
+      p4.push('<div id="final-tabs-container">');
+      tabIndex = 0;
+      firstFilledTabFound = false;
+      for(let tc of tabContents) {
+          if (tc.children.length === 0) { tabIndex++; continue; }
+          let activeClass = !firstFilledTabFound ? "active" : "";
+          p4.push('  <div id="final-tab-' + tabIndex + '" class="tab-content sequence-container ' + activeClass + '">');
+          firstFilledTabFound = true;
+          
+          for(let item of tc.children) {
+            if(item.classList.contains('flex-break')) {
+               p4.push('    <div class="flex-break"></div>');
+            } else if(item.classList.contains('split-btn')) {
+               const c1 = item.dataset.c1;
+               const c2 = item.dataset.c2;
+               p4.push('    <div class="split-btn">');
+               p4.push('      <div class="close-btn" title="Zavrieť na celú obrazovku">&times;</div>');
+               p4.push('      <div class="top-half" data-text="' + c1.replace(/"/g, '&quot;') + '" data-lang="' + lang1 + '">' + item.querySelector('.top-half').innerHTML + '</div>');
+               p4.push('      <div class="bottom-half" data-text="' + c2.replace(/"/g, '&quot;') + '" data-lang="' + lang2 + '">' + item.querySelector('.bottom-half').innerHTML + '</div>');
+               p4.push('    </div>');
+            }
+          }
+          p4.push('  </div>');
+          tabIndex++;
+      }
+      p4.push('</div>');
+
       p4.push('<script>');
+      p4.push('function switchFinalTab(tabId) {');
+      p4.push('  document.querySelectorAll("#final-tabs-header .tab-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.target === tabId));');
+      p4.push('  document.querySelectorAll("#final-tabs-container .tab-content").forEach(content => content.classList.toggle("active", content.id === tabId));');
+      p4.push('}');
       p4.push('document.getElementById("rate").addEventListener("input", e => document.getElementById("rateVal").textContent = e.target.value);');
       p4.push('document.getElementById("pitch").addEventListener("input", e => document.getElementById("pitchVal").textContent = e.target.value);');
       p4.push('function speak(text, lang) {');
@@ -332,14 +442,14 @@ function generateBuilder() {
       p4.push('  utter.pitch = parseFloat(document.getElementById("pitch").value);');
       p4.push('  speechSynthesis.speak(utter);');
       p4.push('}');
-      p4.push('document.getElementById("play-area").addEventListener("click", function(e) {');
+      p4.push('document.getElementById("final-tabs-container").addEventListener("click", function(e) {');
       p4.push('  let btn = e.target.closest(".split-btn");');
       p4.push('  if (!btn) return;');
       
       // Ak užívateľ klikne na "X"
       p4.push('  if (e.target.classList.contains("close-btn")) {');
       p4.push('    btn.classList.remove("expanded");');
-      p4.push('    e.stopPropagation();'); // Zastaví event, aby sa hneď znova neotvoril
+      p4.push('    e.stopPropagation();'); 
       p4.push('    return;');
       p4.push('  }');
       
