@@ -507,10 +507,10 @@ function startGame(){
   });
 
   shuffle(cards);
-  renderBoard(cards, highlight);
+  renderBoard(cards, highlight, selectedPairs);
 }
 
-function renderBoard(cards, highlightTarget){
+function renderBoard(cards, highlightTarget, selectedPairs){
   const board = document.getElementById("board");
   board.innerHTML = "";
   cards.forEach((card, i) => {
@@ -520,6 +520,7 @@ function renderBoard(cards, highlightTarget){
     
     div.innerHTML = formatCardText(card.text);
     div.dataset.pairId = card.id;
+    div.dataset.type = card.type;
     
     board.appendChild(div);
     autoFitText(div);
@@ -533,7 +534,22 @@ function renderBoard(cards, highlightTarget){
       selected.push(card);
       if(selected.length === 2){
         const [a, b] = selected;
-        const isMatch = a.dataset.pairId === b.dataset.pairId;
+        
+        // --- UPRAVENÁ LOGIKA PÁROVANIA ---
+        const typeA = a.dataset.type;
+        const typeB = b.dataset.type;
+        let isMatch = false;
+        
+        if (typeA !== typeB) {
+          const termId = parseInt(typeA === "term" ? a.dataset.pairId : b.dataset.pairId, 10);
+          const defId = parseInt(typeA === "definition" ? a.dataset.pairId : b.dataset.pairId, 10);
+          
+          const termText = selectedPairs[termId][0];
+          const defText = selectedPairs[defId][1];
+          
+          // Skontrolujeme, či táto kombinácia textov existuje v platných pároch
+          isMatch = selectedPairs.some(p => p[0] === termText && p[1] === defText);
+        }
         
         if(isMatch && a !== b){
           a.classList.add("correct"); b.classList.add("correct");
@@ -730,15 +746,51 @@ button, input, select{ padding:8px 10px; margin:6px; background:var(--control-bg
     if(HIGHLIGHT === 'term' && c.type === 'term') d.classList.add('bold');
     if(HIGHLIGHT === 'definition' && c.type === 'definition') d.classList.add('bold');
     d.innerHTML = formatCardText(c.text); 
-    d.dataset.pairId = c.id; board.appendChild(d); 
+    d.dataset.pairId = c.id;
+    d.dataset.type = c.type;
+    board.appendChild(d); 
     d.addEventListener('click', ()=> onClick(d));
     autoFitText(d);
   });
   
   let first=null, second=null;
-  function onClick(el){ if(el.classList.contains('matched') || el.classList.contains('selected')) return; el.classList.add('selected'); if(!first){ first = el; return; } second = el; 
-  const isMatch = first.dataset.pairId === second.dataset.pairId; 
-  if(isMatch && first !== second){ first.classList.add('correct'); second.classList.add('correct'); setTimeout(()=>{ first.classList.add('matched'); second.classList.add('matched'); first.classList.remove('correct','selected'); second.classList.remove('correct','selected'); first=second=null; if(toggleTimer.checked){} else if(!document.querySelector('.card:not(.matched)')) showEnd(); },120); } else { first.classList.add('wrong'); second.classList.add('wrong'); setTimeout(()=>{ first.classList.remove('wrong','selected'); second.classList.remove('wrong','selected'); first=second=null; },300); } }
+  function onClick(el){ 
+    if(el.classList.contains('matched') || el.classList.contains('selected')) return; 
+    el.classList.add('selected'); 
+    if(!first){ first = el; return; } 
+    second = el; 
+
+    // --- UPRAVENÁ LOGIKA PÁROVANIA PRE EXPORT ---
+    const typeA = first.dataset.type;
+    const typeB = second.dataset.type;
+    let isMatch = false;
+    
+    if (typeA !== typeB) {
+        const termId = parseInt(typeA === 'term' ? first.dataset.pairId : second.dataset.pairId, 10);
+        const defId = parseInt(typeA === 'definition' ? first.dataset.pairId : second.dataset.pairId, 10);
+        
+        const termText = pick[termId][0];
+        const defText = pick[defId][1];
+        
+        isMatch = pick.some(p => p[0] === termText && p[1] === defText);
+    }
+    
+    if(isMatch && first !== second){ 
+        first.classList.add('correct'); second.classList.add('correct'); 
+        setTimeout(()=>{ 
+            first.classList.add('matched'); second.classList.add('matched'); 
+            first.classList.remove('correct','selected'); second.classList.remove('correct','selected'); 
+            first=second=null; 
+            if(toggleTimer.checked){} else if(!document.querySelector('.card:not(.matched)')) showEnd(); 
+        },120); 
+    } else { 
+        first.classList.add('wrong'); second.classList.add('wrong'); 
+        setTimeout(()=>{ 
+            first.classList.remove('wrong','selected'); second.classList.remove('wrong','selected'); 
+            first=second=null; 
+        },300); 
+    } 
+  }
   document.getElementById('restartBtn').addEventListener('click', function(){ location.reload(); });
 })();
 <\/script>
