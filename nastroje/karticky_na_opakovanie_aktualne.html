@@ -250,6 +250,28 @@ pojem[TAB]definícia"></textarea>
         <option value="fr-CA">Francúzština (Kanada)</option>
       </select>
     </div>
+    <div>
+      <label for="termRate">Rýchlosť čítania pojmu:</label>
+      <select id="termRate">
+        <option value="0.5">0.5x (Veľmi pomaly)</option>
+        <option value="0.75">0.75x (Pomaly)</option>
+        <option value="1" selected>1x (Normálne)</option>
+        <option value="1.25">1.25x (Rýchlejšie)</option>
+        <option value="1.5">1.5x (Rýchlo)</option>
+        <option value="2">2x (Veľmi rýchlo)</option>
+      </select>
+    </div>
+    <div>
+      <label for="defRate">Rýchlosť čítania definície:</label>
+      <select id="defRate">
+        <option value="0.5">0.5x (Veľmi pomaly)</option>
+        <option value="0.75">0.75x (Pomaly)</option>
+        <option value="1" selected>1x (Normálne)</option>
+        <option value="1.25">1.25x (Rýchlejšie)</option>
+        <option value="1.5">1.5x (Rýchlo)</option>
+        <option value="2">2x (Veľmi rýchlo)</option>
+      </select>
+    </div>
   </div>
 
   <div class="options">
@@ -310,7 +332,7 @@ pojem[TAB]definícia"></textarea>
       }
     }
 
-    function createSpeakerIcon(text, lang) {
+    function createSpeakerIcon(text, lang, isTerm) {
       const s = document.createElement('span');
       s.className = 'speaker';
       s.textContent = '🔊';
@@ -318,6 +340,7 @@ pojem[TAB]definícia"></textarea>
         e.stopPropagation(); 
         const u = new SpeechSynthesisUtterance(text);
         u.lang = lang;
+        u.rate = parseFloat(document.getElementById(isTerm ? 'termRate' : 'defRate').value) || 1;
         speechSynthesis.speak(u);
       };
       return s;
@@ -334,6 +357,8 @@ pojem[TAB]definícia"></textarea>
          displayMode: document.getElementById('displayMode').value,
          termLang: document.getElementById('termLang').value,
          defLang: document.getElementById('defLang').value,
+         termRate: document.getElementById('termRate').value,
+         defRate: document.getElementById('defRate').value,
          shuffleCards: document.getElementById('shuffleCards').checked,
          autoPlay: document.getElementById('autoPlay').checked,
          autoPlayDelay: document.getElementById('autoPlayDelay').value
@@ -362,6 +387,8 @@ pojem[TAB]definícia"></textarea>
           if(data.displayMode !== undefined) document.getElementById('displayMode').value = data.displayMode;
           if(data.termLang !== undefined) document.getElementById('termLang').value = data.termLang;
           if(data.defLang !== undefined) document.getElementById('defLang').value = data.defLang;
+          if(data.termRate !== undefined) document.getElementById('termRate').value = data.termRate;
+          if(data.defRate !== undefined) document.getElementById('defRate').value = data.defRate;
           if(data.shuffleCards !== undefined) document.getElementById('shuffleCards').checked = data.shuffleCards;
           if(data.autoPlay !== undefined) document.getElementById('autoPlay').checked = data.autoPlay;
           if(data.autoPlayDelay !== undefined) document.getElementById('autoPlayDelay').value = data.autoPlayDelay;
@@ -413,9 +440,9 @@ pojem[TAB]definícia"></textarea>
       else             { tb.classList.add('secondary'); db.classList.add('primary'); }
       
       tb.textContent = card.term;
-      tb.appendChild(createSpeakerIcon(card.term, tL));
+      tb.appendChild(createSpeakerIcon(card.term, tL, true));
       db.textContent = card.definition;
-      db.appendChild(createSpeakerIcon(card.definition, dL));
+      db.appendChild(createSpeakerIcon(card.definition, dL, false));
       
       if (dm==='both') {
         cd.append(tb, db);
@@ -437,7 +464,8 @@ pojem[TAB]definícia"></textarea>
         const currentLang = flipped 
             ? (dm==='term' ? dL : tL) 
             : (dm==='term' ? tL : dL);
-        sb.appendChild(createSpeakerIcon(sb.textContent, currentLang));
+        const isTermSide = flipped ? (dm === 'definition') : (dm === 'term');
+        sb.appendChild(createSpeakerIcon(sb.textContent, currentLang, isTermSide));
         
         sb.onclick = toggleFlip;
         cd.append(sb);
@@ -521,6 +549,7 @@ pojem[TAB]definícia"></textarea>
       
       const utterance = new SpeechSynthesisUtterance(card.term);
       utterance.lang = tL;
+      utterance.rate = parseFloat(document.getElementById('termRate').value) || 1;
       
       utterance.onend = () => {
         if (isAutoPlaying) {
@@ -566,6 +595,8 @@ pojem[TAB]definícia"></textarea>
           displayMode: document.getElementById('displayMode').value,
           termLang: document.getElementById('termLang').value,
           defLang: document.getElementById('defLang').value,
+          termRate: document.getElementById('termRate').value,
+          defRate: document.getElementById('defRate').value,
           shuffle: document.getElementById('shuffleCards').checked,
           autoPlay: document.getElementById('autoPlay').checked,
           autoPlayDelay: document.getElementById('autoPlayDelay').value,
@@ -588,6 +619,8 @@ pojem[TAB]definícia"></textarea>
       if(u.displayMode) document.getElementById('displayMode').value = u.displayMode;
       if(u.termLang) document.getElementById('termLang').value = u.termLang;
       if(u.defLang) document.getElementById('defLang').value = u.defLang;
+      if(u.termRate) document.getElementById('termRate').value = u.termRate;
+      if(u.defRate) document.getElementById('defRate').value = u.defRate;
       if(u.shuffle !== undefined) document.getElementById('shuffleCards').checked = u.shuffle;
       if(u.autoPlay !== undefined) document.getElementById('autoPlay').checked = u.autoPlay;
       if(u.autoPlayDelay) document.getElementById('autoPlayDelay').value = u.autoPlayDelay;
@@ -624,6 +657,8 @@ pojem[TAB]definícia"></textarea>
       const author = document.getElementById('metaAuthor').value;
       const year = document.getElementById('metaYear').value;
       const autoPlayDelayVal = document.getElementById('autoPlayDelay').value;
+      const termRateVal = document.getElementById('termRate').value;
+      const defRateVal = document.getElementById('defRate').value;
       
       let metaHeaderHTML = '';
       if (subj || topic) {
@@ -856,6 +891,30 @@ pojem[TAB]definícia"></textarea>
       </select>
     </div>
 
+    <div class="settings-group">
+      <label for="termRate">Rýchlosť pojmu:</label>
+      <select id="termRate">
+        <option value="0.5"\${'${termRateVal}'==='0.5'?' selected':''}>0.5x</option>
+        <option value="0.75"\${'${termRateVal}'==='0.75'?' selected':''}>0.75x</option>
+        <option value="1"\${'${termRateVal}'==='1'?' selected':''}>1x</option>
+        <option value="1.25"\${'${termRateVal}'==='1.25'?' selected':''}>1.25x</option>
+        <option value="1.5"\${'${termRateVal}'==='1.5'?' selected':''}>1.5x</option>
+        <option value="2"\${'${termRateVal}'==='2'?' selected':''}>2x</option>
+      </select>
+    </div>
+
+    <div class="settings-group">
+      <label for="defRate">Rýchlosť definície:</label>
+      <select id="defRate">
+        <option value="0.5"\${'${defRateVal}'==='0.5'?' selected':''}>0.5x</option>
+        <option value="0.75"\${'${defRateVal}'==='0.75'?' selected':''}>0.75x</option>
+        <option value="1"\${'${defRateVal}'==='1'?' selected':''}>1x</option>
+        <option value="1.25"\${'${defRateVal}'==='1.25'?' selected':''}>1.25x</option>
+        <option value="1.5"\${'${defRateVal}'==='1.5'?' selected':''}>1.5x</option>
+        <option value="2"\${'${defRateVal}'==='2'?' selected':''}>2x</option>
+      </select>
+    </div>
+
     <div class="options-row">
       <label><input type="checkbox" id="shuffleCards"${document.getElementById('shuffleCards').checked?' checked':''}> Prehrať v náhodnom poradí</label>
       <label>
@@ -910,7 +969,7 @@ pojem[TAB]definícia"></textarea>
       }
     }
     
-    function createSpeakerIcon(text, lang) {
+    function createSpeakerIcon(text, lang, isTerm) {
       const s = document.createElement('span');
       s.className = 'speaker';
       s.textContent = '🔊';
@@ -918,6 +977,7 @@ pojem[TAB]definícia"></textarea>
         e.stopPropagation();
         const u = new SpeechSynthesisUtterance(text);
         u.lang = lang;
+        u.rate = parseFloat(document.getElementById(isTerm ? 'termRate' : 'defRate').value) || 1;
         speechSynthesis.speak(u);
       };
       return s;
@@ -939,9 +999,9 @@ pojem[TAB]definícia"></textarea>
       db.className = 'card-box ' + (bs==='definition'?'primary':'secondary');
       
       tb.textContent = card.term;
-      tb.appendChild(createSpeakerIcon(card.term, tL));
+      tb.appendChild(createSpeakerIcon(card.term, tL, true));
       db.textContent = card.definition;
-      db.appendChild(createSpeakerIcon(card.definition, dL));
+      db.appendChild(createSpeakerIcon(card.definition, dL, false));
       
       if(dm==='both') {
         cd.append(tb, db);
@@ -952,7 +1012,8 @@ pojem[TAB]definícia"></textarea>
         sb.textContent = flipped ? (dm==='term'?card.definition:card.term) : (dm==='term'?card.term:card.definition);
         
         const currentLang = flipped ? (dm==='term'?dL:tL) : (dm==='term'?tL:dL);
-        sb.appendChild(createSpeakerIcon(sb.textContent, currentLang));
+        const isTermSide = flipped ? (dm === 'definition') : (dm === 'term');
+        sb.appendChild(createSpeakerIcon(sb.textContent, currentLang, isTermSide));
         
         sb.onclick = () => { flipped=!flipped; showCard(); };
         cd.append(sb);
@@ -1047,6 +1108,7 @@ pojem[TAB]definícia"></textarea>
       
       const utterance = new SpeechSynthesisUtterance(card.term);
       utterance.lang = tL;
+      utterance.rate = parseFloat(document.getElementById('termRate').value) || 1;
       
       utterance.onend = () => {
         if(isAutoPlaying) {
