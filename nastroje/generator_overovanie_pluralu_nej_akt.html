@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor testov na overovanie ovládania množného čísla v nemčine</title>
+    <style>
+        body {
+            font-family: 'Monaco', monospace;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 8px;
+            font-family: 'Monaco', monospace;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 250px;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+        .btn {
+            font-family: 'Monaco', monospace;
+            padding: 10px 15px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #007BFF;
+            color: white;
+            font-weight: bold;
+        }
+        .btn:hover { background-color: #0056b3; }
+        .btn-success { background-color: #28a745; }
+        .btn-success:hover { background-color: #218838; }
+        .btn-warning { background-color: #ffc107; color: #212529; }
+        .btn-warning:hover { background-color: #e0a800; }
+        
+        .controls {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor testov na overovanie ovládania množného čísla v nemčine</h1>
+
+    <div class="form-group">
+        <label for="autor">Autor:</label>
+        <input type="text" id="autor" placeholder="Meno autora">
+    </div>
+    <div class="form-group">
+        <label for="rok">Rok:</label>
+        <input type="number" id="rok" placeholder="Napr. 2026">
+    </div>
+    <div class="form-group">
+        <label for="predmet">Predmet:</label>
+        <input type="text" id="predmet" placeholder="Napr. Nemecký jazyk">
+    </div>
+    <div class="form-group">
+        <label for="tema">Téma:</label>
+        <input type="text" id="tema" placeholder="Napr. Množné číslo podstatných mien">
+    </div>
+
+    <div class="form-group">
+        <label for="dataInput">Dáta (stlačte [TAB] pre oddelenie stĺpcov, povolené sú HTML tagy):</label>
+        <textarea id="dataInput" placeholder="das Kind[TAB]-er[TAB]die Kinder&#10;das Haus[TAB]-äu-er[TAB]die Häuser"></textarea>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-warning" onclick="exportJSON()">Exportovať nastavenia do súboru .json</button>
+        <button class="btn btn-warning" onclick="document.getElementById('importFile').click()">Importovať nastavenia zo súboru .json</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+    </div>
+    
+    <div>
+        <button class="btn btn-success" onclick="generateTest()">Stiahnuť test vo formáte .html</button>
+    </div>
+
+    <script>
+        // Tab behavior for textarea
+        document.getElementById('dataInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                let start = this.selectionStart;
+                let end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+            }
+        });
+
+        function getSettings() {
+            return {
+                autor: document.getElementById('autor').value,
+                rok: document.getElementById('rok').value,
+                predmet: document.getElementById('predmet').value,
+                tema: document.getElementById('tema').value,
+                data: document.getElementById('dataInput').value
+            };
+        }
+
+        function exportJSON() {
+            const dataStr = JSON.stringify(getSettings(), null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "nastavenia_testu.json";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    if(json.autor !== undefined) document.getElementById('autor').value = json.autor;
+                    if(json.rok !== undefined) document.getElementById('rok').value = json.rok;
+                    if(json.predmet !== undefined) document.getElementById('predmet').value = json.predmet;
+                    if(json.tema !== undefined) document.getElementById('tema').value = json.tema;
+                    if(json.data !== undefined) document.getElementById('dataInput').value = json.data;
+                } catch (err) {
+                    // Silent fail as requested
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset input
+        }
+
+        function sanitizeFilename(name) {
+            let str = name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Remove diacritics
+            str = str.replace(/[^a-zA-Z0-9]/g, "_"); // Replace spaces, punctuation with underscore
+            str = str.replace(/_+/g, "_"); // Remove duplicate underscores
+            str = str.replace(/^_|_$/g, ""); // Trim leading/trailing underscores
+            return (str || "test").toLowerCase();
+        }
+
+        function generateTest() {
+            const settings = getSettings();
+            
+            // Parse data
+            const lines = settings.data.split('\n').filter(l => l.trim() !== '');
+            const parsedData = lines.map(line => {
+                const parts = line.split('\t');
+                return {
+                    singular: parts[0] || "",
+                    rule: parts[1] || "",
+                    plural: parts[2] || ""
+                };
+            }).filter(item => item.singular && item.rule); // Must have at least singular and rule
+
+            if (parsedData.length === 0) {
+                alert("Zadajte aspoň jeden platný riadok s dátami.");
+                return;
+            }
+
+            const title = settings.tema || "Test - Množné číslo";
+            const filename = sanitizeFilename(title) + ".html";
+
+            // The Test HTML Template
+            const testHTML = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body { font-family: 'Monaco', monospace; background-color: #fff; color: #222; max-width: 900px; margin: 0 auto; padding: 20px; }
+        h1, h2 { text-align: center; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .form-group { margin-bottom: 15px; text-align: center; }
+        input[type="text"], input[type="number"] { padding: 10px; font-family: 'Monaco', monospace; border: 1px solid #ccc; font-size: 16px; width: 250px;}
+        .btn { font-family: 'Monaco', monospace; padding: 12px 20px; font-size: 16px; cursor: pointer; border: none; border-radius: 4px; color: white; margin-top: 20px;}
+        .btn-start { background-color: #28a745; width: 200px; display: block; margin: 20px auto; font-size: 18px; font-weight: bold;}
+        .btn-nav { background-color: #007BFF; display: block; margin: 30px auto; width: 200px; opacity: 0.5; pointer-events: none;}
+        .btn-nav.active { opacity: 1; pointer-events: auto; }
+        .btn-eval { background-color: #dc3545; display: block; margin: 30px auto; width: 200px; opacity: 0.5; pointer-events: none;}
+        .btn-eval.active { opacity: 1; pointer-events: auto; }
+        .btn-detail { background-color: #17a2b8; display: block; margin: 20px auto; }
+        
+        .instructions { background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px 20px; margin: 0 auto 25px auto; font-size: 15px; line-height: 1.5; text-align: center; max-width: 800px; color: #495057; }
+
+        /* Test layout - 2 columns */
+        .test-wrapper { display: flex; gap: 30px; align-items: flex-start; justify-content: center;}
+        .tasks-column { flex: 2; max-width: 600px;}
+        
+        .task-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; font-size: 18px; padding: 10px; border-bottom: 1px solid #eee;}
+        .singular-col { flex: 1; padding-right: 15px; font-weight: bold;}
+        .slot-col { flex: 1; display: flex; justify-content: flex-end;}
+        .slot { width: 150px; height: 40px; border: 2px dashed #999; border-radius: 5px; background-color: #fafafa; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; transition: 0.2s;}
+        .slot.filled { border-style: solid; border-color: #333; background-color: #eef; font-weight: bold;}
+        .slot.selected-target { border-color: #007BFF; background-color: #e6f2ff;}
+        
+        /* Pool layout - right side */
+        .pool-column { flex: 1; padding: 20px; background-color: white; border-radius: 8px; border: 1px solid #ddd; display: flex; flex-direction: column; gap: 12px; align-items: center; min-width: 200px;}
+        .pool-item { background-color: #eeeeee; color: black; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 20px; font-weight: bold; user-select: none; transition: transform 0.1s; text-align: center; width: 80%;}
+        .pool-item:hover { background-color: #e0e0e0; }
+        .pool-item.selected { background-color: #e0e0e0; transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.2);}
+        .pool-item.hidden { display: none; }
+
+        /* Evaluation */
+        .result-row { margin-bottom: 10px; padding: 15px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px;}
+        .result-row.correct { background-color: lightgreen; border-color: #7cce7c;}
+        .result-row.incorrect { background-color: lightcoral; border-color: #e67373;}
+        .correct-answer-text { font-weight: bold; margin-top: 5px; display: block; color: #800000;}
+        .stats { text-align: center; font-size: 20px; margin-bottom: 30px; line-height: 1.6;}
+        
+        @media (max-width: 700px) {
+            .test-wrapper { flex-direction: column; }
+            .pool-column { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center;}
+            .pool-item { width: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="screen-intro" class="screen active">
+        <h1>${title}</h1>
+        <div class="form-group">
+            <input type="text" id="studentName" placeholder="Tvoje meno">
+        </div>
+        <div class="form-group">
+            <input type="number" id="taskCount" placeholder="Počet úloh" min="1" max="${parsedData.length}">
+        </div>
+        <button class="btn btn-start" onclick="startTest()">Štart</button>
+    </div>
+
+    <div id="screen-test" class="screen">
+        <h2 id="page-indicator">Úlohy</h2>
+        
+        <div class="instructions">
+            Klikni v pravej časti stránky na spôsob tvorenia množného čísla a potom na prázdne miesto pri podstatnom mene, kam ho chceš umiestniť. Ak si svoje rozhodnutie rozmyslíš, klikni na už umiestnený text dvakrát. Následne klikni na tlačidlo "Ďalej", prípadne tlačidlo "Vyhodnotiť", ktoré sa zobrazia pod úlohami.
+        </div>
+
+        <div class="test-wrapper">
+            <div id="test-container" class="tasks-column"></div>
+            <div id="pool-container" class="pool-column"></div>
+        </div>
+        <button id="btn-next" class="btn btn-nav" onclick="nextPage()">Ďalej</button>
+        <button id="btn-eval" class="btn btn-eval" onclick="evaluateTest()" style="display:none;">Vyhodnotiť</button>
+    </div>
+
+    <div id="screen-result" class="screen">
+        <h1>Výsledky</h1>
+        <div class="stats" id="stats-container"></div>
+        <div id="results-container"></div>
+        <button class="btn btn-detail" onclick="showDetailedView()">Zobraziť detailný prehľad</button>
+    </div>
+
+    <script>
+        const allData = ${JSON.stringify(parsedData)};
+        let testData = [];
+        let studentName = "";
+        
+        let currentPage = 0;
+        const itemsPerPage = 5; // Zmenené podľa požiadavky na 5
+        let totalPages = 0;
+        
+        let userAnswers = {}; // key: original index in testData, value: answered rule
+        let currentSelectedPoolItem = null;
+
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex > 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function startTest() {
+            studentName = document.getElementById('studentName').value.trim() || "Neznámy žiak";
+            let count = parseInt(document.getElementById('taskCount').value);
+            
+            if (isNaN(count) || count < 1) count = allData.length;
+            if (count > allData.length) count = allData.length;
+
+            // Shuffle data and pick required amount
+            let shuffled = shuffle([...allData]);
+            testData = shuffled.slice(0, count);
+            totalPages = Math.ceil(testData.length / itemsPerPage);
+            
+            document.getElementById('screen-intro').classList.remove('active');
+            document.getElementById('screen-test').classList.add('active');
+            
+            renderPage();
+        }
+
+        function renderPage() {
+            const startIdx = currentPage * itemsPerPage;
+            const endIdx = Math.min(startIdx + itemsPerPage, testData.length);
+            const currentItems = testData.slice(startIdx, endIdx);
+            
+            document.getElementById('page-indicator').innerText = \`Úlohy \${startIdx + 1} - \${endIdx} z \${testData.length}\`;
+            
+            const container = document.getElementById('test-container');
+            const pool = document.getElementById('pool-container');
+            container.innerHTML = '';
+            pool.innerHTML = '';
+            
+            // Render Slots
+            currentItems.forEach((item, index) => {
+                const globalIndex = startIdx + index;
+                const row = document.createElement('div');
+                row.className = 'task-row';
+                
+                const sigCol = document.createElement('div');
+                sigCol.className = 'singular-col';
+                sigCol.innerHTML = item.singular;
+                
+                const slotCol = document.createElement('div');
+                slotCol.className = 'slot-col';
+                
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.dataset.index = globalIndex;
+                
+                // Restore answer if going back (though not implemented, good practice)
+                if(userAnswers[globalIndex]) {
+                    slot.innerHTML = userAnswers[globalIndex].text;
+                    slot.classList.add('filled');
+                    slot.dataset.assignedId = userAnswers[globalIndex].id;
+                }
+                
+                slot.addEventListener('click', () => assignToSlot(slot));
+                slot.addEventListener('dblclick', () => removeFromSlot(slot));
+                
+                slotCol.appendChild(slot);
+                row.appendChild(sigCol);
+                row.appendChild(slotCol);
+                container.appendChild(row);
+            });
+            
+            // Render Pool (Shuffled rules for current page)
+            let poolItems = currentItems.map((item, index) => ({
+                text: item.rule,
+                id: \`pool-\${startIdx + index}\`,
+                globalIndex: startIdx + index
+            }));
+            poolItems = shuffle(poolItems);
+            
+            poolItems.forEach(item => {
+                const btn = document.createElement('div');
+                btn.className = 'pool-item';
+                btn.innerHTML = item.text;
+                btn.id = item.id;
+                
+                // Hide if already answered
+                let isAnswered = false;
+                for(let key in userAnswers) {
+                    if(userAnswers[key].id === item.id) isAnswered = true;
+                }
+                if(isAnswered) btn.classList.add('hidden');
+                
+                btn.addEventListener('click', () => selectPoolItem(btn, item));
+                pool.appendChild(btn);
+            });
+            
+            updateNavigation();
+        }
+
+        function selectPoolItem(element, itemData) {
+            // Deselect previous
+            document.querySelectorAll('.pool-item').forEach(el => el.classList.remove('selected'));
+            
+            if (currentSelectedPoolItem && currentSelectedPoolItem.id === itemData.id) {
+                currentSelectedPoolItem = null; // Toggle off
+            } else {
+                element.classList.add('selected');
+                currentSelectedPoolItem = { element, ...itemData };
+            }
+        }
+
+        function assignToSlot(slot) {
+            if (!currentSelectedPoolItem) return;
+            
+            // If slot already has something, put it back to pool first
+            if (slot.classList.contains('filled')) {
+                removeFromSlot(slot);
+            }
+            
+            slot.innerHTML = currentSelectedPoolItem.text;
+            slot.classList.add('filled');
+            slot.dataset.assignedId = currentSelectedPoolItem.id;
+            
+            const globalIndex = slot.dataset.index;
+            userAnswers[globalIndex] = {
+                text: currentSelectedPoolItem.text,
+                id: currentSelectedPoolItem.id
+            };
+            
+            currentSelectedPoolItem.element.classList.add('hidden');
+            currentSelectedPoolItem.element.classList.remove('selected');
+            currentSelectedPoolItem = null;
+            
+            updateNavigation();
+        }
+
+        function removeFromSlot(slot) {
+            if (!slot.classList.contains('filled')) return;
+            
+            const assignedId = slot.dataset.assignedId;
+            const globalIndex = slot.dataset.index;
+            
+            // Show in pool
+            const poolEl = document.getElementById(assignedId);
+            if(poolEl) poolEl.classList.remove('hidden');
+            
+            slot.innerHTML = '';
+            slot.classList.remove('filled');
+            delete slot.dataset.assignedId;
+            delete userAnswers[globalIndex];
+            
+            updateNavigation();
+        }
+
+        function updateNavigation() {
+            const startIdx = currentPage * itemsPerPage;
+            const endIdx = Math.min(startIdx + itemsPerPage, testData.length);
+            let pageFilled = true;
+            
+            for(let i = startIdx; i < endIdx; i++) {
+                if(!userAnswers[i]) pageFilled = false;
+            }
+            
+            const btnNext = document.getElementById('btn-next');
+            const btnEval = document.getElementById('btn-eval');
+            
+            if (currentPage < totalPages - 1) {
+                btnNext.style.display = 'block';
+                btnEval.style.display = 'none';
+                if(pageFilled) btnNext.classList.add('active');
+                else btnNext.classList.remove('active');
+            } else {
+                btnNext.style.display = 'none';
+                btnEval.style.display = 'block';
+                if(pageFilled) btnEval.classList.add('active');
+                else btnEval.classList.remove('active');
+            }
+        }
+
+        function nextPage() {
+            if (!document.getElementById('btn-next').classList.contains('active')) return;
+            currentPage++;
+            currentSelectedPoolItem = null;
+            renderPage();
+        }
+
+        function evaluateTest() {
+            if (!document.getElementById('btn-eval').classList.contains('active')) return;
+            
+            document.getElementById('screen-test').classList.remove('active');
+            document.getElementById('screen-result').classList.add('active');
+            
+            let score = 0;
+            const container = document.getElementById('results-container');
+            container.innerHTML = '';
+            
+            testData.forEach((item, index) => {
+                const userAnswer = userAnswers[index] ? userAnswers[index].text : "";
+                // Simple string comparison. Extracting text content if HTML tags exist.
+                const tempDiv1 = document.createElement('div'); tempDiv1.innerHTML = item.rule;
+                const tempDiv2 = document.createElement('div'); tempDiv2.innerHTML = userAnswer;
+                
+                const isCorrect = tempDiv1.textContent.trim() === tempDiv2.textContent.trim();
+                if (isCorrect) score++;
+                
+                const row = document.createElement('div');
+                row.className = 'result-row ' + (isCorrect ? 'correct' : 'incorrect');
+                
+                let html = \`<div>\${item.singular}  ➔  \${userAnswer}</div>\`;
+                if (!isCorrect) {
+                    html += \`<span class="correct-answer-text">Správne: \${item.rule}</span>\`;
+                }
+                row.innerHTML = html;
+                container.appendChild(row);
+            });
+            
+            const maxScore = testData.length;
+            const percent = ((score / maxScore) * 100).toFixed(2);
+            
+            document.getElementById('stats-container').innerHTML = \`
+                <strong>Názov testu:</strong> ${title}<br>
+                <strong>Meno žiaka:</strong> \${studentName}<br>
+                <strong>Počet bodov:</strong> \${score} / \${maxScore}<br>
+                <strong>Percentuálne hodnotenie:</strong> \${percent}%
+            \`;
+        }
+
+        function showDetailedView() {
+            const maxScore = testData.length;
+            let score = 0;
+            
+            let tableRows = testData.map((item, index) => {
+                const userAnswer = userAnswers[index] ? userAnswers[index].text : "";
+                const tempDiv1 = document.createElement('div'); tempDiv1.innerHTML = item.rule;
+                const tempDiv2 = document.createElement('div'); tempDiv2.innerHTML = userAnswer;
+                const isCorrect = tempDiv1.textContent.trim() === tempDiv2.textContent.trim();
+                
+                if (isCorrect) score++;
+                
+                const symbol = isCorrect ? '✔️' : '❌';
+                const correctHtml = isCorrect ? '' : \`<br><span style="color:#d9534f; font-size: 0.9em;">(Správne: \${item.rule})</span>\`;
+                
+                return \`
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd;">\${item.singular}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">\${userAnswer} \${symbol} \${correctHtml}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">\${item.plural}</td>
+                    </tr>
+                \`;
+            }).join('');
+
+            const percent = ((score / maxScore) * 100).toFixed(2);
+
+            const detailHTML = \`
+                <!DOCTYPE html>
+                <html lang="sk">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Detailný prehľad - ${title}</title>
+                    <style>
+                        body { font-family: 'Monaco', monospace; padding: 20px; line-height: 1.5; color: #333;}
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px;}
+                        th { background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; text-align: left;}
+                        .header-info { margin-bottom: 20px; font-size: 16px; }
+                    </style>
+                </head>
+                <body>
+                    <h2>Detailný prehľad odpovedí</h2>
+                    <div class="header-info">
+                        <strong>Test:</strong> ${title}<br>
+                        <strong>Žiak:</strong> \${studentName}<br>
+                        <strong>Výsledok:</strong> \${score} / \${maxScore} (\${percent}%)
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Podstatné meno</th>
+                                <th>Zadaný spôsob tvorenia</th>
+                                <th>Množné číslo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            \${tableRows}
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            \`;
+
+            const detailWindow = window.open('', '_blank');
+            detailWindow.document.write(detailHTML);
+            detailWindow.document.close();
+        }
+    <\/script>
+</body>
+</html>`;
+
+            // Download Logic
+            const blob = new Blob([testHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
