@@ -5,7 +5,14 @@
   <title>Generátor - Triedenie podstatných mien podľa rodu (ten/tá/to)</title>
   <style>
     body { font-family: monospace; font-size: 17px; padding: 20px; }
-    textarea { width: 100%; height: 150px; font-size: 18px; font-family: monospace; }
+    textarea { width: 100%; height: 150px; font-size: 18px; font-family: monospace; padding: 5px; box-sizing: border-box; }
+    .input-group { margin-bottom: 10px; }
+    .input-group label { display: block; font-weight: bold; margin-bottom: 3px; }
+    .input-group input[type="text"], .input-group input[type="number"] { width: 100%; font-size: 16px; padding: 5px; box-sizing: border-box; font-family: monospace;}
+    
+    .flex-row { display: flex; gap: 15px; margin-bottom: 10px; }
+    .flex-row > div { flex: 1; }
+
     .columns { display: flex; justify-content: center; gap: 5px; margin-top: 20px; }
     .column { width: 40%; padding: 10px; min-height: 450px; border-radius: 8px; box-sizing: border-box; text-align: center; }
     .ten { background-color: #cce5ff; font-size: 25px; }
@@ -18,30 +25,51 @@
     #feedback { color: red; font-weight: bold; margin-top: 10px; text-align: center; }
     #current-word.wrong-word { color: red; }
     #score { font-weight: bold; margin-top: 10px; }
+    button { padding: 8px 12px; font-size: 16px; cursor: pointer; font-family: monospace; margin-top: 5px;}
 
     /* 🔹 Veľkosť aktuálneho slova */
-    #current-word {
-      font-size: 45px;
-      margin-bottom: 10px;
-      text-align: center;
-      font-weight: bold;
-    }
+    #current-word { font-size: 45px; margin-bottom: 10px; text-align: center; font-weight: bold; }
   </style>
 </head>
 <body>
 
 <h1>🎯 Generátor hry: Triedenie podstatných mien podľa rodu (ten/tá/to)</h1>
 
-<label for="input"><b>Zadajte podstatné mená s členmi (ten/tá/to) oddelené klávesou TAB. Každý pár zapisujte do nového riadku.</b></label>
-<div style="height: 5px;"></div>
-<textarea id="input" placeholder="dom[TAB]ten&#10;mačka[TAB]tá&#10;auto[TAB]to"></textarea><br>
+<div class="input-group">
+  <label for="gameTitle">Názov hry:</label>
+  <input type="text" id="gameTitle" placeholder="Napr.: Triedenie podstatných mien - zvieratá">
+</div>
 
-<label for="count">Počet položiek v hre:</label>
-<input type="number" id="count" value="10" min="1" style="width: 60px;">
-<button onclick="generateGame()">Generovať hru</button>
-<button onclick="saveAsHTML()">Uložiť ako HTML</button>
+<div class="flex-row">
+  <div class="input-group">
+    <label for="author">Autor:</label>
+    <input type="text" id="author" placeholder="Meno autora">
+  </div>
+  <div class="input-group">
+    <label for="year">Rok:</label>
+    <input type="number" id="year" placeholder="2025">
+  </div>
+</div>
 
-<div id="game-area" style="display:none;">
+<div class="input-group">
+  <label for="input">Zadajte podstatné mená s členmi (ten/tá/to) oddelené klávesom TAB. Každý pár zapisujte do nového riadku.</label>
+  <textarea id="input" placeholder="dom[TAB]ten&#10;mačka[TAB]tá&#10;auto[TAB]to"></textarea>
+</div>
+
+<div class="input-group">
+  <label for="count" style="display:inline-block; margin-right: 10px;">Počet položiek v hre:</label>
+  <input type="number" id="count" value="10" min="1" style="width: 80px; display:inline-block;">
+</div>
+
+<div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+  <button onclick="generateGame()">Generovať hru (náhľad)</button>
+  <button onclick="saveAsHTML()">Uložiť ako HTML</button>
+  <button onclick="exportJSON()">Exportovať nastavenia do súboru .json</button>
+  <button onclick="document.getElementById('importJSON').click()">Importovať nastavenia zo súboru .json</button>
+  <input type="file" id="importJSON" style="display:none" accept=".json" onchange="importJSON(event)">
+</div>
+
+<div id="game-area" style="display:none; margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 20px;">
   <h3 style="text-align: center;">Klikni na správny stĺpec podľa rodu podstatného mena.</h3>
   <div id="current-word"></div>
   <div id="feedback"></div>
@@ -54,7 +82,8 @@
 
   <div id="score">Skóre: 0</div>
 </div>
-
+<br><br><b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025 - 2026)
+<br><br>
 <script>
   let allPairs = [];
   let gamePairs = [];
@@ -73,25 +102,69 @@
       this.selectionStart = this.selectionEnd = start + 1;
     }
   });
-  
-   document.addEventListener('DOMContentLoaded', function() {
-    const savedText = localStorage.getItem('hra_ten_ta_to_input');
-    if (savedText) inputEl.value = savedText;
-    const savedName = localStorage.getItem('hra_ten_ta_to_name');
-    if (savedName) document.getElementById('studentName').value = savedName;
+
+  // Ukladanie a načítanie stavu v generátore
+  document.addEventListener('DOMContentLoaded', function() {
+    const fields = ['hra_ten_ta_to_input', 'hra_ten_ta_to_title', 'hra_ten_ta_to_author', 'hra_ten_ta_to_year', 'hra_ten_ta_to_count'];
+    const ids = ['input', 'gameTitle', 'author', 'year', 'count'];
+    fields.forEach((key, index) => {
+      const val = localStorage.getItem(key);
+      if (val) document.getElementById(ids[index]).value = val;
+    });
   });
 
-  inputEl.addEventListener('input', function() {
-    localStorage.setItem('hra_ten_ta_to_input', this.value);
+  ['input', 'gameTitle', 'author', 'year', 'count'].forEach(id => {
+    document.getElementById(id).addEventListener('input', function() {
+      localStorage.setItem('hra_ten_ta_to_' + id, this.value);
+    });
   });
-  document.getElementById('studentName').addEventListener('input', function() {
-    localStorage.setItem('hra_ten_ta_to_name', this.value);
-  });
+
+  // Funkcie pre JSON
+  function exportJSON() {
+    const data = {
+      title: document.getElementById('gameTitle').value,
+      author: document.getElementById('author').value,
+      year: document.getElementById('year').value,
+      pairs: document.getElementById('input').value,
+      count: document.getElementById('count').value
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'nastavenia_ten_ta_to.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if(data.title !== undefined) document.getElementById('gameTitle').value = data.title;
+        if(data.author !== undefined) document.getElementById('author').value = data.author;
+        if(data.year !== undefined) document.getElementById('year').value = data.year;
+        if(data.pairs !== undefined) document.getElementById('input').value = data.pairs;
+        if(data.count !== undefined) document.getElementById('count').value = data.count;
+        
+        // Aktualizácia localStorage
+        ['input', 'gameTitle', 'author', 'year', 'count'].forEach(id => {
+          localStorage.setItem('hra_ten_ta_to_' + id, document.getElementById(id).value);
+        });
+      } catch (err) {
+        console.error("Chyba pri čítaní JSON súboru", err);
+      }
+      event.target.value = ''; // Reset inputu
+    };
+    reader.readAsText(file);
+  }
 
 
   function generateGame() {
     feedbackDiv.innerHTML = '';
-
     const rawInput = inputEl.value.trim();
     if (!rawInput) {
       feedbackDiv.textContent = '⚠️ Vstupné pole je prázdne.';
@@ -117,7 +190,7 @@
     }
 
     const count = parseInt(document.getElementById('count').value, 10);
-    gamePairs = shuffleArray(allPairs).slice(0, count);
+    gamePairs = shuffleArray(allPairs).slice(0, count).map(x => ({ ...x, firstTry: null }));
     currentIndex = 0;
     score = 0;
 
@@ -146,14 +219,20 @@
     const correctArticle = gamePairs[currentIndex].article;
     const word = gamePairs[currentIndex].word;
 
+    // Hodnotí sa iba prvý pokus, za nesprávny sa neodčítava
+    if (gamePairs[currentIndex].firstTry === null) {
+      gamePairs[currentIndex].firstTry = selectedArticle;
+      if (selectedArticle === correctArticle) {
+        score++;
+      }
+    }
+
     if (selectedArticle === correctArticle) {
-      score++;
       document.getElementById(selectedArticle + '-list').innerHTML += `<div class="word word-${selectedArticle}">${word}</div>`;
       currentIndex++;
       showNextWord();
       feedbackDiv.textContent = '';
     } else {
-      score--;
       document.getElementById('current-word').classList.add('wrong-word');
       feedbackDiv.innerHTML = '❌ Nesprávny pokus. Skús znova!';
     }
@@ -168,6 +247,11 @@
   function saveAsHTML() {
     const rawInput = document.getElementById('input').value.trim();
     const count = parseInt(document.getElementById('count').value);
+    
+    const gameTitle = document.getElementById('gameTitle').value.trim() || 'Triedenie podstatných mien podľa rodu (ten/tá/to)';
+    const gameAuthor = document.getElementById('author').value.trim() || 'Mgr. Erika Matyiová';
+    const gameYear = document.getElementById('year').value.trim() || '2025';
+
     const lines = rawInput.split('\n');
     const allPairsExport = [];
 
@@ -180,14 +264,14 @@
 
     const jsonPairs = JSON.stringify(allPairsExport).replace(/</g, '\\u003c');
 
-    const htmlContent = `
-<!DOCTYPE html>
+    const htmlContent = `<!DOCTYPE html>
 <html lang="sk">
 <head>
   <meta charset="UTF-8">
-  <title>Hra: Triedenie podstatných mien podľa slovenského rodu</title>
+  <title>${gameTitle}</title>
   <style>
     body { font-family: monospace; font-size: 20px; padding: 20px; background:#f7f7f7; color:#222; }
+    h2 { margin-bottom: 5px; }
     .columns { display: flex; justify-content: center; gap: 5px; margin-top: 20px; }
     .column { width: 33%; padding: 10px; min-height: 450px; border-radius: 8px; box-sizing: border-box; text-align: center; }
     .ten { background-color: #cce5ff; font-size: 25px; }
@@ -200,40 +284,36 @@
     #feedback { color:red; font-weight:bold; margin-top:10px; text-align:center; }
     #current-word.wrong-word { color:red; }
     #score { font-weight:bold; margin-top:10px; }
+    button { padding: 8px 12px; font-size: 16px; cursor: pointer; font-family: monospace; }
 
-    /* 🔹 Veľkosť aktuálneho slova aj v exportovanej hre */
-    #current-word {
-      font-size: 45px;
-      margin-bottom: 10px;
-      text-align: center;
-      font-weight: bold;
-    }
+    #current-word { font-size: 45px; margin-bottom: 10px; text-align: center; font-weight: bold; }
 
     #final, #detailsSection { margin-top:20px; }
-    #detailsTable { width:100%; border-collapse:collapse; margin-top:10px; font-size:18px; }
-    #detailsTable th, #detailsTable td { border:1px solid #ddd; padding:6px; text-align:center; }
-    #detailsTable th { background:#f0f0f0; }
-    .symbolExplain { margin-top:10px; color:#555; }
+    #detailsTable { width:100%; border-collapse:collapse; margin-top:15px; font-size:18px; background: #fff; }
+    #detailsTable th, #detailsTable td { border:1px solid #aaa; padding:8px; text-align:center; }
+    #detailsTable th { background:#e2e2e2; }
+    .symbolExplain { margin-top:10px; color:#444; font-weight: bold; }
 
     @media print {
-      body { background:#fff; color:#000; }
-      input, button, label, #game-area, #feedback, #current-word, #score, .columns { display:none !important; }
-      #final, #detailsSection { display:block !important; }
+      body { background:#fff; color:#000; padding: 0;}
+      input, button, label, #game-area, #feedback, #current-word, #score, .columns, #final, .no-print { display:none !important; }
+      #detailsSection { display:block !important; }
       h2 { text-align:center; }
     }
   </style>
 </head>
 <body>
 
-<h2>🎯 Triedenie podstatných mien podľa rodu (ten/tá/to)</h2>
+<h2 class="no-print">🎯 ${gameTitle}</h2>
 
-<label for="studentName">Meno žiaka:</label>
-<input type="text" id="studentName" placeholder="Zadajte meno žiaka">
-&nbsp;&nbsp;
-<label for="count">Počet položiek v hre:</label>
-<input type="number" id="count" value="${count}" min="1">
-<button onclick="startGame()">Spustiť hru</button>
-<button id="printBtn" style="display:none;">🖨️ Tlačiť / Exportovať do PDF</button>
+<div class="no-print" style="margin-bottom: 15px;">
+  <label for="studentName">Meno žiaka:</label>
+  <input type="text" id="studentName" placeholder="Zadajte meno žiaka" style="font-size:18px; padding:4px;">
+  &nbsp;&nbsp;
+  <label for="count">Počet položiek v hre:</label>
+  <input type="number" id="count" value="${count}" min="1" style="font-size:18px; width:60px; padding:4px;">
+  <button onclick="startGame()">Spustiť hru</button>
+</div>
 
 <div id="game-area" style="display:none;">
   <h3 style="text-align:center;">Klikni na správny stĺpec podľa rodu podstatného mena.</h3>
@@ -249,11 +329,12 @@
   <div id="score">Skóre: 0</div>
 </div>
 
-<div id="final" style="display:none;"></div>
+<div id="final" style="display:none; text-align:center;"></div>
 <div id="detailsSection" style="display:none;"></div>
 
 <script>
   const allPairs = ${jsonPairs};
+  const gameTitleString = "${gameTitle}";
   let gamePairs = [];
   let currentIndex = 0;
   let score = 0;
@@ -265,7 +346,7 @@
   function startGame() {
     const count = parseInt(document.getElementById('count').value);
     gamePairs = shuffleArray(allPairs).slice(0, count).map(x => ({
-      ...x, attemptedWrong:false, done:false, userAnswer:null, firstTry:null
+      ...x, userAnswer: null, firstTry: null
     }));
 
     currentIndex = 0;
@@ -277,7 +358,6 @@
     document.getElementById('game-area').style.display = 'block';
     document.getElementById('final').style.display = 'none';
     document.getElementById('detailsSection').style.display = 'none';
-    document.getElementById('printBtn').style.display = 'none';
     showNextWord();
   }
 
@@ -298,66 +378,94 @@
     const item = gamePairs[currentIndex];
     const correct = item.article;
 
-    if (item.firstTry === null) item.firstTry = selectedArticle;
+    // Iba prvý pokus sa boduje, body sa neodčítavajú
+    if (item.firstTry === null) {
+      item.firstTry = selectedArticle;
+      if (selectedArticle === correct) {
+        score++;
+      }
+    }
     item.userAnswer = selectedArticle;
 
     const feedbackDiv = document.getElementById('feedback');
     const currentWordDiv = document.getElementById('current-word');
 
     if (selectedArticle === correct) {
-      item.done = true;
       const wordDiv = \`<div class="word word-\${selectedArticle}">\${item.word}</div>\`;
       document.getElementById(selectedArticle + '-list').innerHTML += wordDiv;
-      if (!item.attemptedWrong) score++;
+      
       currentIndex++;
       document.getElementById('score').textContent = \`Skóre: \${score}\`;
       feedbackDiv.textContent = '';
-      setTimeout(showNextWord, 300);
+      setTimeout(showNextWord, 200);
     } else {
-      item.attemptedWrong = true;
       feedbackDiv.innerHTML = '❌ Nesprávny pokus. Skús znova!';
       currentWordDiv.classList.add('wrong-word');
     }
   }
 
   function finishGame() {
-    const total = gamePairs.length;
-    const percent = Math.round(score / total * 100);
-    const now = new Date().toLocaleString();
-    const studentName = document.getElementById('studentName').value.trim() || '—';
-
-    const finalDiv = document.getElementById('final');
-    finalDiv.innerHTML =
-      \`<div><strong>Meno žiaka:</strong> \${studentName}</div>
-       <div><strong>Názov cvičenia:</strong> Triedenie podstatných mien podľa rodu</div>
-       <div><strong>Skóre:</strong> \${score} / \${total} (\${percent} %)</div>
-       <div><strong>Dátum a čas:</strong> \${now}</div>
-       <div style="margin-top:8px;"><button id="detailsBtn">Detailné výsledky</button></div>\`;
-    finalDiv.style.display = 'block';
-    document.getElementById('printBtn').style.display = 'inline-block';
-
-    document.getElementById('detailsBtn').addEventListener('click', showDetails);
     document.getElementById('current-word').textContent = '🎉 Hotovo!';
+    const finalDiv = document.getElementById('final');
+    finalDiv.innerHTML = \`<button id="detailsBtn" style="font-size:20px; padding:10px 20px; margin-top:20px;">Detailné výsledky</button>\`;
+    finalDiv.style.display = 'block';
+    document.getElementById('detailsBtn').addEventListener('click', showDetails);
+  }
+
+  function removeDiacritics(str) {
+    return str.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+  }
+
+  function sanitizeFilename(str) {
+    if (!str) return 'Hra';
+    let s = removeDiacritics(str);
+    s = s.replace(/[ \\-\\(\\)\\.,]/g, '_'); 
+    s = s.replace(/[^a-zA-Z0-9_]/g, ''); 
+    return s;
   }
 
   function showDetails() {
-    let html = '<h2>Detailné výsledky</h2>';
-    html += '<table id="detailsTable"><tr><th>Podstatné meno</th><th>Správny rod</th><th>1. odpoveď žiaka</th><th>Výsledok</th></tr>';
+    document.getElementById('final').style.display = 'none'; // skryje tlacidlo
+
+    const total = gamePairs.length;
+    const percent = Math.round((score / total) * 100);
+    const dateObj = new Date();
+    const dateStr = dateObj.toLocaleDateString('sk-SK');
+    const timeStr = dateObj.toLocaleTimeString('sk-SK');
+    const studentName = document.getElementById('studentName').value.trim() || '—';
+
+    let html = \`<h2 style="text-align:center;">Detailné výsledky</h2>\`;
+    html += \`<div style="font-size: 18px; line-height: 1.6;">\`;
+    html += \`<div><strong>Názov:</strong> \${gameTitleString}</div>\`;
+    html += \`<div><strong>Meno žiaka:</strong> \${studentName}</div>\`;
+    html += \`<div><strong>Bodovanie a percentuálny výsledok:</strong> \${score} / \${total}, \${percent} %</div>\`;
+    html += \`<div><strong>Dátum a čas:</strong> \${dateStr}, \${timeStr}</div>\`;
+    html += \`</div>\`;
+
+    html += \`<table id="detailsTable"><tr><th>Zadanie</th><th>Odpoveď žiaka</th><th>Správna odpoveď</th></tr>\`;
     for (const i of gamePairs) {
-      let sym = (i.attemptedWrong || i.firstTry !== i.article) ? '❌' : '✅';
-      html += \`<tr><td>\${i.word}</td><td>\${i.article}</td><td>\${i.firstTry || '—'}</td><td>\${sym}</td></tr>\`;
+      let sym = (i.firstTry === i.article) ? '✅' : '❌';
+      html += \`<tr><td>\${i.word}</td><td>\${i.firstTry || '—'} \${sym}</td><td>\${i.article}</td></tr>\`;
     }
-    html += '</table><div class="symbolExplain">✅ = správne na 1. pokus &nbsp;&nbsp; ❌ = nesprávne na 1. pokus</div>';
+    html += \`</table>\`;
+    html += \`<div class="symbolExplain">✅ = správna odpoveď &nbsp;&nbsp; ❌ = nesprávna odpoveď</div>\`;
+    
+    html += \`<div class="no-print" style="margin-top:20px; text-align:center;">
+               <button onclick="window.print()" style="font-size:20px; padding:10px 20px;">🖨️ Uložiť do PDF (Ctrl + P)</button>
+             </div>\`;
+
     const details = document.getElementById('detailsSection');
     details.innerHTML = html;
     details.style.display = 'block';
-  }
 
-  window.onbeforeprint = () => { try { showDetails(); } catch(e){} };
-  document.getElementById('printBtn').addEventListener('click', () => window.print());
+    // Pripravit bezpecny nazov suboru pre pripadnu tlac
+    const safeTitle = sanitizeFilename(gameTitleString);
+    const safeStudent = sanitizeFilename(studentName === '—' ? 'Nezname_meno' : studentName);
+    document.title = safeStudent + '_' + safeTitle;
+  }
 <\/script>
 
-<br><br><b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
+<br><br><b class="no-print">Spracoval(a) pomocou UI:</b> <span class="no-print">${gameAuthor} (${gameYear})</span>
 <br><br>
 </body>
 </html>`;
@@ -367,10 +475,9 @@
     link.href = URL.createObjectURL(blob);
     link.download = 'hra_ten_ta_to.html';
     link.click();
+    URL.revokeObjectURL(link.href);
   }
 </script>
 
-<br><br><b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
-<br><br>
 </body>
 </html>
