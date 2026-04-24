@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor výstupných lístkov</title>
+    <style>
+        /* Základné nastavenie pre Monaco font */
+        * {
+            font-family: 'Monaco', monospace;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+
+        /* --- UI GENERÁTORA --- */
+        .generator-ui {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .question-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            background-color: #fafafa;
+            position: relative;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .btn:hover { background: #45a049; }
+        .btn-secondary { background: #2196F3; }
+        .btn-secondary:hover { background: #0b7dda; }
+        .btn-warning { background: #ff9800; }
+        .btn-warning:hover { background: #e68a00; }
+
+        .button-group {
+            margin-top: 20px;
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* --- TLAČOVÝ NÁHĽAD (Výstupný lístok) --- */
+        .ticket-preview {
+            display: none; /* Skryté pokiaľ sa neklikne na Zobraziť */
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+        }
+
+        .ticket-header {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .ticket-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            line-height: 2;
+        }
+
+        .ticket-info span.line {
+            display: inline-block;
+            border-bottom: 1px solid black;
+            min-width: 150px;
+        }
+
+        .instruction {
+            margin-bottom: 30px;
+        }
+
+        .q-title {
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .q-options {
+            list-style-type: none;
+            padding-left: 0;
+            margin-bottom: 20px;
+        }
+
+        .q-options li {
+            margin-bottom: 5px;
+        }
+
+        .q-text-lines {
+            border-bottom: 1px solid black;
+            height: 30px;
+            margin-bottom: 10px;
+        }
+
+        table.stars-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            margin-bottom: 30px;
+            table-layout: fixed; /* Zabezpečí presne rovnakú šírku všetkých stĺpcov */
+        }
+
+        table.stars-table th, table.stars-table td {
+            border: 1px solid black;
+            padding: 10px;
+            word-wrap: break-word; /* Zabezpečí zalamovanie dlhšieho textu v bunkách */
+            vertical-align: middle;
+        }
+
+        .ticket-footer {
+            text-align: center;
+            margin-top: 40px;
+            font-weight: bold;
+        }
+
+        .ticket-author {
+            margin-top: 30px;
+            font-size: 0.9em;
+        }
+
+        /* Skryť generátor pri tlači */
+        @media print {
+            body { background: white; padding: 0; }
+            .generator-ui { display: none !important; }
+            .ticket-preview { display: block !important; padding: 0; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="generator-ui" id="generator-ui">
+        <h1>Generátor: Výstupný lístok</h1>
+        
+        <div class="form-group">
+            <label>Téma:</label>
+            <input type="text" id="topicInput" value="Nakupovanie oblečenia">
+        </div>
+        <div class="form-group">
+            <label>Autor (Meno a priezvisko):</label>
+            <input type="text" id="authorInput" value="Mgr. Erika Matyiová">
+        </div>
+        <div class="form-group">
+            <label>Rok:</label>
+            <input type="number" id="yearInput" value="2026">
+        </div>
+
+        <h2>Otázky</h2>
+        <div id="questions-container"></div>
+        
+        <button class="btn" onclick="addQuestion('text')">+ Pridať textovú otázku</button>
+        <button class="btn" onclick="addQuestion('choice')">+ Pridať otázku s možnosťami</button>
+        <button class="btn" onclick="addQuestion('stars')">+ Pridať hodnotiacu tabuľku (hviezdičky)</button>
+
+        <div class="button-group">
+            <button class="btn btn-warning" onclick="exportJSON()">Exportovať nastavenia (.json)</button>
+            <input type="file" id="importFile" style="display:none" onchange="importJSON(event)" accept=".json">
+            <button class="btn btn-warning" onclick="document.getElementById('importFile').click()">Importovať nastavenia (.json)</button>
+        </div>
+
+        <div class="button-group">
+            <button class="btn btn-secondary" style="width: 100%; font-size: 1.1em;" onclick="showTicket()">Zobraziť výstupný lístok na vyplnenie (CTRL + P pre uloženie)</button>
+            <button class="btn btn-secondary" style="width: 100%; font-size: 1.1em;" onclick="downloadSecondaryHTML()">Súbor html na spracovanie údajov z výstupného lístka</button>
+        </div>
+        <br><br>
+<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+<br><br>
+    </div>
+
+    <div class="ticket-preview" id="ticket-preview">
+        <div class="no-print" style="margin-bottom: 20px; text-align: center;">
+            <button class="btn" onclick="hideTicket()">Späť do generátora</button>
+            <p><i>Stlač <b>CTRL + P</b> pre uloženie do PDF (Názov súboru je už pripravený)</i></p>
+        </div>
+
+        <div class="ticket-header">Výstupný lístok (Exit ticket)</div>
+        
+        <div style="margin-bottom: 20px;">
+            <b>Téma:</b> <span id="out-topic"></span>
+        </div>
+        <div class="ticket-info">
+            <div><b>Meno:</b> <span class="line" style="width: 250px;"></span></div>
+            <div><b>Trieda:</b> <span class="line" style="width: 80px;"></span></div>
+            <div><b>Dátum:</b> <span class="line" style="width: 120px;"></span></div>
+        </div>
+
+        <div class="instruction">Vyznač alebo napíš odpoveď, ktorá najviac zodpovedá tvojim pocitom.</div>
+
+        <div id="out-questions"></div>
+
+        <div class="ticket-footer">Ďakujem za spoluprácu a prajem veľa úspechov v učení ☺</div>
+        <div class="ticket-author">Vypracovala: <span id="out-author"></span> (<span id="out-year"></span>)</div>
+
+    </div>
+
+<script>
+// --- ZÁKLADNÉ ÚDAJE A STAV ---
+let questions = [
+    { type: 'choice', text: 'Ako som sa dnes cítil/cítila na hodine? Zakrúžkuj alebo napíš.', options: ['istý/istá', 'neistý/neistá', 'zmätený/zmätená', 'bavilo ma to', 'iné: ______________________'] },
+    { type: 'text', text: 'Čo sa mi dnes podarilo? Napíš.' },
+    { type: 'text', text: 'Čo bolo pre mňa najťažšie? Napíš.' },
+    { type: 'text', text: 'Ktorú frázu si pamätám najlepšie z dnešnej hodiny? Napíš.' },
+    { type: 'stars', text: 'Ako by som ohodnotil/ohodnotila svoj dnešný výkon? Označ krížikom.', options: ['bolo to pre mňa náročné', 'potrebujem viac trénovať', 'priemerný', 'dobrý', 'veľmi dobrý'] }
+];
+
+// --- POMOCNÉ FUNKCIE ---
+function sanitizeFilename(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '') // odstránenie diakritiky
+              .replace(/[^a-zA-Z0-9]/g, '_') // interpunkcia, zátvorky, medzery na podčiarkovníky
+              .replace(/_+/g, '_') // odstránenie viacnásobných podčiarkovníkov
+              .replace(/_$/, ''); // odstránenie podčiarkovníka na konci
+}
+
+// --- RENDEROVANIE GENERÁTORA ---
+function renderQuestionsUI() {
+    const container = document.getElementById('questions-container');
+    container.innerHTML = '';
+    
+    questions.forEach((q, index) => {
+        let html = `<div class="question-item">
+            <button class="remove-btn" onclick="removeQuestion(${index})">X</button>
+            <div class="form-group">
+                <label>Znenie otázky ${index + 1}:</label>
+                <input type="text" value="${q.text}" onchange="updateQuestionText(${index}, this.value)">
+            </div>`;
+        
+        if (q.type === 'choice' || q.type === 'stars') {
+            html += `<div class="form-group">
+                <label>Možnosti (oddelené čiarkou):</label>
+                <input type="text" value="${q.options.join(', ')}" onchange="updateQuestionOptions(${index}, this.value)">
+            </div>`;
+        }
+        
+        html += `</div>`;
+        container.innerHTML += html;
+    });
+}
+
+function updateQuestionText(index, val) { questions[index].text = val; }
+function updateQuestionOptions(index, val) { questions[index].options = val.split(',').map(s => s.trim()); }
+function removeQuestion(index) { questions.splice(index, 1); renderQuestionsUI(); }
+function addQuestion(type) {
+    let newQ = { type: type, text: 'Nová otázka' };
+    if(type === 'choice') newQ.options = ['Možnosť 1', 'Možnosť 2'];
+    if(type === 'stars') newQ.options = ['Hodnotenie 1', 'Hodnotenie 2', 'Hodnotenie 3'];
+    questions.push(newQ);
+    renderQuestionsUI();
+}
+
+// --- FUNKCIE PRE EXPORT/IMPORT JSON ---
+function exportJSON() {
+    const data = {
+        topic: document.getElementById('topicInput').value,
+        author: document.getElementById('authorInput').value,
+        year: document.getElementById('yearInput').value,
+        questions: questions
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+    const dlAnchorElem = document.createElement('a');
+    dlAnchorElem.setAttribute("href", dataStr);
+    dlAnchorElem.setAttribute("download", sanitizeFilename(data.topic) + "_nastavenia.json");
+    dlAnchorElem.click();
+}
+
+function importJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            document.getElementById('topicInput').value = data.topic || '';
+            document.getElementById('authorInput').value = data.author || '';
+            document.getElementById('yearInput').value = data.year || '';
+            if (data.questions) { questions = data.questions; renderQuestionsUI(); }
+            alert("Nastavenia úspešne načítané.");
+        } catch(err) {
+            alert("Chyba pri čítaní súboru JSON.");
+        }
+    };
+    reader.readAsText(file);
+}
+
+// --- ZOBRAZENIE A SKRYTIE LÍSTKA ---
+function showTicket() {
+    const topic = document.getElementById('topicInput').value;
+    document.getElementById('out-topic').innerText = topic;
+    document.getElementById('out-author').innerText = document.getElementById('authorInput').value;
+    document.getElementById('out-year').innerText = document.getElementById('yearInput').value;
+
+    const outQ = document.getElementById('out-questions');
+    outQ.innerHTML = '';
+
+    const letters = ['a)', 'b)', 'c)', 'd)', 'e)', 'f)', 'g)', 'h)'];
+
+    questions.forEach((q, index) => {
+        let qHtml = `<div class="q-title">${index + 1}. ${q.text}</div>`;
+        
+        if (q.type === 'choice') {
+            qHtml += `<ul class="q-options">`;
+            q.options.forEach((opt, i) => {
+                qHtml += `<li>${letters[i] || '-'} ${opt}</li>`;
+            });
+            qHtml += `</ul>`;
+        } else if (q.type === 'text') {
+            qHtml += `<div class="q-text-lines"></div><div class="q-text-lines"></div>`;
+        } else if (q.type === 'stars') {
+            qHtml += `<table class="stars-table"><tr>`;
+            // Prvý riadok: Hviezdičky
+            q.options.forEach((_, i) => {
+                let stars = '';
+                for(let s=0; s<=i; s++) stars += '☆ ';
+                qHtml += `<td>${stars.trim()}</td>`;
+            });
+            qHtml += `</tr><tr>`;
+            // Druhý riadok: Popisy
+            q.options.forEach(opt => {
+                qHtml += `<td>${opt}</td>`;
+            });
+            qHtml += `</tr><tr>`;
+            // Tretí riadok: Prázdne polia na krížik
+            q.options.forEach(() => {
+                qHtml += `<td style="height: 30px;"></td>`;
+            });
+            qHtml += `</tr></table>`;
+        }
+        outQ.innerHTML += qHtml;
+    });
+
+    document.getElementById('generator-ui').style.display = 'none';
+    document.getElementById('ticket-preview').style.display = 'block';
+    
+    // Nastavenie titulku pre uloženie do PDF
+    document.title = sanitizeFilename(topic);
+}
+
+function hideTicket() {
+    document.getElementById('generator-ui').style.display = 'block';
+    document.getElementById('ticket-preview').style.display = 'none';
+    document.title = 'Generátor výstupných lístkov';
+}
+
+// --- GENEROVANIE SEKUNDÁRNEHO HTML NA SPRACOVANIE ---
+function downloadSecondaryHTML() {
+    const topic = document.getElementById('topicInput').value;
+    const sanitizedTopic = sanitizeFilename(topic);
+    
+    const processorConfig = {
+        topic: topic,
+        sanitized: sanitizedTopic,
+        questions: questions
+    };
+
+    // Zdrojový kód pre sekundárny HTML súbor
+    const secondaryHTML = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${sanitizedTopic}_vyhodnotenie</title>
+    <style>
+        * { font-family: 'Monaco', monospace; box-sizing: border-box; }
+        body { padding: 20px; background: #f4f4f9; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2 { text-align: center; }
+        .q-block { margin-bottom: 25px; padding: 15px; border: 1px solid #ddd; background: #fafafa; }
+        .q-title { font-weight: bold; margin-bottom: 10px; }
+        .radio-label { display: block; margin-bottom: 2px; line-height: 1.2; cursor: pointer; }
+        .radio-label input[type="radio"] { margin-right: 6px; margin-top: 0; margin-bottom: 0; vertical-align: middle; }
+        input[type="text"] { width: 100%; padding: 8px; }
+        .btn { background: #4CAF50; color: white; padding: 10px 15px; border: none; cursor: pointer; border-radius: 4px; margin-top: 10px; }
+        .btn-blue { background: #2196F3; }
+        .btn:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class="container" id="input-section">
+        <h1>Zadávanie údajov</h1>
+        <h2>Téma: ${topic}</h2>
+        <p><i>Ak žiak na otázku neodpovedal, zadaj znak "-".</i></p>
+        <div id="form-content"></div>
+        <div style="display:flex; justify-content: space-between; margin-top: 20px;">
+            <button class="btn" onclick="nextStudent()">Uložiť a pridať ďalšieho žiaka</button>
+            <button class="btn btn-blue" onclick="evaluateData()">Vyhodnotiť v novom okne</button>
+        </div>
+        <p style="text-align:center; margin-top:20px;">Zadaných žiakov: <span id="student-count">0</span></p>
+    </div>
+
+    <script>
+        const config = ${JSON.stringify(processorConfig)};
+        const responses = [];
+
+        function renderForm() {
+            const fc = document.getElementById('form-content');
+            fc.innerHTML = '';
+            config.questions.forEach((q, idx) => {
+                let html = \`<div class="q-block">
+                    <div class="q-title">\${idx + 1}. \${q.text}</div>\`;
+                
+                if (q.type === 'choice' || q.type === 'stars') {
+                    q.options.forEach((opt, oIdx) => {
+                        let cleanOpt = opt.replace(/_+/g, '').trim();
+                        html += \`<label class="radio-label"><input type="radio" name="q\${idx}" value="\${cleanOpt}"> \${cleanOpt}</label>\`;
+                    });
+                    // Pridáme možnosť pre vlastný text, ak by niekto dopísal k "iné"
+                    html += \`<input type="text" id="custom_q\${idx}" placeholder="Iné / Vlastný text..." style="margin-top:8px;">\`;
+                } else if (q.type === 'text') {
+                    html += \`<input type="text" id="t\${idx}" placeholder="Odpoveď žiaka (alebo '-')">\`;
+                }
+                html += \`</div>\`;
+                fc.innerHTML += html;
+            });
+        }
+
+        function nextStudent() {
+            let currentAnswers = {};
+            config.questions.forEach((q, idx) => {
+                if (q.type === 'choice' || q.type === 'stars') {
+                    let selected = document.querySelector(\`input[name="q\${idx}"]:checked\`);
+                    let custom = document.getElementById(\`custom_q\${idx}\`).value.trim();
+                    currentAnswers[idx] = custom ? custom : (selected ? selected.value : '-');
+                } else {
+                    let val = document.getElementById(\`t\${idx}\`).value.trim();
+                    currentAnswers[idx] = val === '' ? '-' : val;
+                }
+            });
+            responses.push(currentAnswers);
+            
+            // Vyčistenie formulára
+            config.questions.forEach((q, idx) => {
+                if (q.type === 'choice' || q.type === 'stars') {
+                    let radios = document.querySelectorAll(\`input[name="q\${idx}"]\`);
+                    radios.forEach(r => r.checked = false);
+                    document.getElementById(\`custom_q\${idx}\`).value = '';
+                } else {
+                    document.getElementById(\`t\${idx}\`).value = '';
+                }
+            });
+            
+            document.getElementById('student-count').innerText = responses.length;
+        }
+
+        function evaluateData() {
+            if (responses.length === 0) { alert('Zatiaľ neboli pridaní žiadni žiaci!'); return; }
+            
+            let evalHtmlContent = '';
+            const total = responses.length;
+
+            config.questions.forEach((q, idx) => {
+                let html = \`<div class="q-block"><div class="q-title">\${idx + 1}. \${q.text}</div>\`;
+                
+                // Agregácia dát
+                let counts = {};
+                responses.forEach(r => {
+                    let ans = r[idx];
+                    counts[ans] = (counts[ans] || 0) + 1;
+                });
+
+                if (q.type === 'choice' || q.type === 'stars') {
+                    // Pre radio a stars ukážeme lišty a percentá pre všetky pôvodné možnosti + vlastné
+                    let allKeys = Object.keys(counts);
+                    q.options.forEach(opt => {
+                        let cleanOpt = opt.replace(/_+/g, '').trim();
+                        if(!allKeys.includes(cleanOpt)) counts[cleanOpt] = 0; // Pridaj aj tie s 0%
+                    });
+
+                    // Zoradenie kľúčov podľa počtu zostupne (voliteľné)
+                    for (const [key, val] of Object.entries(counts)) {
+                        let percent = Math.round((val / total) * 100);
+                        html += \`<div class="stat-item">
+                            <div>\${key} - \${val}x (\${percent}%)</div>
+                            <div class="stat-bar-container">
+                                <div class="stat-bar" style="width: \${percent}%">\${percent > 0 ? percent + '%' : ''}</div>
+                            </div>
+                        </div>\`;
+                    }
+                } else {
+                    // Pre textové odpovede zoskupíme a vypíšeme
+                    html += \`<ul class="text-answers">\`;
+                    for (const [key, val] of Object.entries(counts)) {
+                        let percent = Math.round((val / total) * 100);
+                        html += \`<li><b>\${key}</b> - \${val}x (\${percent}%)</li>\`;
+                    }
+                    html += \`</ul>\`;
+                }
+                
+                html += \`</div>\`;
+                evalHtmlContent += html;
+            });
+            
+            // Vygenerovanie obsahu pre nové okno
+            const newWindowHtml = \`<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>\${config.sanitized}_vyhodnotenie</title>
+    <style>
+        * { font-family: 'Monaco', monospace; box-sizing: border-box; }
+        body { padding: 20px; background: #f4f4f9; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2 { text-align: center; }
+        .q-block { margin-bottom: 25px; padding: 15px; border: 1px solid #ddd; background: #fafafa; }
+        .q-title { font-weight: bold; margin-bottom: 10px; }
+        .stat-item { margin-bottom: 2px; } 
+        .stat-text { font-size: 0.95em; line-height: 0.9; }
+        .stat-bar-container { width: 100%; background-color: #ddd; height: 18px; border-radius: 3px; overflow: hidden; }
+        .stat-bar { height: 100%; background-color: #4CAF50; text-align: right; color: white; font-size: 12px; line-height: 20px; padding-right: 5px; white-space: nowrap; }
+        ul.text-answers { padding-left: 20px; }
+        ul.text-answers li { margin-bottom: 5px; }
+        
+        /* Úpravy vyslovene len pre verziu tlače - zníženie riadkovania a okrajov */
+        @media print {
+            body { background: white; padding: 0; line-height: 1.1; }
+            .container { box-shadow: none; padding: 0; }
+            .no-print { display: none !important; }
+            
+            .q-block { margin-bottom: 10px !important; padding: 8px 12px !important; }
+            .q-title { margin-bottom: 5px !important; }
+            
+            h1 { font-size: 1.5em; margin-top: 10px !important; margin-bottom: 5px !important; }
+            h2 { font-size: 1.2em; margin-top: 5px !important; margin-bottom: 5px !important; }
+            p { margin-top: 5px !important; margin-bottom: 10px !important; }
+            
+            .stat-item { margin-bottom: 0px !important; }
+            .stat-bar-container { height: 14px !important; margin-bottom: 4px !important; }
+            .stat-bar { line-height: 14px !important; font-size: 11px !important; }
+            
+            ul.text-answers { margin-top: 5px !important; margin-bottom: 5px !important; }
+            ul.text-answers li { margin-bottom: 2px !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="no-print" style="text-align:center; margin-bottom:20px;">
+            <p><i>Pre uloženie vyhodnotenia stlač <b>CTRL + P</b></i></p>
+        </div>
+        <h1>Vyhodnotenie výstupných lístkov</h1>
+        <h2>Téma: \${config.topic}</h2>
+        <p style="text-align:center; font-weight:bold; font-size:1.2em;">Celkový počet vyhodnotených lístkov: \${total}</p>
+        \${evalHtmlContent}
+    </div>
+</body>
+</html>\`;
+
+            // Otvorenie nového okna a zápis dát
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(newWindowHtml);
+            newWindow.document.close();
+        }
+
+        // Init
+        renderForm();
+    <\/script>
+</body>
+</html>`;
+
+    // Stiahnutie súboru
+    const blob = new Blob([secondaryHTML], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = sanitizedTopic + '_spracovanie.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Inicializačné vykreslenie
+renderQuestionsUI();
+</script>
+
+</body>
+</html>
