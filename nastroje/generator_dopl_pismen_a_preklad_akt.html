@@ -107,13 +107,14 @@
             <p><strong>Návod:</strong></p>
             <ol>
                 <li>Každú úlohu zadajte na samostatný riadok.</li>
-                <li>Zadajte slovo s vyznačením chýbajúcich písmen pomocou <code>/\</code>, stlačte kláves <code>TAB</code> a napíšte preklad (alebo pomocný text).</li>
-                <li>Príklad: <code>das Was/s\er[TAB]voda</code></li>
+                <li>Zadajte slovo s vyznačením chýbajúcich písmen pomocou <code>/\</code> (alebo označte text myšou a kliknite na tlačidlo), stlačte kláves <code>TAB</code> a napíšte preklad (alebo pomocný text).</li>
+                <li>Príklad: <code>das Was/s\er[TAB]voda</code> alebo <code>d/as\ Gem/üs\e[TAB]zelenina</code></li>
             </ol>
             
         </div>
 
         <label for="exerciseData">Vstupné dáta (podpora klávesy [TAB]):</label>
+        <button id="wrapBtn" type="button" style="background-color: #17a2b8; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; margin-top: 5px; margin-bottom: 10px; font-weight: bold; font-family: monospace; font-size: 14px;">Označiť chýbajúce písmená (/\)</button>
         <textarea id="exerciseData" placeholder="das Was/s\er	voda
 der B/au\m	strom
 m/a\chen	robiť
@@ -169,6 +170,7 @@ m/a\chen	robiť
         const exportBtn = document.getElementById('exportBtn');
         const importBtn = document.getElementById('importBtn');
         const importFileInput = document.getElementById('importFile');
+        const wrapBtn = document.getElementById('wrapBtn');
 
         // Predvolený rok podľa aktuálneho dátumu
         const currentYear = new Date().getFullYear();
@@ -212,6 +214,33 @@ m/a\chen	robiť
                 this.value = this.value.substring(0, start) + '\t' + this.value.substring(end);
                 this.selectionStart = this.selectionEnd = start + 1;
                 this.dispatchEvent(new Event('input'));
+            }
+        });
+
+        // Tlačidlo na obalenie označeného textu /\ s ohľadom na pozíciu scrollu
+        wrapBtn.addEventListener('click', () => {
+            const start = exerciseDataInput.selectionStart;
+            const end = exerciseDataInput.selectionEnd;
+            if (start !== end) {
+                // Uložíme aktuálnu pozíciu scrollovania
+                const currentScrollPosition = exerciseDataInput.scrollTop;
+
+                const text = exerciseDataInput.value;
+                const selectedText = text.substring(start, end);
+                const newText = text.substring(0, start) + '/' + selectedText + '\\' + text.substring(end);
+                
+                exerciseDataInput.value = newText;
+                exerciseDataInput.dispatchEvent(new Event('input')); // Uloženie do localStorage
+                exerciseDataInput.focus();
+                
+                // Ponechanie označeného textu aj po kliknutí (posunuté o jeden znak kvôli lomítku)
+                exerciseDataInput.selectionStart = start + 1;
+                exerciseDataInput.selectionEnd = end + 1;
+
+                // Obnovíme pozíciu scrollovania, aby text nepreskakoval
+                exerciseDataInput.scrollTop = currentScrollPosition;
+            } else {
+                alert("Najprv označte myšou v textovom poli písmená, ktoré chcete v úlohe skryť.");
             }
         });
 
@@ -374,7 +403,7 @@ m/a\chen	robiť
             URL.revokeObjectURL(link.href);
         }
 
-        // 8. Šablóna pre generovanú HTML stránku (UPRAVENÁ)
+        // 8. Šablóna pre generovanú HTML stránku
         function generateExerciseHTML(parsedData, title, maxTasks, teacherName, year) {
             
             const jsonString = JSON.stringify(parsedData).replace(/</g, '\\u003c');
@@ -403,7 +432,7 @@ m/a\chen	robiť
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
     <style>
-        /* CSS štýly (bez zmien) */
+        /* CSS štýly */
         body {
             font-family: Courier bold, monospace;
             line-height: 1.6;
@@ -603,7 +632,6 @@ m/a\chen	robiť
             border: 1px solid #0056b3;
         }
 		
-		
 		/* Zafarbenie tlačidiel pre vyriešené úlohy */
         #navButtons button.completed {
             background-color: #add8e6; /* Svetlomodrá farba */
@@ -615,7 +643,6 @@ m/a\chen	robiť
             background-color: #007bff; 
             color: white;
         }
-		
 		
         #resultsContainer {
             display: none;
@@ -671,6 +698,9 @@ m/a\chen	robiť
         .incorrect .symbol {
             color: #dc3545;
         }
+        .partial .symbol {
+            color: #fd7e14; /* Oranžová farba pre čiastočne správne odpovede */
+        }
         .correct-answer {
             font-style: italic;
             color: #555;
@@ -712,6 +742,7 @@ m/a\chen	robiť
         }
         .detail-results-body .correct { color: #28a745; }
         .detail-results-body .incorrect { color: #dc3545; }
+        .detail-results-body .partial { color: #fd7e14; }
         .detail-results-body .legend { margin-top: 20px; }
 
         @media print {
@@ -1012,12 +1043,14 @@ m/a\chen	robiť
 
         function evaluate() {
             isEvaluated = true;
-            let score = 0;
+            let totalScore = 0;
+            let maxTotalScore = 0;
             const results = [];
 
             allTasks.forEach((task, index) => {
                 const studentAnswers = userAnswers[index] || [];
-                let isCorrect = true;
+                let taskCorrectLetters = 0;
+                let taskTotalLetters = 0;
                 let studentTextAnswer = "";
                 let inputCounter = 0;
 
@@ -1028,25 +1061,28 @@ m/a\chen	robiť
                         for(let i=0; i<c.value.length; i++) {
                             let charAns = studentAnswers[inputCounter] || "";
                             studentTextAnswer += (charAns || "_");
-                            if (charAns !== c.value[i]) {
-                                isCorrect = false;
+                            taskTotalLetters++;
+                            if (charAns === c.value[i]) {
+                                taskCorrectLetters++;
                             }
                             inputCounter++;
                         }
                     }
                 });
 
-                if (isCorrect) score++;
+                totalScore += taskCorrectLetters;
+                maxTotalScore += taskTotalLetters;
 
                 results.push({
                     ...task,
                     studentAnswers,
                     studentTextAnswer, 
-                    isCorrect
+                    taskCorrectLetters,
+                    taskTotalLetters
                 });
             });
 
-            const percentage = (score / allTasks.length) * 100;
+            const percentage = maxTotalScore > 0 ? (totalScore / maxTotalScore) * 100 : 0;
             const now = new Date();
             const timestamp = now.toLocaleString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const studentName = studentNameInput.value.trim() || 'Anonym';
@@ -1058,23 +1094,30 @@ m/a\chen	robiť
             resultsSummary.innerHTML = \`
                 <p><strong>Názov cvičenia:</strong> \${exerciseTitle}</p>
                 <p><strong>Meno žiaka:</strong> \${studentName}</p>
-                <p><strong>Bodové hodnotenie:</strong> \${score} z \${allTasks.length}</p>
+                <p><strong>Bodové hodnotenie:</strong> \${totalScore} b. z \${maxTotalScore} b. (hodnotí sa každé písmeno)</p>
                 <p><strong>Percentuálna úspešnosť:</strong> \${percentage.toFixed(1)} %</p>
                 <p><strong>Dátum a čas:</strong> \${timestamp}</p>
             \`;
 
             let resultsHTML = "<h3>Detailné odpovede:</h3>";
             results.forEach(res => {
-                const symbol = res.isCorrect ? '✓' : '✗';
-                const symbolClass = res.isCorrect ? 'correct' : 'incorrect';
+                let symbolClass = '';
+                let symbol = '';
+                if (res.taskCorrectLetters === res.taskTotalLetters && res.taskTotalLetters > 0) {
+                     symbolClass = 'correct'; symbol = '✓';
+                } else if (res.taskCorrectLetters === 0) {
+                     symbolClass = 'incorrect'; symbol = '✗';
+                } else {
+                     symbolClass = 'partial'; symbol = '⚠';
+                }
                 
                 resultsHTML += \`<div class="result-item \${symbolClass}">\`;
                 resultsHTML += \`<span class="symbol \${symbolClass}">\${symbol}</span>\`;
                 resultsHTML += \`<div>
-                                    <span><strong>\${res.studentTextAnswer}</strong></span>
+                                    <span><strong>\${res.studentTextAnswer}</strong> (\${res.taskCorrectLetters}/\${res.taskTotalLetters} b.)</span>
                                     \${res.subText ? \`<br><span style="font-size:0.8em; color:#666;">\${res.subText}</span>\` : ''}
                                 </div>\`;
-                if (!res.isCorrect) {
+                if (res.taskCorrectLetters !== res.taskTotalLetters) {
                     resultsHTML += \`<span class="correct-answer">(Správne: \${res.fullAnswer})</span>\`;
                 }
                 resultsHTML += \`</div>\`;
@@ -1084,8 +1127,8 @@ m/a\chen	robiť
             detailedResultsData = {
                 title: exerciseTitle,
                 name: studentName,
-                score,
-                total: allTasks.length,
+                totalScore,
+                maxTotalScore,
                 percentage,
                 timestamp,
                 results
@@ -1121,16 +1164,18 @@ m/a\chen	robiť
                         .symbol { font-size: 1.2em; font-weight: bold; text-align: center; }
                         .correct { color: #28a745; }
                         .incorrect { color: #dc3545; }
+                        .partial { color: #fd7e14; }
                         .legend { margin-top: 20px; font-size: 0.9em; }
                         @media print {
                             body { padding: 10px; }
+                            .no-print { display: none !important; }
                         }
                     </style>
                 </head>
                 <body class="detail-results-body">
                     <h1>\${data.title}</h1>
                     <p><strong>Meno žiaka:</strong> \${data.name}</p>
-                    <p><strong>Bodové a percentuálne hodnotenie:</strong> \${data.score} z \${data.total} (\${data.percentage.toFixed(1)}%)</p>
+                    <p><strong>Bodové a percentuálne hodnotenie:</strong> \${data.totalScore} b. z \${data.maxTotalScore} b. (\${data.percentage.toFixed(1)}%)</p>
                     <p><strong>Dátum a čas:</strong> \${data.timestamp}</p>
 
                     <h2>Detailný prehľad</h2>
@@ -1147,15 +1192,22 @@ m/a\chen	robiť
             \`;
 
             data.results.forEach(res => {
-                const symbol = res.isCorrect ? '✓' : '✗';
-                const symbolClass = res.isCorrect ? 'correct' : 'incorrect';
+                let symbolClass = '';
+                let symbol = '';
+                if (res.taskCorrectLetters === res.taskTotalLetters && res.taskTotalLetters > 0) {
+                     symbolClass = 'correct'; symbol = '✓';
+                } else if (res.taskCorrectLetters === 0) {
+                     symbolClass = 'incorrect'; symbol = '✗';
+                } else {
+                     symbolClass = 'partial'; symbol = '⚠';
+                }
                 
                 html += \`
                     <tr>
                         <td>\${res.subText || '–'}</td>
                         <td><strong>\${res.studentTextAnswer || '–'}</strong></td>
                         <td><strong>\${res.fullAnswer}</strong></td>
-                        <td class="symbol \${symbolClass}">\${symbol}</td>
+                        <td class="symbol \${symbolClass}" style="white-space: nowrap;">\${symbol} <span style="font-size: 0.8em; color: #333; margin-left: 8px;">(\${res.taskCorrectLetters}/\${res.taskTotalLetters} b.)</span></td>
                     </tr>
                 \`;
             });
@@ -1166,8 +1218,9 @@ m/a\chen	robiť
                     <div class="legend">
                         <p><strong>Vysvetlivky:</strong></p>
                         <ul>
-                            <li><span class="symbol correct">✓</span> = Správne</li>
-                            <li><span class="symbol incorrect">✗</span> = Nesprávne</li>
+                            <li><span class="symbol correct">✓</span> = Všetky písmená doplnené správne</li>
+                            <li><span class="symbol partial">⚠</span> = Čiastočne správne doplnené písmená</li>
+                            <li><span class="symbol incorrect">✗</span> = Všetky písmená doplnené nesprávne (alebo prázdne)</li>
                         </ul>
                     </div>
                     <div class="no-print" style="margin-top: 40px;"><p>Túto stránku je možné vytlačiť pomocou Ctrl + P (alebo Command + P).</p></div>
