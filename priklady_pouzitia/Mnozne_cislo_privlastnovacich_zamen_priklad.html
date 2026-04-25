@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Množné číslo privlastňovacích zámen</title>
+    <style>
+        :root {
+            --font-family: 'Monaco', monospace;
+        }
+        body {
+            font-family: var(--font-family);
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 { text-align: center; }
+        .setup-screen, .test-screen, .result-screen { display: none; }
+        .active { display: block; }
+        
+        .form-group { margin-bottom: 15px; text-align: center; }
+        input[type="text"], input[type="number"] {
+            padding: 8px; font-family: var(--font-family); width: 250px; text-align: center; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;
+        }
+        
+        button {
+            padding: 10px 20px; font-family: var(--font-family); font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 4px; color: white; background-color: #007bff;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #aaa; cursor: not-allowed; }
+        .btn-start { background-color: #28a745; margin-top: 20px; }
+        .btn-start:hover { background-color: #218838; }
+        
+        /* Test layout */
+        .instruction { text-align: center; font-weight: bold; margin-bottom: 15px; color: #555; }
+        .test-container { display: flex; gap: 20px; }
+        .tasks-col { flex: 2; }
+        .pool-col { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start; }
+        
+        .task-row { display: flex; align-items: center; margin-bottom: 8px; background: white; padding: 5px 10px; border-radius: 4px; border: 1px solid #ddd; }
+        .sk-text { flex: 1; font-weight: bold; }
+        .slot {
+            width: 120px; height: 35px; border: 2px dashed #999; margin-left: 10px; border-radius: 4px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-weight: bold; color: black; background-color: #fafafa;
+        }
+        .slot.filled { border-style: solid; }
+        .slot.pro-type { border-color: #f76707; }
+        .slot.noun-type { border-color: #495057; }
+        
+        .draggable-btn {
+            font-family: var(--font-family); font-size: 15px; font-weight: bold; color: black; border: 1px solid #999; border-radius: 4px; padding: 8px; cursor: pointer; text-align: center; transition: transform 0.1s;
+        }
+        .draggable-btn:active { transform: scale(0.95); }
+        .draggable-btn.pro-btn { background-color: #ffd8a8; }
+        .draggable-btn.noun-btn { background-color: #e9ecef; }
+        .draggable-btn.selected { border: 2px solid black; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+        
+        /* Pagination */
+        .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 20px; margin-bottom: 20px; flex-wrap: wrap;}
+        .page-btn { background-color: #f8f9fa; color: #333; border: 1px solid #ccc; padding: 5px 10px; min-width: 40px; }
+        .page-btn.solved { background-color: #a5d8ff; border-color: #74c0fc; }
+        .page-btn.current { border: 2px solid #333; font-weight: bold; }
+        
+        .controls { text-align: center; margin-top: 20px; }
+        
+        /* Results */
+        .result-summary { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 20px; }
+        .result-row { margin-bottom: 5px; padding: 10px; border-radius: 4px; border: 1px solid #ccc; }
+        .res-correct { background-color: #d4edda; border-color: #c3e6cb; }
+        .res-incorrect { background-color: #f8d7da; border-color: #f5c6cb; }
+        .correction { color: #721c24; font-weight: bold; margin-top: 5px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+    <div id="setupScreen" class="setup-screen active">
+        <h1>Množné číslo privlastňovacích zámen</h1>
+        <div class="form-group">
+            <label for="studentName">Meno žiaka:</label>
+            <input type="text" id="studentName" placeholder="Zadajte meno">
+        </div>
+        <div class="form-group">
+            <label for="taskCount">Počet úloh:</label>
+            <input type="number" id="taskCount" value="20" min="1">
+        </div>
+        <div class="form-group">
+            <button class="btn-start" onclick="startTest()">Štart</button>
+        </div>
+    </div>
+
+    <div id="testScreen" class="test-screen">
+        <h2 id="testTitle">Množné číslo privlastňovacích zámen</h2>
+        <div class="instruction">Klikni na tlačidlo a následne na miesto, kam ho chceš umiestniť. Ak si rozhodnutie rozmyslíš, kliknite dvakrát na už umiestnený text a ten sa vráti späť.</div>
+        
+        <div class="test-container">
+            <div class="tasks-col" id="tasksContainer"></div>
+            <div class="pool-col" id="poolContainer"></div>
+        </div>
+        
+        <div class="pagination" id="paginationContainer"></div>
+        
+        <div class="controls">
+            <button id="btnNext" style="display:none;" onclick="nextPage()"></button>
+        </div>
+    </div>
+
+    <div id="resultScreen" class="result-screen">
+        <h2>Výsledky testu</h2>
+        <div class="result-summary" id="resultSummary"></div>
+        <div id="detailedResults"></div>
+        <div class="controls" style="margin-top: 20px;">
+            <button onclick="openDetailedOverview()">Zobraziť detailný prehľad</button>
+        </div>
+    </div>
+
+    <script>
+        const allVocab = [{"sk":"moje deti","pro":"meine","noun":"Kinder"},{"sk":"tvoje deti","pro":"deine","noun":"Kinder"},{"sk":"jeho deti","pro":"seine","noun":"Kinder"},{"sk":"jej deti","pro":"ihre","noun":"Kinder"},{"sk":"moji lekári","pro":"meine","noun":"Ärzte"},{"sk":"tvoji lekári","pro":"deine","noun":"Ärzte"},{"sk":"jeho lekári","pro":"seine","noun":"Ärzte"},{"sk":"jej lekári","pro":"ihre","noun":"Ärzte"},{"sk":"moje knihy","pro":"meine","noun":"Bücher"},{"sk":"tvoje knihy","pro":"deine","noun":"Bücher"},{"sk":"jeho knihy","pro":"seine","noun":"Bücher"},{"sk":"jej knihy","pro":"ihre","noun":"Bücher"},{"sk":"moji synovia","pro":"meine","noun":"Söhne"},{"sk":"tvoji synovia","pro":"deine","noun":"Söhne"},{"sk":"jeho synovia","pro":"seine","noun":"Söhne"},{"sk":"jej synovia","pro":"ihre","noun":"Söhne"},{"sk":"moje papiere","pro":"meine","noun":"Papiere"},{"sk":"tvoje papiere","pro":"deine","noun":"Papiere"},{"sk":"jeho papiere","pro":"seine","noun":"Papiere"},{"sk":"jej papiere","pro":"ihre","noun":"Papiere"},{"sk":"moje sestry","pro":"meine","noun":"Schwestern"},{"sk":"tvoje sestry","pro":"deine","noun":"Schwestern"},{"sk":"jeho sestry","pro":"seine","noun":"Schwestern"},{"sk":"jej sestry","pro":"ihre","noun":"Schwestern"}];
+        let testVocab = [];
+        let studentName = "";
+        let chunks = [];
+        let currentChunkIndex = 0;
+        let selectedButton = null;
+        
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function startTest() {
+            studentName = document.getElementById('studentName').value.trim() || "Neznámy žiak";
+            let count = parseInt(document.getElementById('taskCount').value) || 20;
+            
+            if (allVocab.length === 0) { alert("Test neobsahuje žiadne zadania!"); return; }
+            if (count > allVocab.length) count = allVocab.length;
+            
+            let available = [...allVocab];
+            shuffle(available);
+            let selectedVocab = [];
+            let itemsNeeded = count;
+            
+            // Inteligentny vyber poloziek do blokov pre zabezpecenie rozmanitosti
+            while (itemsNeeded > 0 && available.length > 0) {
+                let chunkSize = Math.min(5, itemsNeeded);
+                let currentChunk = [];
+                
+                for (let i = 0; i < chunkSize; i++) {
+                    let bestIdx = 0;
+                    let bestScore = -1;
+                    
+                    let currentPros = new Set(currentChunk.map(x => x.pro));
+                    let currentNouns = new Set(currentChunk.map(x => x.noun));
+                    
+                    for (let j = 0; j < available.length; j++) {
+                        let item = available[j];
+                        let score = 0;
+                        let addsPro = !currentPros.has(item.pro);
+                        let addsNoun = !currentNouns.has(item.noun);
+                        
+                        // Podmienka: aspon 4 rozne zamena
+                        if (addsPro && currentPros.size < 4) score += 10;
+                        // Podmienka: aspon 3 rozne podstatne mena
+                        if (addsNoun && currentNouns.size < 3) score += 10;
+                        // Bonus, ak slovicko pomaha obom podmienkam naraz
+                        if (addsPro && addsNoun) score += 2; 
+                        
+                        score += Math.random(); 
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestIdx = j;
+                        }
+                    }
+                    currentChunk.push(available.splice(bestIdx, 1)[0]);
+                }
+                selectedVocab.push(...currentChunk);
+                itemsNeeded -= chunkSize;
+            }
+            
+            testVocab = selectedVocab.map(v => ({...v, userPro: null, userNoun: null, userProBtnId: null, userNounBtnId: null}));
+            
+            chunks = [];
+            for (let i = 0; i < testVocab.length; i += 5) {
+                chunks.push(testVocab.slice(i, i + 5));
+            }
+            
+            document.getElementById('setupScreen').classList.remove('active');
+            document.getElementById('testScreen').classList.add('active');
+            
+            renderChunk();
+        }
+
+        function renderChunk() {
+            selectedButton = null;
+            const tasksContainer = document.getElementById('tasksContainer');
+            const poolContainer = document.getElementById('poolContainer');
+            tasksContainer.innerHTML = '';
+            poolContainer.innerHTML = '';
+            
+            const chunk = chunks[currentChunkIndex];
+            const poolItems = [];
+            
+            chunk.forEach((item, index) => {
+                const globalIndex = currentChunkIndex * 5 + index;
+                
+                const row = document.createElement('div');
+                row.className = 'task-row';
+                
+                const skDiv = document.createElement('div');
+                skDiv.className = 'sk-text';
+                skDiv.innerHTML = item.sk; 
+                
+                const slotPro = document.createElement('div');
+                slotPro.className = 'slot pro-type';
+                slotPro.dataset.type = 'pro';
+                slotPro.dataset.gindex = globalIndex;
+                slotPro.onclick = () => onSlotClick(slotPro);
+                slotPro.ondblclick = () => onSlotDblClick(slotPro);
+                if (item.userPro) {
+                    slotPro.innerText = item.userPro;
+                    slotPro.classList.add('filled');
+                    slotPro.style.backgroundColor = '#ffd8a8';
+                }
+
+                const slotNoun = document.createElement('div');
+                slotNoun.className = 'slot noun-type';
+                slotNoun.dataset.type = 'noun';
+                slotNoun.dataset.gindex = globalIndex;
+                slotNoun.onclick = () => onSlotClick(slotNoun);
+                slotNoun.ondblclick = () => onSlotDblClick(slotNoun);
+                if (item.userNoun) {
+                    slotNoun.innerText = item.userNoun;
+                    slotNoun.classList.add('filled');
+                    slotNoun.style.backgroundColor = '#e9ecef';
+                }
+
+                row.appendChild(skDiv);
+                row.appendChild(slotPro);
+                row.appendChild(slotNoun);
+                tasksContainer.appendChild(row);
+                
+                if (!item.userPro) poolItems.push({ type: 'pro', text: item.pro, id: 'btn_pro_' + globalIndex });
+                if (!item.userNoun) poolItems.push({ type: 'noun', text: item.noun, id: 'btn_noun_' + globalIndex });
+            });
+            
+            shuffle(poolItems);
+            poolItems.forEach(pi => {
+                const btn = document.createElement('div');
+                btn.className = 'draggable-btn ' + (pi.type === 'pro' ? 'pro-btn' : 'noun-btn');
+                btn.innerText = pi.text;
+                btn.id = pi.id;
+                btn.dataset.type = pi.type;
+                btn.onclick = () => onPoolBtnClick(btn);
+                poolContainer.appendChild(btn);
+            });
+
+            renderPagination();
+            checkChunkCompletion();
+        }
+
+        function onPoolBtnClick(btn) {
+            if (selectedButton) selectedButton.classList.remove('selected');
+            if (selectedButton === btn) {
+                selectedButton = null;
+                return;
+            }
+            selectedButton = btn;
+            btn.classList.add('selected');
+        }
+
+        function onSlotClick(slot) {
+            if (!selectedButton) return;
+            if (selectedButton.dataset.type !== slot.dataset.type) return; 
+            if (slot.classList.contains('filled')) return; 
+            
+            const gindex = slot.dataset.gindex;
+            const item = testVocab[gindex];
+            const type = slot.dataset.type;
+            
+            slot.innerText = selectedButton.innerText;
+            slot.classList.add('filled');
+            slot.style.backgroundColor = type === 'pro' ? '#ffd8a8' : '#e9ecef';
+            
+            if (type === 'pro') {
+                item.userPro = selectedButton.innerText;
+                item.userProBtnId = selectedButton.id;
+            } else {
+                item.userNoun = selectedButton.innerText;
+                item.userNounBtnId = selectedButton.id;
+            }
+            
+            selectedButton.style.display = 'none';
+            selectedButton.classList.remove('selected');
+            selectedButton = null;
+            
+            checkChunkCompletion();
+        }
+
+        function onSlotDblClick(slot) {
+            if (!slot.classList.contains('filled')) return;
+            const gindex = slot.dataset.gindex;
+            const item = testVocab[gindex];
+            const type = slot.dataset.type;
+            
+            const btnId = type === 'pro' ? item.userProBtnId : item.userNounBtnId;
+            const btn = document.getElementById(btnId);
+            if (btn) btn.style.display = 'block';
+            
+            slot.innerText = '';
+            slot.classList.remove('filled');
+            slot.style.backgroundColor = '#fafafa';
+            
+            if (type === 'pro') { item.userPro = null; item.userProBtnId = null; }
+            else { item.userNoun = null; item.userNounBtnId = null; }
+            
+            checkChunkCompletion();
+        }
+
+        function checkChunkCompletion() {
+            const chunk = chunks[currentChunkIndex];
+            const isCompleted = chunk.every(item => item.userPro !== null && item.userNoun !== null);
+            
+            const btnNext = document.getElementById('btnNext');
+            if (isCompleted) {
+                btnNext.style.display = 'inline-block';
+                if (currentChunkIndex === chunks.length - 1) {
+                    btnNext.innerText = 'Vyhodnotiť';
+                    btnNext.className = 'btn-start'; 
+                } else {
+                    btnNext.innerText = 'Ďalej';
+                    btnNext.className = '';
+                }
+                document.getElementById('pageBtn_' + currentChunkIndex).classList.add('solved');
+            } else {
+                btnNext.style.display = 'none';
+                document.getElementById('pageBtn_' + currentChunkIndex).classList.remove('solved');
+            }
+        }
+
+        function renderPagination() {
+            const cont = document.getElementById('paginationContainer');
+            cont.innerHTML = '';
+            chunks.forEach((c, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'page-btn';
+                btn.id = 'pageBtn_' + idx;
+                btn.innerText = idx + 1;
+                if (idx === currentChunkIndex) btn.classList.add('current');
+                
+                if (c.every(item => item.userPro !== null && item.userNoun !== null)) {
+                    btn.classList.add('solved');
+                }
+                
+                btn.onclick = () => { currentChunkIndex = idx; renderChunk(); };
+                cont.appendChild(btn);
+            });
+        }
+
+        function nextPage() {
+            if (currentChunkIndex < chunks.length - 1) {
+                currentChunkIndex++;
+                renderChunk();
+            } else {
+                evaluateTest();
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const btnNext = document.getElementById('btnNext');
+                if (btnNext && btnNext.style.display !== 'none' && document.getElementById('testScreen').classList.contains('active')) {
+                    nextPage();
+                }
+            }
+        });
+
+        function evaluateTest() {
+            document.getElementById('testScreen').classList.remove('active');
+            document.getElementById('resultScreen').classList.add('active');
+            
+            let score = 0;
+            const maxScore = testVocab.length;
+            const detailedContainer = document.getElementById('detailedResults');
+            detailedContainer.innerHTML = '';
+            
+            testVocab.forEach(item => {
+                const isCorrect = (item.userPro === item.pro) && (item.userNoun === item.noun);
+                if (isCorrect) score++;
+                
+                const row = document.createElement('div');
+                row.className = 'result-row ' + (isCorrect ? 'res-correct' : 'res-incorrect');
+                
+                let html = `<strong>${item.sk}</strong><br>
+                            Tvoja odpoveď: ${item.userPro || '---'} ${item.userNoun || '---'}`;
+                
+                if (!isCorrect) {
+                    html += `<div class="correction">Správna odpoveď: ${item.pro} ${item.noun}</div>`;
+                }
+                row.innerHTML = html;
+                detailedContainer.appendChild(row);
+            });
+            
+            const percent = Math.round((score / maxScore) * 100);
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('sk-SK') + ', ' + now.toLocaleTimeString('sk-SK');
+            
+            const summaryHtml = `
+                <strong>Názov testu:</strong> Množné číslo privlastňovacích zámen<br>
+                <strong>Meno žiaka:</strong> ${studentName}<br>
+                <strong>Počet bodov:</strong> ${score}/${maxScore}<br>
+                <strong>Percentuálne hodnotenie:</strong> ${percent}%<br>
+                <strong>Dátum a čas:</strong> ${dateStr}
+            `;
+            document.getElementById('resultSummary').innerHTML = summaryHtml;
+            window.testResultData = { score, maxScore, percent, dateStr, testVocab, studentName, title: "Množné číslo privlastňovacích zámen" };
+        }
+
+        function sanitizeStr(text) {
+            if (!text) return "Test";
+            return text.normalize("NFD")
+                       .replace(/[\u0300-\u036f]/g, "")
+                       .replace(/[\s\-\(\)\[\]\{\}]/g, "_")
+                       .replace(/[^a-zA-Z0-9_]/g, "")
+                       .replace(/_+/g, "_")
+                       .replace(/^_|_$/g, "");
+        }
+
+        function openDetailedOverview() {
+            const safeName = sanitizeStr(window.testResultData.title + "_" + window.testResultData.studentName);
+            const w = window.open("", "_blank");
+            
+            let rowsHtml = '';
+            window.testResultData.testVocab.forEach(item => {
+                const isCorrect = (item.userPro === item.pro) && (item.userNoun === item.noun);
+                const symbol = isCorrect ? '&#10003;' : '&#10007;';
+                const userAns = `${item.userPro || '---'} ${item.userNoun || '---'}`;
+                const correctAns = `${item.pro} ${item.noun}`;
+                
+                rowsHtml += `
+                    <tr>
+                        <td>${item.sk}</td>
+                        <td>${userAns} <span class="symbol ${isCorrect?'sym-c':'sym-i'}">${symbol}</span></td>
+                        <td>${correctAns}</td>
+                    </tr>
+                `;
+            });
+
+            const html = `<!DOCTYPE html>
+            <html lang="sk">
+            <head>
+                <meta charset="UTF-8">
+                <title>${safeName}</title>
+                <style>
+                    body { font-family: 'Monaco', monospace; padding: 20px; color: #333; max-width: 900px; margin: 0 auto; }
+                    h1 { text-align: center; }
+                    .summary { margin-bottom: 20px; line-height: 1.6; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+                    th { background-color: #f4f4f9; }
+                    .sym-c { color: green; font-weight: bold; margin-left: 10px; }
+                    .sym-i { color: red; font-weight: bold; margin-left: 10px; }
+                    .legend { margin-top: 30px; font-size: 0.9em; color: #555; }
+                    @media print {
+                        .no-print { display: none !important; }
+                    }
+                </style>
+            </head>
+            <body>
+                <h1>Detailný prehľad výsledkov</h1>
+                <div class="summary">
+                    <strong>Názov testu:</strong> ${window.testResultData.title}<br>
+                    <strong>Meno žiaka:</strong> ${window.testResultData.studentName}<br>
+                    <strong>Počet bodov:</strong> ${window.testResultData.score}/${window.testResultData.maxScore}<br>
+                    <strong>Percentuálne hodnotenie:</strong> ${window.testResultData.percent}%<br>
+                    <strong>Dátum a čas:</strong> ${window.testResultData.dateStr}
+                </div>
+                
+                <div class="no-print" style="text-align: right; margin-bottom: 10px;">
+                    <em>Tento súbor môžete vytlačiť pomocou príkazu CTRL + P.</em>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zadanie</th>
+                            <th>Odpoveď žiaka</th>
+                            <th>Správna odpoveď</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+                
+                <div class="legend">
+                    <strong>Vysvetlivky symbolov:</strong><br>
+                    <span class="sym-c">&#10003;</span> - Správna odpoveď<br>
+                    <span class="sym-i">&#10007;</span> - Nesprávna odpoveď
+                </div>
+            </body>
+            </html>`;
+
+            w.document.open();
+            w.document.write(html);
+            w.document.close();
+            
+            // Nastavenie titulku priamo cez objekt okna, aby sme sa vyhli konfliktom s tagmi <script>
+            w.document.title = safeName;
+        }
+    </script>
+</body>
+</html>
