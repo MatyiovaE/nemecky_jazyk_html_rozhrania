@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Priradenie správnej reakcie v mikrodialógoch - generátor</title>
+    <style>
+        body {
+            font-family: "Monaco", monospace;
+            background-color: #f4f4f9;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { text-align: center; font-size: 1.9em; margin-bottom: 25px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            font-family: "Monaco", monospace;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 300px;
+            white-space: pre;
+            overflow-x: auto;
+            background: #fafafa;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            font-family: "Monaco", monospace;
+            padding: 10px 15px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: opacity 0.2s;
+        }
+        .btn-json { background-color: #607d8b; color: white; }
+        .btn-download { background-color: #4CAF50; color: white; width: 100%; font-size: 1.1em; margin-top: 10px; padding: 15px; font-weight: bold; }
+        button:hover { opacity: 0.8; }
+        .info { font-size: 0.8em; color: #666; margin-top: 5px; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Priradenie správnej reakcie v mikrodialógoch (reakcia v dvoch riadkoch) - generátor </h1>
+
+    <div class="input-group">
+        <label>Autor:</label>
+        <input type="text" id="author" placeholder="Meno autora">
+    </div>
+    <div class="input-group">
+        <label>Rok:</label>
+        <input type="text" id="year" placeholder="napr. 2026">
+    </div>
+    <div class="input-group">
+        <label>Predmet:</label>
+        <input type="text" id="subject" placeholder="napr. Nemecký jazyk">
+    </div>
+    <div class="input-group">
+        <label>Téma:</label>
+        <input type="text" id="topic" placeholder="napr. Cestovanie vlakom">
+    </div>
+
+    <div class="input-group">
+        <label>Dáta (Zadanie[TAB]Reakcia):</label>
+        <textarea id="dataInput" placeholder="Wie geht es dir?[TAB]Danke, gut.
+Was machst du?[TAB]Ich lese.
+
+Heißt sie Helga?[TAB]Ja, sie heißt Helga./Nein, sie heißt nicht Helga.
+Kommst du mit?[TAB]Ja, gerne."></textarea>
+        <div class="info">
+            <strong>Pokyny k formátovaniu:</strong><br>
+            - Každý riadok obsahuje jeden mikrodialóg oddelený tabulátorom.<br>
+            - <strong>Prázdny riadok</strong> oddeľuje bloky úloh. (Zobrazí sa max. 4 úlohy na jeden blok/stránku).<br>
+            - <strong>Lomka (/) v odpovedi</strong> znamená, že texty sa na tlačidle a v slote zobrazia pod sebou.<br>
+            - Povolené sú HTML tagy.
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button class="btn-json" onclick="exportJSON()">Exportovať nastavenia do súboru .json</button>
+        <button class="btn-json" onclick="document.getElementById('importFile').click()">Importovať nastavenia zo súboru .json</button>
+        <input type="file" id="importFile" style="display:none" accept=".json" onchange="importJSON(event)">
+    </div>
+
+    <button class="btn-download" onclick="generateTest()">Stiahnuť test vo formáte .html</button>
+	
+	<br><br>
+	<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+<br><br>
+</div>
+
+<script>
+    const textarea = document.getElementById('dataInput');
+    textarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 1;
+        }
+    });
+
+    function slugify(text) {
+        return text.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^\w-]+/g, '_')
+            .replace(/--+/g, '_')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+    }
+
+    function exportJSON() {
+        const settings = {
+            author: document.getElementById('author').value,
+            year: document.getElementById('year').value,
+            subject: document.getElementById('subject').value,
+            topic: document.getElementById('topic').value,
+            data: document.getElementById('dataInput').value
+        };
+        const blob = new Blob([JSON.stringify(settings, null, 2)], {type: "application/json"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `nastavenia_${slugify(settings.topic || 'test')}.json`;
+        a.click();
+    }
+
+    function importJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const settings = JSON.parse(e.target.result);
+                document.getElementById('author').value = settings.author || '';
+                document.getElementById('year').value = settings.year || '';
+                document.getElementById('subject').value = settings.subject || '';
+                document.getElementById('topic').value = settings.topic || '';
+                document.getElementById('dataInput').value = settings.data || '';
+            } catch (err) {
+                // Bez chybovych hlaseni
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function escapeHtml(unsafe) {
+        return (unsafe || "").toString()
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
+
+    function generateTest() {
+        const meta = {
+            author: document.getElementById('author').value,
+            year: document.getElementById('year').value,
+            subject: document.getElementById('subject').value,
+            topic: document.getElementById('topic').value
+        };
+        
+        const rawData = document.getElementById('dataInput').value;
+        const rawBlocks = rawData.split(/\n\s*\n/);
+        const blocks = [];
+
+        for (let blockText of rawBlocks) {
+            const pairs = blockText.split('\n')
+                .filter(line => line.indexOf('\t') !== -1)
+                .map(line => {
+                    const parts = line.split('\t');
+                    // Nahradenie lomky za <br> v odpovedi
+                    return { q: parts[0].trim(), a: parts[1].trim().split('/').join('<br>') };
+                });
+            
+            if (pairs.length > 0) {
+                blocks.push(pairs.slice(0, 4)); // Obmedzenie na max 4 ulohy v bloku
+            }
+        }
+
+        if (blocks.length === 0) {
+            alert("Zadajte prosím aspoň jeden platný blok (Zadanie a Odpoveď) oddelený tabulátorom.");
+            return;
+        }
+
+        const safeTopic = slugify(meta.topic || "test");
+        const filename = `test_${safeTopic}.html`;
+
+        const testContent = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>${escapeHtml(meta.topic) || "Priradenie správnej reakcie"}</title>
+    <style>
+        body { font-family: "Monaco", monospace; background-color: #f0f2f5; padding: 20px; color: #333; }
+        .test-container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; }
+        .meta-info { border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 10px; font-size: 0.9em; color: #555; }
+        
+        /* Úvodná stránka */
+        #setup-screen { text-align: center; }
+        .input-box { margin: 15px 0; }
+        input[type="text"], input[type="number"] { font-family: "Monaco", monospace; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        #btn-start { background-color: #4CAF50; color: white; padding: 12px 30px; font-size: 1.2em; border: none; cursor: pointer; border-radius: 4px; font-family: "Monaco", monospace; font-weight: bold; }
+
+        /* Hracie prostredie */
+        #game-screen { display: none; }
+        .instruction { background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9em; text-align: center; }
+        .task-row { display: flex; align-items: center; margin-bottom: 5px; min-height: 40px; }
+        .question { width: 45%; font-weight: bold; padding-right: 15px;  font-size: 1.2em; }
+        .slot { width: 50%; border: 2px dashed #999; min-height: 35px; padding: 5px; border-radius: 4px; background: #fafafa; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 1.1em; }
+        .slot.filled { border-style: solid; border-color: #333; background: #fff; font-weight: bold; }
+        
+        .options-pool { margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .option-btn { 
+            background: #d3d3d3; 
+            color: #000; 
+            font-weight: bold; 
+            padding: 10px 18px; 
+            border: 1px solid #bbb; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 1.15em; 
+            font-family: "Monaco", monospace; 
+        }
+        .option-btn.selected { background: #ffeb3b; outline: 2px solid #fbc02d; }
+        .option-btn.used { display: none; }
+
+        /* Navigácia */
+        .nav-controls { margin-top: 25px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .nav-btn { background: #e0e0e0; border: 1px solid #ccc; padding: 5px 12px; cursor: pointer; border-radius: 4px; font-family: "Monaco", monospace; }
+        .nav-btn.active-page { outline: 2px solid #555; font-weight: bold; }
+        .nav-btn.solved { background: #add8e6; }
+						
+		#btn-next { 
+            font-family: "Monaco", monospace; 
+            background: #2196F3; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+
+        #btn-eval { 
+            font-family: "Monaco", monospace; 
+            background: #4CAF50; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+
+        /* Vyhodnotenie */
+        #result-screen { display: none; }
+        .eval-row { padding: 10px; border-bottom: 1px solid #eee; margin-bottom: 5px; }
+        .correct { background-color: #d4edda; }
+        .incorrect { background-color: #f8d7da; }
+        .correct-answer-text { color: #d32f2f; font-weight: bold; font-size: 0.9em; display: block; margin-top: 5px; }
+        .btn-detail { font-family: "Monaco", monospace; background: #607d8b; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="test-container">
+    <div id="setup-screen">
+        <h1>${escapeHtml(meta.topic) || "Priradenie správnej reakcie v mikrodialógoch"}</h1>
+        <div class="meta-info">
+            Autor: ${escapeHtml(meta.author)} | Rok: ${escapeHtml(meta.year)} | Predmet: ${escapeHtml(meta.subject)}
+        </div>
+        <div class="input-box">
+            Meno žiaka: <input type="text" id="studentName" placeholder="Tvoje meno" autofocus>
+        </div>
+        <div class="input-box">
+            Počet blokov: <input type="number" id="taskCount" value="${blocks.length}" min="1" max="${blocks.length}">
+            <br><small>(Maximum blokov v databáze: ${blocks.length}. 1 blok = 1 stránka)</small>
+        </div>
+        <button id="btn-start" onclick="startTest()">Štart</button>
+    </div>
+
+    <div id="game-screen">
+        
+        <div class="instruction">
+            <strong>Pokyn:</strong> Klikni na tlačidlo v ponuke a potom na príslušný slot, kam chceš text umiestniť.<br>
+            Ak si rozhodnutie rozmyslíš, klikni na už umiestnený text v slote dvakrát a ten sa vráti na pôvodné miesto.
+        </div>
+        <div id="tasks-area"></div>
+        <div id="pool-area" class="options-pool"></div>
+        <div id="nav-pages" class="nav-controls" style="margin-bottom:15px"></div>
+        <div class="nav-controls">
+            <button id="btn-next" onclick="nextPage()">Ďalej</button>
+            <button id="btn-eval" onclick="evaluateTest()" style="display:none">Vyhodnotiť</button>
+        </div>
+    </div>
+
+    <div id="result-screen">
+        <h2>Výsledky testu</h2>
+        <div id="summary" style="line-height: 1.6; font-size: 1.1em; margin-bottom: 20px;"></div>
+        <div id="review-area"></div>
+        <button class="btn-detail" onclick="showDetail()">Zobraziť detailný prehľad</button>
+    </div>
+</div>
+
+<script>
+    // Údaje z generátora prevedené na bezpečný JSON
+    let allBlocks = ${JSON.stringify(blocks)};
+    let metaData = ${JSON.stringify(meta)};
+    
+    let selectedBlocks = [];
+    let studentName = "";
+    let currentPage = 0;
+    let answers = {}; // formát uloženia: answers['blockIdx_taskIdx']
+    let selectedOption = null;
+
+    function startTest() {
+        studentName = document.getElementById('studentName').value.trim();
+        if (!studentName) studentName = "XY";
+        
+        let count = parseInt(document.getElementById('taskCount').value);
+        if (isNaN(count) || count < 1) count = allBlocks.length;
+        if (count > allBlocks.length) count = allBlocks.length;
+        
+        // Hlboké kopírovanie blokov pre bezpečné miešanie
+        let clonedBlocks = JSON.parse(JSON.stringify(allBlocks));
+
+        // Zamiešanie blokov medzi sebou
+        selectedBlocks = clonedBlocks.sort(() => 0.5 - Math.random()).slice(0, count);
+        
+        // Zamiešanie viet vo vnútri každého bloku
+        selectedBlocks.forEach(block => {
+            block.sort(() => 0.5 - Math.random());
+        });
+
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'block';
+        
+        renderPage(0);
+    }
+
+    function renderNav() {
+        const nav = document.getElementById('nav-pages');
+        nav.innerHTML = '';
+        const totalPages = selectedBlocks.length;
+        
+        for(let i=0; i < totalPages; i++) {
+            let btn = document.createElement('button');
+            btn.innerText = i + 1;
+            btn.className = 'nav-btn';
+            
+            let isComplete = true;
+            for(let j=0; j<selectedBlocks[i].length; j++) {
+                if(!answers[i + '_' + j]) isComplete = false;
+            }
+            
+            if (isComplete) btn.classList.add('solved');
+            if (i === currentPage) btn.classList.add('active-page');
+            
+            btn.onclick = () => { renderPage(i); };
+            nav.appendChild(btn);
+        }
+    }
+
+    function renderPage(pageIdx) {
+        currentPage = pageIdx;
+        selectedOption = null;
+        
+        const area = document.getElementById('tasks-area');
+        const pool = document.getElementById('pool-area');
+        area.innerHTML = '';
+        pool.innerHTML = '';
+        
+        let currentBlock = selectedBlocks[pageIdx];
+        
+        let pageOptions = currentBlock.map((task, idx) => ({text: task.a, id: idx}));
+        pageOptions.sort(() => 0.5 - Math.random());
+
+        currentBlock.forEach((task, idx) => {
+            let ansKey = pageIdx + '_' + idx;
+            let row = document.createElement('div');
+            row.className = 'task-row';
+            row.innerHTML = \`
+                <div class="question">\${task.q}</div>
+                <div class="slot \${answers[ansKey] ? 'filled' : ''}" 
+                     onclick="handleSlotClick(\${pageIdx}, \${idx})" 
+                     ondblclick="handleSlotReset(\${pageIdx}, \${idx})">
+                    \${answers[ansKey] || ''}
+                </div>
+            \`;
+            area.appendChild(row);
+        });
+
+        pageOptions.forEach(opt => {
+            let usedInThisBlock = false;
+            for (let k in answers) {
+                if (k.startsWith(pageIdx + '_') && answers[k] === opt.text) {
+                    usedInThisBlock = true;
+                }
+            }
+            
+            let b = document.createElement('button');
+            b.className = 'option-btn' + (usedInThisBlock ? ' used' : '');
+            b.innerHTML = opt.text; // Text už obsahuje <br> z generátora
+            b.onclick = () => {
+                document.querySelectorAll('.option-btn').forEach(x => x.classList.remove('selected'));
+                b.classList.add('selected');
+                selectedOption = opt.text;
+            };
+            pool.appendChild(b);
+        });
+
+        const totalPages = selectedBlocks.length;
+        document.getElementById('btn-next').style.display = (currentPage < totalPages - 1) ? 'inline-block' : 'none';
+        document.getElementById('btn-eval').style.display = (currentPage === totalPages - 1) ? 'inline-block' : 'none';
+        
+        renderNav();
+    }
+
+    function handleSlotClick(bIdx, tIdx) {
+        if (!selectedOption) return;
+        answers[bIdx + '_' + tIdx] = selectedOption;
+        selectedOption = null;
+        renderPage(currentPage);
+    }
+
+    function handleSlotReset(bIdx, tIdx) {
+        delete answers[bIdx + '_' + tIdx];
+        renderPage(currentPage);
+    }
+
+    function nextPage() {
+        const totalPages = selectedBlocks.length;
+        if (currentPage < totalPages - 1) {
+            renderPage(currentPage + 1);
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && document.getElementById('game-screen').style.display === 'block') {
+            nextPage();
+        }
+    });
+
+    function evaluateTest() {
+        document.getElementById('game-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        
+        let score = 0;
+        let totalTasks = 0;
+        let html = '';
+        
+        selectedBlocks.forEach((block, bIdx) => {
+            html += \`<h3 style="margin-top:20px; border-bottom: 2px solid #ccc;">Blok \${bIdx + 1}</h3>\`;
+            block.forEach((task, tIdx) => {
+                totalTasks++;
+                let ansKey = bIdx + '_' + tIdx;
+                let isCorrect = answers[ansKey] === task.a;
+                if(isCorrect) score++;
+                
+                html += \`
+                    <div class="eval-row \${isCorrect ? 'correct' : 'incorrect'}">
+                        <strong>Zadanie:</strong> \${task.q}<br>
+                        <strong>Odpoveď žiaka:</strong> \${answers[ansKey] || '---'}
+                        \${!isCorrect ? \`<span class="correct-answer-text">Správna odpoveď: \${task.a}</span>\` : ''}
+                    </div>
+                \`;
+            });
+        });
+
+        let percent = ((score / totalTasks) * 100).toFixed(2);
+        let now = new Date();
+        let timestamp = now.toLocaleDateString() + ", " + now.toLocaleTimeString();
+
+        document.getElementById('summary').innerHTML = \`
+            Názov testu: \${metaData.topic || 'Priradenie'}<br>
+            Meno žiaka: <strong>\${studentName}</strong><br>
+            Počet bodov: \${score}/\${totalTasks}<br>
+            Percentuálne hodnotenie: \${percent}%<br>
+            Dátum a čas: \${timestamp}
+        \`;
+        
+        document.getElementById('review-area').innerHTML = html;
+    }
+
+    function slugifyStr(text) {
+        return text.toString().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')
+            .toLowerCase().replace(/\\s+/g, '_').replace(/[^\\w-]+/g, '_');
+    }
+
+    function showDetail() {
+        let score = 0;
+        let totalTasks = 0;
+        selectedBlocks.forEach((block, bIdx) => {
+            block.forEach((task, tIdx) => {
+                totalTasks++;
+                if (answers[bIdx + '_' + tIdx] === task.a) score++;
+            });
+        });
+
+        let percent = ((score / totalTasks) * 100).toFixed(2);
+        let now = new Date();
+        let timestamp = now.toLocaleDateString() + ", " + now.toLocaleTimeString();
+
+        let safeTitle = "vysledok_" + slugifyStr(studentName) + "_" + slugifyStr(metaData.topic || 'test');
+
+        const win = window.open('', '_blank');
+        let detailHtml = \`
+            <!DOCTYPE html>
+            <html lang="sk">
+            <head>
+                <meta charset="UTF-8">
+                <title>\${safeTitle}</title>
+                <style>
+                    body { font-family: "Monaco", monospace; padding: 30px; line-height: 1.5; color: #000; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #000; padding: 10px; text-align: left; }
+                    th { background-color: #eee; }
+                    .no-print-btn { background: #333; color: #fff; padding: 10px 15px; cursor: pointer; border: none; margin-bottom: 20px; font-family: "Monaco", monospace; font-size: 1.1em; }
+                    @media print { .no-print-btn { display: none; } }
+                </style>
+            </head>
+            <body>
+                <button class="no-print-btn" onclick="window.print()">Vytlačiť (CTRL + P)</button>
+                <h2>Detailný prehľad výsledkov</h2>
+                <p>Názov testu: \${metaData.topic || 'Priradenie'}</p>
+                <p>Meno žiaka: <strong>\${studentName}</strong></p>
+                <p>Počet bodov: \${score}/\${totalTasks}</p>
+                <p>Percentuálne hodnotenie: \${percent}%</p>
+                <p>Dátum a čas: \${timestamp}</p>
+                
+                <table>
+                    <tr><th>Zadanie</th><th>Odpoveď žiaka</th><th>Správna odpoveď</th></tr>
+        \`;
+
+        selectedBlocks.forEach((block, bIdx) => {
+            detailHtml += \`<tr><td colspan="3" style="background:#ddd; font-weight:bold; text-align:center;">Blok \${bIdx + 1}</td></tr>\`;
+            block.forEach((task, tIdx) => {
+                let ansKey = bIdx + '_' + tIdx;
+                let isCorrect = answers[ansKey] === task.a;
+                let icon = isCorrect ? '✓' : '✗';
+                detailHtml += \`
+                    <tr>
+                        <td>\${task.q}</td>
+                        <td>\${answers[ansKey] || '---'} <strong>\${icon}</strong></td>
+                        <td>\${task.a}</td>
+                    </tr>
+                \`;
+            });
+        });
+
+        detailHtml += \`
+                </table>
+                <div style="margin-top:20px">
+                    <strong>Vysvetlivky:</strong><br>
+                    ✓ - správna odpoveď<br>
+                    ✗ - nesprávna odpoveď
+                </div>
+            </body>
+            </html>
+        \`;
+        
+        win.document.write(detailHtml);
+        win.document.close();
+    }
+<\/script>
+</body>
+</html>`;
+
+        const blob = new Blob([testContent], {type: "text/html"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+    }
+</script>
+
+</body>
+</html>
