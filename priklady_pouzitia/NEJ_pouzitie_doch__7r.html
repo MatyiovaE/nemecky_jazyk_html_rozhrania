@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Použitie doch (7. ročník)</title>
+    <style>
+        body { font-family: "Monaco", monospace; background-color: #f0f2f5; padding: 20px; color: #333; }
+        .test-container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; }
+        .meta-info { border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 10px; font-size: 0.9em; color: #555; }
+        
+        /* Úvodná stránka */
+        #setup-screen { text-align: center; }
+        .input-box { margin: 15px 0; }
+        input[type="text"], input[type="number"] { font-family: "Monaco", monospace; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        #btn-start { background-color: #4CAF50; color: white; padding: 12px 30px; font-size: 1.2em; border: none; cursor: pointer; border-radius: 4px; font-family: "Monaco", monospace; font-weight: bold; }
+
+        /* Hracie prostredie */
+        #game-screen { display: none; }
+        .instruction { background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9em; text-align: center; }
+        .task-row { display: flex; align-items: center; margin-bottom: 5px; min-height: 40px; }
+        .question { width: 45%; font-weight: bold; padding-right: 15px;  font-size: 1.2em; }
+        .slot { width: 50%; border: 2px dashed #999; min-height: 35px; padding: 5px; border-radius: 4px; background: #fafafa; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 1.1em; }
+        .slot.filled { border-style: solid; border-color: #333; background: #fff; font-weight: bold; }
+        
+        .options-pool { margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .option-btn { 
+            background: #d3d3d3; 
+            color: #000; 
+            font-weight: bold; 
+            padding: 10px 18px; 
+            border: 1px solid #bbb; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 1.15em; 
+            font-family: "Monaco", monospace; 
+        }
+        .option-btn.selected { background: #ffeb3b; outline: 2px solid #fbc02d; }
+        .option-btn.used { display: none; }
+
+        /* Navigácia */
+        .nav-controls { margin-top: 25px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .nav-btn { background: #e0e0e0; border: 1px solid #ccc; padding: 5px 12px; cursor: pointer; border-radius: 4px; font-family: "Monaco", monospace; }
+        .nav-btn.active-page { outline: 2px solid #555; font-weight: bold; }
+        .nav-btn.solved { background: #add8e6; }
+						
+		#btn-next { 
+            font-family: "Monaco", monospace; 
+            background: #2196F3; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+
+        #btn-eval { 
+            font-family: "Monaco", monospace; 
+            background: #4CAF50; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+
+        /* Vyhodnotenie */
+        #result-screen { display: none; }
+        .eval-row { padding: 10px; border-bottom: 1px solid #eee; margin-bottom: 5px; }
+        .correct { background-color: #d4edda; }
+        .incorrect { background-color: #f8d7da; }
+        .correct-answer-text { color: #d32f2f; font-weight: bold; font-size: 0.9em; display: block; margin-top: 5px; }
+        .btn-detail { font-family: "Monaco", monospace; background: #607d8b; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="test-container">
+    <div id="setup-screen">
+        <h1>Použitie doch (7. ročník)</h1>
+        <div class="meta-info">
+            Autor: Mgr. Erika Matyiová | Rok: 2026 | Predmet: NEJ
+        </div>
+        <div class="input-box">
+            Meno žiaka: <input type="text" id="studentName" placeholder="Tvoje meno" autofocus>
+        </div>
+        <div class="input-box">
+            Počet blokov: <input type="number" id="taskCount" value="12" min="1" max="12">
+            <br><small>(Maximum blokov v databáze: 12. 1 blok = 1 stránka)</small>
+        </div>
+        <button id="btn-start" onclick="startTest()">Štart</button>
+    </div>
+
+    <div id="game-screen">
+        
+        <div class="instruction">
+            <strong>Pokyn:</strong> Klikni na tlačidlo v ponuke a potom na príslušný slot, kam chceš text umiestniť.<br>
+            Ak si rozhodnutie rozmyslíš, klikni na už umiestnený text v slote dvakrát a ten sa vráti na pôvodné miesto.
+        </div>
+        <div id="tasks-area"></div>
+        <div id="pool-area" class="options-pool"></div>
+        <div id="nav-pages" class="nav-controls" style="margin-bottom:15px"></div>
+        <div class="nav-controls">
+            <button id="btn-next" onclick="nextPage()">Ďalej</button>
+            <button id="btn-eval" onclick="evaluateTest()" style="display:none">Vyhodnotiť</button>
+        </div>
+    </div>
+
+    <div id="result-screen">
+        <h2>Výsledky testu</h2>
+        <div id="summary" style="line-height: 1.6; font-size: 1.1em; margin-bottom: 20px;"></div>
+        <div id="review-area"></div>
+        <button class="btn-detail" onclick="showDetail()">Zobraziť detailný prehľad</button>
+    </div>
+</div>
+
+<script>
+    // Údaje z generátora prevedené na bezpečný JSON
+    let allBlocks = [[{"q":"Bist du hungrig?","a":"Ja, ich bin hungrig.<br>Nein, ich bin nicht hungrig."},{"q":"Bist du nicht hungrig?","a":"Doch, ich bin hungrig.<br>Nein, ich bin nicht hungrig."},{"q":"Heißt er Jürgen?","a":"Ja, er heißt Jürgen.<br>Nein, er heißt nicht Jürgen."},{"q":"Heißt er nicht Jürgen?","a":"Doch, er heißt Jürgen.<br>Nein, er heißt nicht Jürgen."}],[{"q":"Heißt sie Helga?","a":"Ja, sie heißt Helga.<br>Nein, sie heißt nicht Helga."},{"q":"Heißt sie nicht Helga?","a":"Doch, sie heißt Helga.<br>Nein, sie heißt nicht Helga."},{"q":"Ist das dein Heft?","a":"Ja, das ist mein Heft.<br>Nein, das ist nicht mein Heft."},{"q":"Ist das nicht dein Heft?","a":"Doch, das ist mein Heft.<br>Nein, das ist nicht mein Heft."}],[{"q":"Ist das die dritte Stunde?","a":"Ja, das ist die dritte Stunde.<br>Nein, das ist nicht die dritte Stunde."},{"q":"Ist das nicht die dritte Stunde?","a":"Doch, das ist die dritte Stunde.<br>Nein, das ist nicht die dritte Stunde."},{"q":"Ist das ein Fehler?","a":"Ja, das ist ein Fehler.<br>Nein, das ist kein Fehler."},{"q":"Ist das kein Fehler?","a":"Doch, das ist ein Fehler.<br>Nein, das ist kein Fehler."}],[{"q":"Ist das ein Handy?","a":"Ja, das ist ein Handy.<br>Nein, das ist kein Handy."},{"q":"Ist das kein Handy?","a":"Doch, das ist ein Handy.<br>Nein, das ist kein Handy."},{"q":"Ist das ein Hund?","a":"Ja, das ist ein Hund.<br>Nein, das ist kein Hund."},{"q":"Ist das kein Hund?","a":"Doch, das ist ein Hund.<br>Nein, das ist kein Hund."}],[{"q":"Ist das ein Witz?","a":"Ja, das ist ein Witz.<br>Nein, das ist kein Witz."},{"q":"Ist das kein Witz?","a":"Doch, das ist ein Witz.<br>Nein, das ist kein Witz."},{"q":"Ist das ein Kugelschreiber?","a":"Ja, das ist ein Kugelschreiber.<br>Nein, das ist kein Kugelschreiber."},{"q":"Ist das kein Kugelschreiber?","a":"Doch, das ist ein Kugelschreiber.<br>Nein, das ist kein Kugelschreiber."}],[{"q":"Ist das eine Katze?","a":"Ja, das ist eine Katze.<br>Nein, das ist keine Katze."},{"q":"Ist das keine Katze?","a":"Doch, das ist eine Katze.<br>Nein, das ist keine Katze."},{"q":"Ist das nicht richtig?","a":"Doch, das ist richtig.<br>Nein, das ist nicht richtig."},{"q":"Ist das richtig?","a":"Ja, das ist richtig.<br>Nein, das ist nicht richtig."}],[{"q":"Ist die Lösung falsch?","a":"Ja, die Lösung ist falsch.<br>Nein, die Lösung ist nicht falsch."},{"q":"Ist die Lösung nicht falsch?","a":"Doch, die Lösung ist falsch.<br>Nein, die Lösung ist nicht falsch."},{"q":"Ist die Rose nicht rot?","a":"Doch, die Rose ist rot.<br>Nein, die Rose ist nicht rot."},{"q":"Ist die Rose rot?","a":"Ja, die Rose ist rot.<br>Nein, die Rose ist nicht rot."}],[{"q":"Ist heute Mittwoch?","a":"Ja, heute ist Mittwoch.<br>Nein, heute ist nicht Mittwoch."},{"q":"Ist heute nicht Mittwoch?","a":"Doch, heute ist Mittwoch.<br>Nein, heute ist nicht Mittwoch."},{"q":"Kommt er aus der Slowakei?","a":"Ja, er kommt aus der Slowakei.<br>Nein, er kommt nicht aus der Slowakei."},{"q":"Kommt er nicht aus der Slowakei?","a":"Doch, er kommt aus der Slowakei.<br>Nein, er kommt nicht aus der Slowakei."}],[{"q":"Lernst du gern Slowakisch?","a":"Ja, ich lerne gern Slowakisch.<br>Nein, ich lerne nicht gern Slowakisch."},{"q":"Lernst du nicht gern Slowakisch?","a":"Doch, ich lerne gern Slowakisch.<br>Nein, ich lerne nicht gern Slowakisch."}],[{"q":"Schreibt Hans nicht schön?","a":"Doch, Hans schreibt schön.<br>Nein, Hans schreibt nicht schön."},{"q":"Schreibt Hans schön?","a":"Ja, Hans schreibt schön.<br>Nein, Hans schreibt nicht schön."},{"q":"Sind Sie durstig?","a":"Ja, ich bin durstig.<br>Nein, ich bin nicht durstig."},{"q":"Sind Sie nicht durstig?","a":"Doch, ich bin durstig.<br>Nein, ich bin nicht durstig."}],[{"q":"Sprichst du Englisch?","a":"Ja, ich spreche Englisch.<br>Nein, ich spreche nicht Englisch."},{"q":"Sprichst du nicht Englisch?","a":"Doch, ich spreche Englisch.<br>Nein, ich spreche nicht Englisch."},{"q":"Verstehst du das Wort nicht?","a":"Doch, ich verstehe das Wort.<br>Nein, ich verstehe das Wort nicht."},{"q":"Verstehst du das Wort?","a":"Ja, ich verstehe das Wort.<br>Nein, ich verstehe das Wort nicht."}],[{"q":"Wohnst du in Bratislava?","a":"Ja, ich wohne in Bratislava.<br>Nein, ich wohne nicht in Bratislava."},{"q":"Wohnst du nicht in Bratislava?","a":"Doch, ich wohne in Bratislava.<br>Nein, ich wohne nicht in Bratislava."},{"q":"Ist die sechste Stunde am Montag Deutsch?","a":"Ja, die sechste Stunde am Montag ist Deutsch.<br>Nein, die sechste Stunde am Montag ist nicht Deutsch."},{"q":"Ist die sechste Stunde am Montag nicht Deutsch?","a":"Doch, die sechste Stunde am Montag ist Deutsch.<br>Nein, die sechste Stunde am Montag ist nicht Deutsch."}]];
+    let metaData = {"author":"Mgr. Erika Matyiová","year":"2026","subject":"NEJ","topic":"Použitie doch (7. ročník)"};
+    
+    let selectedBlocks = [];
+    let studentName = "";
+    let currentPage = 0;
+    let answers = {}; // formát uloženia: answers['blockIdx_taskIdx']
+    let selectedOption = null;
+
+    function startTest() {
+        studentName = document.getElementById('studentName').value.trim();
+        if (!studentName) studentName = "XY";
+        
+        let count = parseInt(document.getElementById('taskCount').value);
+        if (isNaN(count) || count < 1) count = allBlocks.length;
+        if (count > allBlocks.length) count = allBlocks.length;
+        
+        // Hlboké kopírovanie blokov pre bezpečné miešanie
+        let clonedBlocks = JSON.parse(JSON.stringify(allBlocks));
+
+        // Zamiešanie blokov medzi sebou
+        selectedBlocks = clonedBlocks.sort(() => 0.5 - Math.random()).slice(0, count);
+        
+        // Zamiešanie viet vo vnútri každého bloku
+        selectedBlocks.forEach(block => {
+            block.sort(() => 0.5 - Math.random());
+        });
+
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'block';
+        
+        renderPage(0);
+    }
+
+    function renderNav() {
+        const nav = document.getElementById('nav-pages');
+        nav.innerHTML = '';
+        const totalPages = selectedBlocks.length;
+        
+        for(let i=0; i < totalPages; i++) {
+            let btn = document.createElement('button');
+            btn.innerText = i + 1;
+            btn.className = 'nav-btn';
+            
+            let isComplete = true;
+            for(let j=0; j<selectedBlocks[i].length; j++) {
+                if(!answers[i + '_' + j]) isComplete = false;
+            }
+            
+            if (isComplete) btn.classList.add('solved');
+            if (i === currentPage) btn.classList.add('active-page');
+            
+            btn.onclick = () => { renderPage(i); };
+            nav.appendChild(btn);
+        }
+    }
+
+    function renderPage(pageIdx) {
+        currentPage = pageIdx;
+        selectedOption = null;
+        
+        const area = document.getElementById('tasks-area');
+        const pool = document.getElementById('pool-area');
+        area.innerHTML = '';
+        pool.innerHTML = '';
+        
+        let currentBlock = selectedBlocks[pageIdx];
+        
+        let pageOptions = currentBlock.map((task, idx) => ({text: task.a, id: idx}));
+        pageOptions.sort(() => 0.5 - Math.random());
+
+        currentBlock.forEach((task, idx) => {
+            let ansKey = pageIdx + '_' + idx;
+            let row = document.createElement('div');
+            row.className = 'task-row';
+            row.innerHTML = `
+                <div class="question">${task.q}</div>
+                <div class="slot ${answers[ansKey] ? 'filled' : ''}" 
+                     onclick="handleSlotClick(${pageIdx}, ${idx})" 
+                     ondblclick="handleSlotReset(${pageIdx}, ${idx})">
+                    ${answers[ansKey] || ''}
+                </div>
+            `;
+            area.appendChild(row);
+        });
+
+        pageOptions.forEach(opt => {
+            let usedInThisBlock = false;
+            for (let k in answers) {
+                if (k.startsWith(pageIdx + '_') && answers[k] === opt.text) {
+                    usedInThisBlock = true;
+                }
+            }
+            
+            let b = document.createElement('button');
+            b.className = 'option-btn' + (usedInThisBlock ? ' used' : '');
+            b.innerHTML = opt.text; // Text už obsahuje <br> z generátora
+            b.onclick = () => {
+                document.querySelectorAll('.option-btn').forEach(x => x.classList.remove('selected'));
+                b.classList.add('selected');
+                selectedOption = opt.text;
+            };
+            pool.appendChild(b);
+        });
+
+        const totalPages = selectedBlocks.length;
+        document.getElementById('btn-next').style.display = (currentPage < totalPages - 1) ? 'inline-block' : 'none';
+        document.getElementById('btn-eval').style.display = (currentPage === totalPages - 1) ? 'inline-block' : 'none';
+        
+        renderNav();
+    }
+
+    function handleSlotClick(bIdx, tIdx) {
+        if (!selectedOption) return;
+        answers[bIdx + '_' + tIdx] = selectedOption;
+        selectedOption = null;
+        renderPage(currentPage);
+    }
+
+    function handleSlotReset(bIdx, tIdx) {
+        delete answers[bIdx + '_' + tIdx];
+        renderPage(currentPage);
+    }
+
+    function nextPage() {
+        const totalPages = selectedBlocks.length;
+        if (currentPage < totalPages - 1) {
+            renderPage(currentPage + 1);
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && document.getElementById('game-screen').style.display === 'block') {
+            nextPage();
+        }
+    });
+
+    function evaluateTest() {
+        document.getElementById('game-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        
+        let score = 0;
+        let totalTasks = 0;
+        let html = '';
+        
+        selectedBlocks.forEach((block, bIdx) => {
+            html += `<h3 style="margin-top:20px; border-bottom: 2px solid #ccc;">Blok ${bIdx + 1}</h3>`;
+            block.forEach((task, tIdx) => {
+                totalTasks++;
+                let ansKey = bIdx + '_' + tIdx;
+                let isCorrect = answers[ansKey] === task.a;
+                if(isCorrect) score++;
+                
+                html += `
+                    <div class="eval-row ${isCorrect ? 'correct' : 'incorrect'}">
+                        <strong>Zadanie:</strong> ${task.q}<br>
+                        <strong>Odpoveď žiaka:</strong> ${answers[ansKey] || '---'}
+                        ${!isCorrect ? `<span class="correct-answer-text">Správna odpoveď: ${task.a}</span>` : ''}
+                    </div>
+                `;
+            });
+        });
+
+        let percent = ((score / totalTasks) * 100).toFixed(2);
+        let now = new Date();
+        let timestamp = now.toLocaleDateString() + ", " + now.toLocaleTimeString();
+
+        document.getElementById('summary').innerHTML = `
+            Názov testu: ${metaData.topic || 'Priradenie'}<br>
+            Meno žiaka: <strong>${studentName}</strong><br>
+            Počet bodov: ${score}/${totalTasks}<br>
+            Percentuálne hodnotenie: ${percent}%<br>
+            Dátum a čas: ${timestamp}
+        `;
+        
+        document.getElementById('review-area').innerHTML = html;
+    }
+
+    function slugifyStr(text) {
+        return text.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase().replace(/\s+/g, '_').replace(/[^\w-]+/g, '_');
+    }
+
+    function showDetail() {
+        let score = 0;
+        let totalTasks = 0;
+        selectedBlocks.forEach((block, bIdx) => {
+            block.forEach((task, tIdx) => {
+                totalTasks++;
+                if (answers[bIdx + '_' + tIdx] === task.a) score++;
+            });
+        });
+
+        let percent = ((score / totalTasks) * 100).toFixed(2);
+        let now = new Date();
+        let timestamp = now.toLocaleDateString() + ", " + now.toLocaleTimeString();
+
+        let safeTitle = "vysledok_" + slugifyStr(studentName) + "_" + slugifyStr(metaData.topic || 'test');
+
+        const win = window.open('', '_blank');
+        let detailHtml = `
+            <!DOCTYPE html>
+            <html lang="sk">
+            <head>
+                <meta charset="UTF-8">
+                <title>${safeTitle}</title>
+                <style>
+                    body { font-family: "Monaco", monospace; padding: 30px; line-height: 1.5; color: #000; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #000; padding: 10px; text-align: left; }
+                    th { background-color: #eee; }
+                    .no-print-btn { background: #333; color: #fff; padding: 10px 15px; cursor: pointer; border: none; margin-bottom: 20px; font-family: "Monaco", monospace; font-size: 1.1em; }
+                    @media print { .no-print-btn { display: none; } }
+                </style>
+            </head>
+            <body>
+                <button class="no-print-btn" onclick="window.print()">Vytlačiť (CTRL + P)</button>
+                <h2>Detailný prehľad výsledkov</h2>
+                <p>Názov testu: ${metaData.topic || 'Priradenie'}</p>
+                <p>Meno žiaka: <strong>${studentName}</strong></p>
+                <p>Počet bodov: ${score}/${totalTasks}</p>
+                <p>Percentuálne hodnotenie: ${percent}%</p>
+                <p>Dátum a čas: ${timestamp}</p>
+                
+                <table>
+                    <tr><th>Zadanie</th><th>Odpoveď žiaka</th><th>Správna odpoveď</th></tr>
+        `;
+
+        selectedBlocks.forEach((block, bIdx) => {
+            detailHtml += `<tr><td colspan="3" style="background:#ddd; font-weight:bold; text-align:center;">Blok ${bIdx + 1}</td></tr>`;
+            block.forEach((task, tIdx) => {
+                let ansKey = bIdx + '_' + tIdx;
+                let isCorrect = answers[ansKey] === task.a;
+                let icon = isCorrect ? '✓' : '✗';
+                detailHtml += `
+                    <tr>
+                        <td>${task.q}</td>
+                        <td>${answers[ansKey] || '---'} <strong>${icon}</strong></td>
+                        <td>${task.a}</td>
+                    </tr>
+                `;
+            });
+        });
+
+        detailHtml += `
+                </table>
+                <div style="margin-top:20px">
+                    <strong>Vysvetlivky:</strong><br>
+                    ✓ - správna odpoveď<br>
+                    ✗ - nesprávna odpoveď
+                </div>
+            </body>
+            </html>
+        `;
+        
+        win.document.write(detailHtml);
+        win.document.close();
+    }
+</script>
+</body>
+</html>
