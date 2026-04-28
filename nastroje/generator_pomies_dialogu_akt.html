@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor pomiešaného dialógu</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        label {
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        input[type="color"] {
+            height: 40px;
+            width: 100px;
+            padding: 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        textarea {
+            height: 250px;
+            resize: vertical;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        .buttons-top {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: flex-end;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-success {
+            background-color: #2ecc71;
+            font-size: 18px;
+            padding: 15px 30px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        #file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor pomiešaného dialógu</h1>
+
+    <div class="buttons-top">
+        <button class="btn" onclick="exportJSON()">Exportovať nastavenia (.json)</button>
+        <button class="btn" onclick="document.getElementById('file-input').click()">Importovať nastavenia (.json)</button>
+        <input type="file" id="file-input" accept=".json" onchange="importJSON(event)">
+    </div>
+
+    <div class="form-group">
+        <label for="autor">Autor:</label>
+        <input type="text" id="autor" placeholder="Zadaj meno autora">
+    </div>
+    <div class="form-group">
+        <label for="rok">Rok:</label>
+        <input type="text" id="rok" placeholder="Zadaj rok">
+    </div>
+    <div class="form-group">
+        <label for="predmet">Predmet:</label>
+        <input type="text" id="predmet" placeholder="Zadaj predmet">
+    </div>
+    <div class="form-group">
+        <label for="tema">Téma:</label>
+        <input type="text" id="tema" placeholder="Zadaj tému">
+    </div>
+    <div class="form-group">
+        <label for="farba_textu">Farba textu:</label>
+        <input type="color" id="farba_textu" value="#222222">
+    </div>
+
+    <label for="dialog" style="display: block; margin-top: 20px;">Dialóg (každá replika do nového riadku, povolené HTML tagy):</label>
+    <textarea id="dialog" placeholder="Napr.:&#10;Tomáš: Hallo Lukáš, bist du da?&#10;Lukáš: Ja, was gibt's?"></textarea>
+
+    <button class="btn btn-success" onclick="generateScrambledDialogue()">Vygenerovať pomiešaný dialóg</button>
+
+    <script>
+        function exportJSON() {
+            const data = {
+                autor: document.getElementById('autor').value,
+                rok: document.getElementById('rok').value,
+                predmet: document.getElementById('predmet').value,
+                tema: document.getElementById('tema').value,
+                farba_textu: document.getElementById('farba_textu').value,
+                dialog: document.getElementById('dialog').value
+            };
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "pomiesany_dialog.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (data.autor !== undefined) document.getElementById('autor').value = data.autor;
+                    if (data.rok !== undefined) document.getElementById('rok').value = data.rok;
+                    if (data.predmet !== undefined) document.getElementById('predmet').value = data.predmet;
+                    if (data.tema !== undefined) document.getElementById('tema').value = data.tema;
+                    
+                    if (data.farba_textu !== undefined) document.getElementById('farba_textu').value = data.farba_textu;
+                    else if (data.farbaTextu !== undefined) document.getElementById('farba_textu').value = data.farbaTextu;
+                    
+                    if (data.dialog !== undefined) document.getElementById('dialog').value = data.dialog;
+                    else if (data.text !== undefined) document.getElementById('dialog').value = data.text;
+                    
+                    alert("Nastavenia boli úspešne načítané!");
+                } catch (error) {
+                    console.error("Chyba pri čítaní JSON:", error);
+                    alert("Chyba: Súbor sa nepodarilo načítať. Skontrolujte, či ide o správny formát .json a nie je poškodený.");
+                }
+            };
+            
+            reader.onerror = function() {
+                alert("Došlo k systémovej chybe pri čítaní súboru.");
+            }
+            
+            reader.readAsText(file);
+            event.target.value = ''; 
+        }
+
+        function generateScrambledDialogue() {
+            const autor = document.getElementById('autor').value;
+            const rok = document.getElementById('rok').value;
+            const predmet = document.getElementById('predmet').value;
+            const tema = document.getElementById('tema').value;
+            const farbaTextu = document.getElementById('farba_textu').value;
+            const dialogRaw = document.getElementById('dialog').value;
+
+            let nazovSuboru = tema
+                .normalize("NFD") 
+                .replace(/[\u0300-\u036f]/g, "") 
+                .replace(/[^a-zA-Z0-9]/g, "_") 
+                .replace(/_+/g, "_") 
+                .replace(/^_|_$/g, ""); 
+
+            if (!nazovSuboru) {
+                nazovSuboru = "Pomiesany_dialog";
+            }
+
+            let riadky = dialogRaw.split('\n').filter(r => r.trim() !== '');
+            
+            // ULOŽENIE PÔVODNÉHO PORADIA PRE RIEŠENIE
+            const povodneRiadky = [...riadky];
+
+            for (let i = riadky.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [riadky[i], riadky[j]] = [riadky[j], riadky[i]];
+            }
+
+            let newWindow = window.open("", "_blank");
+            if (!newWindow) {
+                alert("Prosím povoľte vyskakovacie okná.");
+                return;
+            }
+
+            let htmlContent = `
+            <!DOCTYPE html>
+            <html lang="sk">
+            <head>
+                <meta charset="UTF-8">
+                <title>${nazovSuboru}</title>
+                <style>
+                    body {
+                        font-family: 'Segoe UI', sans-serif;
+                        padding: 20px;
+                        margin: 0;
+                        background: white;
+                    }
+                    .hlavicka {
+                        display: block;
+                        border-bottom: 2px solid #222;
+                        padding-bottom: 10px;
+                        margin-bottom: 30px;
+                        font-size: 14px;
+                        page-break-after: avoid; 
+                    }
+                    .hlavicka strong { display: inline-block; width: 80px; }
+                    
+                    .dialog-container {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        width: 100%;
+                    }
+                    .replika-wrapper {
+                        display: block;
+                        width: 100%;
+                        margin: 10px 0;
+                    }
+                    .replika {
+                        background-color: #ffffff;
+                        color: ${farbaTextu};
+                        padding: 15px 20px;
+                        border-radius: 6px;
+                        border: 1px solid #ccc;
+                        box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+                        font-size: 70px;
+                        line-height: 1.2;
+                        display: block;
+                        white-space: normal;
+                        text-align: center;
+                    }
+                    .oddelovac {
+                        border: 0;
+                        border-top: 2px solid #ddd;
+                        margin: 10px 0;
+                        width: 100%;
+                    }
+                    
+                    /* ŠTÝLY PRE SEKCIU RIEŠENIA */
+                    .riesenie-container {
+                        break-before: page;
+                        page-break-before: always; /* Zabezpečí, že riešenie bude na novej strane */
+                        margin-top: 50px;
+                        padding-top: 20px;
+                    }
+                    .riesenie-hlavicka {
+                        font-size: 18px;
+                        font-weight: bold;
+                        border-bottom: 2px solid #222;
+                        padding-bottom: 10px;
+                        margin-bottom: 20px;
+                    }
+                    .riesenie-riadok {
+                        color: ${farbaTextu};
+                        background-color: #f9f9f9;
+                        border-left: 3px solid #ccc;
+                        padding: 8px 15px;
+                        margin-bottom: 8px;
+                        font-size: 14px;
+                    }
+
+                    @media print {
+                        body { padding: 10px; }
+                        .hlavicka { border-bottom: 1px solid black; }
+                        .replika { 
+                            box-shadow: none !important; 
+                            border: 1px solid #000 !important;
+                            page-break-inside: avoid; 
+                            font-size: 70px !important;
+                        }
+                        .dialog-container { display: flex !important; flex-direction: column !important; }
+                        .replika-wrapper { display: block !important; margin: 5px 0; }
+                        .oddelovac { border-top: 2px solid #000 !important; }
+                        
+                        /* Pre istotu pridávame page-break aj priamo do media print */
+                        .riesenie-container {
+                            break-before: page;
+                            page-break-before: always;
+                        }
+                        .riesenie-riadok {
+                            border-left: 3px solid #000 !important;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="hlavicka">
+                    <strong>Téma:</strong> ${tema || '---'}<br>
+                    <strong>Predmet:</strong> ${predmet || '---'}<br>  <strong>Autor:</strong> ${autor || '---'}<br> <strong>Rok:</strong> ${rok || '---'}
+                </div>
+                <div class="dialog-container">
+            `;
+
+            riadky.forEach((riadok, index) => {
+                htmlContent += `
+                    <div class="replika-wrapper">
+                        <div class="replika">${riadok}</div>
+                    </div>
+                `;
+                // Pridanie vodorovnej čiary s menším odstupom medzi replikami
+                if (index < riadky.length - 1) {
+                    htmlContent += `<hr class="oddelovac">`;
+                }
+            });
+
+            htmlContent += `</div>`; // Koniec pomiešaného dialógu
+            
+            // PRIDANIE SEKCIÍ PRE RIEŠENIE (SPRÁVNE PORADIE)
+            htmlContent += `
+                <div class="riesenie-container">
+                    <div class="riesenie-hlavicka">Riešenie (správne poskladaný dialóg)</div>
+            `;
+            
+            povodneRiadky.forEach(riadok => {
+                htmlContent += `<div class="riesenie-riadok">${riadok}</div>`;
+            });
+
+            htmlContent += `</div></body></html>`;
+
+            newWindow.document.open();
+            newWindow.document.write(htmlContent);
+            newWindow.document.close();
+        }
+    </script>
+    <br><br>
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+    <br><br>
+</body>
+</html>
