@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor materiálov: Časovanie slovies</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        /* Systém záložiek */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 0;
+        }
+        .tab-btn {
+            background-color: #ddd;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: background 0.3s, color 0.3s;
+        }
+        .tab-btn.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 0 8px 8px 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        label {
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        input[type="color"] {
+            height: 40px;
+            width: 100px;
+            padding: 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        textarea {
+            height: 250px;
+            resize: vertical;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        .buttons-top {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: flex-end;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-success {
+            background-color: #2ecc71;
+            font-size: 18px;
+            padding: 15px 30px;
+            width: 100%;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        #file-input {
+            display: none;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 20px;
+        }
+        .btn-toolbar {
+            padding: 5px 15px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor materiálov: Časovanie slovies</h1>
+
+    <div class="buttons-top">
+        <button class="btn" onclick="exportJSON()">Exportovať nastavenia (.json)</button>
+        <button class="btn" onclick="document.getElementById('file-input').click()">Importovať nastavenia (.json)</button>
+        <input type="file" id="file-input" accept=".json" onchange="importJSON(event)">
+    </div>
+
+    <!-- Spoločné nastavenia -->
+    <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px;">
+        <div class="form-group">
+            <label for="autor">Autor:</label>
+            <input type="text" id="autor" placeholder="Zadaj meno autora">
+        </div>
+        <div class="form-group">
+            <label for="rok">Rok:</label>
+            <input type="text" id="rok" placeholder="Zadaj rok">
+        </div>
+        <div class="form-group">
+            <label for="predmet">Predmet:</label>
+            <input type="text" id="predmet" placeholder="Zadaj predmet">
+        </div>
+        <div class="form-group">
+            <label for="tema">Téma:</label>
+            <input type="text" id="tema" placeholder="Zadaj tému">
+        </div>
+        <div class="form-group">
+            <label for="farba_textu">Farba textu:</label>
+            <input type="color" id="farba_textu" value="#222222">
+        </div>
+    </div>
+
+    <!-- Systém uší -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('karticky', this)">Generátor kartičiek</button>
+        <button class="tab-btn" onclick="switchTab('testy', this)">Generátor cvičení (testov)</button>
+    </div>
+
+    <!-- Uško 1: Kartičky -->
+    <div id="tab-karticky" class="tab-content active">
+        <div class="toolbar">
+            <label for="slova">Slová pre kartičky (nové sloveso oddeľ prázdnym riadkom):</label>
+            <button class="btn btn-toolbar" onclick="wrapBold('slova')" title="Obaliť označený text do tagov pre tučné písmo">B (Tučné)</button>
+        </div>
+        <textarea id="slova" placeholder="Napr.:&#10;spielen	hrať sa&#10;ich	spiele&#10;du	spielst&#10;&#10;singen	spievať&#10;ich	singe&#10;du	singst"></textarea>
+        <button class="btn btn-success" onclick="generateCards()">Vygenerovať kartičky</button>
+    </div>
+
+    <!-- Uško 2: Testy -->
+    <div id="tab-testy" class="tab-content">
+        <div class="toolbar">
+            <label for="slova_testy">Slová pre testy (nové cvičenie oddeľ prázdnym riadkom):</label>
+            <button class="btn btn-toolbar" onclick="wrapBold('slova_testy')" title="Obaliť označený text do tagov pre tučné písmo">B (Tučné)</button>
+        </div>
+        <textarea id="slova_testy" placeholder="Napr.:&#10;spielen	hrať sa&#10;ich	spiele&#10;du	spielst&#10;er	spielt&#10;sie (ona)	spielt&#10;es	spielt&#10;wir	spielen&#10;ihr	spielt&#10;sie (oni/ony)	spielen&#10;Sie	spielen&#10;spielest&#10;spielent&#10;spielet"></textarea>
+        <button class="btn btn-success" onclick="downloadTestHTML()">Stiahnuť test vo formáte .html</button>
+    </div>
+
+    <script>
+        // Logika záložiek
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            btnElement.classList.add('active');
+        }
+
+        // Povolenie Tabulátora
+        function enableTab(elementId) {
+            document.getElementById(elementId).addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = this.selectionStart;
+                    const end = this.selectionEnd;
+                    this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+                    this.selectionStart = this.selectionEnd = start + 1;
+                }
+            });
+        }
+        enableTab('slova');
+        enableTab('slova_testy');
+
+        // Formátovanie tučného písma
+        function wrapBold(elementId) {
+            const textarea = document.getElementById(elementId);
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            if (start === end) return;
+            const text = textarea.value;
+            const replacement = `<b>${text.substring(start, end)}</b>`;
+            textarea.value = text.substring(0, start) + replacement + text.substring(end);
+            textarea.focus();
+        }
+
+        // Import a Export JSON
+        function exportJSON() {
+            const data = {
+                autor: document.getElementById('autor').value,
+                rok: document.getElementById('rok').value,
+                predmet: document.getElementById('predmet').value,
+                tema: document.getElementById('tema').value,
+                farba_textu: document.getElementById('farba_textu').value,
+                slova: document.getElementById('slova').value,
+                slova_testy: document.getElementById('slova_testy').value
+            };
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "nastavenia_generatora.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.autor !== undefined) document.getElementById('autor').value = data.autor;
+                    if (data.rok !== undefined) document.getElementById('rok').value = data.rok;
+                    if (data.predmet !== undefined) document.getElementById('predmet').value = data.predmet;
+                    if (data.tema !== undefined) document.getElementById('tema').value = data.tema;
+                    if (data.farba_textu !== undefined) document.getElementById('farba_textu').value = data.farba_textu;
+                    if (data.slova !== undefined) document.getElementById('slova').value = data.slova;
+                    if (data.slova_testy !== undefined) document.getElementById('slova_testy').value = data.slova_testy;
+                    alert("Nastavenia boli úspešne načítané!");
+                } catch (error) { alert("Chyba pri čítaní súboru."); }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; 
+        }
+
+        // UPRAVENÝ generátor kartičiek
+        function generateCards() {
+            const autor = document.getElementById('autor').value;
+            const rok = document.getElementById('rok').value;
+            const predmet = document.getElementById('predmet').value;
+            const tema = document.getElementById('tema').value;
+            const farbaTextu = document.getElementById('farba_textu').value;
+            const slovaRaw = document.getElementById('slova').value;
+
+            let nazovSuboru = tema.replace(/[^a-zA-Z0-9]/g, "_") || "Karticky";
+            let bloky = slovaRaw.split(/\n\s*\n/);
+
+            let newWindow = window.open("", "_blank");
+            if (!newWindow) return;
+
+            let htmlContent = `
+            <!DOCTYPE html>
+            <html lang="sk">
+            <head>
+                <meta charset="UTF-8">
+                <title>${nazovSuboru}</title>
+                <style>
+                    @page { size: A4 portrait; margin: 0; }
+                    body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: white; margin: 0; box-sizing: border-box; }
+                    .hlavicka { border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 20px; font-size: 14px; }
+                    .hlavicka strong { display: inline-block; width: 80px; }
+                    .cards-container { width: 100%; }
+                    .cards-table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+                    tr { height: 50vh; page-break-inside: avoid; }
+                    tr:nth-child(2n) { page-break-after: always; }
+                    .card-cell { border: 1px solid #000; color: ${farbaTextu}; padding: 0; overflow: hidden; position: relative; }
+                    .cell-content { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; text-align: center; }
+                    
+                    /* HLAVNÝ TEXT - Standardné nastavenie */
+                    .text-wrapper { display: inline-block; font-size: 86px; white-space: normal; transform: rotate(-90deg); max-width: 45vh; word-wrap: break-word; line-height: 1.1; }
+                    .text-wrapper-right { display: inline-block; font-size: 140px; white-space: normal; transform: rotate(-90deg); max-width: 45vh; word-wrap: normal; overflow-wrap: normal; word-break: normal; line-height: 1.1; }
+                    
+                    /* NASTAVENIE PRE 1. KARTIČKU (Neurčitok) */
+                    /* Tu si zmeňte 86px na akúkoľvek veľkosť potrebujete */
+                    .first-card-main-text { font-size: 75px !important; }
+
+                    .verb-label { position: absolute; bottom: 10px; right: 15px; font-size: 14px; color: #999; font-weight: bold; text-transform: lowercase; white-space: nowrap; max-width: 80%; }
+
+                    @media print { body { padding: 0; } .hlavicka { display: none; } tr { height: 50vh; } }
+                </style>
+            </head>
+            <body>
+                <div class="hlavicka">
+                    <strong>Téma:</strong> ${tema || '---'}<br>
+                    <strong>Predmet:</strong> ${predmet || '---'}<br>
+                    <strong>Autor:</strong> ${autor || '---'}<br>
+                    <strong>Rok:</strong> ${rok || '---'}
+                </div>
+                <div class="cards-container">
+                    <table class="cards-table">
+            `;
+
+            bloky.forEach((blok, index) => {
+                let riadky = blok.trim().split('\n').filter(r => r.trim() !== '');
+                if (riadky.length === 0) return;
+
+                let prvyRiadokCasti = riadky[0].split('\t');
+                let identifikatorSlovesa = prvyRiadokCasti[0] ? prvyRiadokCasti[0].trim().replace(/<[^>]*>?/gm, '') : `---`;
+
+                riadky.forEach((riadok, rIndex) => {
+                    let casti = riadok.split('\t');
+                    let lava = casti[0] ? casti[0].trim() : '';
+                    let prava = casti[1] ? casti[1].trim() : '';
+                    
+                    // Ak je rIndex 0 (prvá kartička), pridáme špeciálnu triedu pre zmenšenie písma
+                    let extraClass = (rIndex === 0) ? " first-card-main-text" : "";
+
+                    htmlContent += `<tr>
+                        <td class="card-cell">
+                            <div class="cell-content"><div class="text-wrapper${extraClass}">${lava}</div></div>
+                            <div class="verb-label">${identifikatorSlovesa}</div>
+                        </td>
+                        <td class="card-cell">
+                            <div class="cell-content"><div class="text-wrapper-right${extraClass}">${prava}</div></div>
+                            <div class="verb-label">${identifikatorSlovesa}</div>
+                        </td>
+                    </tr>`;
+                });
+            });
+
+            htmlContent += `</table></div><script>
+            window.addEventListener('load', function() { 
+                // Automatické zmenšovanie pre pravú stranu (iba ak nie je vnútená veľkosť cez first-card-main-text)
+                var rightWrappers = document.querySelectorAll('.text-wrapper-right:not(.first-card-main-text)'); 
+                rightWrappers.forEach(function(el) { 
+                    var fontSize = 140; 
+                    while (el.scrollWidth > el.clientWidth + 1 && fontSize > 80) { 
+                        fontSize -= 1; 
+                        el.style.fontSize = fontSize + 'px'; 
+                    } 
+                }); 
+            });
+            <\/script></body></html>`;
+            
+            newWindow.document.open();
+            newWindow.document.write(htmlContent);
+            newWindow.document.close();
+        }
+        // Generátor TESTOV (bez zmien)
+        function downloadTestHTML() {
+            const rawText = document.getElementById('slova_testy').value;
+            const blocks = rawText.split(/\n\s*\n/);
+            
+            let parsedExercises = [];
+            
+            blocks.forEach(block => {
+                const lines = block.trim().split('\n').filter(r => r.trim() !== '');
+                if (lines.length === 0) return;
+                
+                const headerParts = lines[0].split('\t');
+                const infinitive = headerParts[0] ? headerParts[0].trim() : '';
+                const translation = headerParts[1] ? headerParts[1].trim() : '';
+                
+                let pairs = [];
+                let distractors = [];
+                
+                for(let i = 1; i < lines.length; i++) {
+                    let parts = lines[i].split('\t');
+                    
+                    // Ak riadok nemá tabulátor alebo je druhá časť prázdna, ide o distraktor
+                    if (parts.length === 1 || (parts.length > 1 && parts[1].trim() === '')) {
+                        if (parts[0] && parts[0].trim() !== '') {
+                            distractors.push(parts[0].trim());
+                        }
+                    } else {
+                        pairs.push({
+                            pronoun: parts[0] ? parts[0].trim() : '',
+                            verb: parts[1] ? parts[1].trim() : ''
+                        });
+                    }
+                }
+                
+                parsedExercises.push({
+                    infinitive: infinitive,
+                    translation: translation,
+                    pairs: pairs,
+                    distractors: distractors
+                });
+            });
+
+            if(parsedExercises.length === 0) {
+                alert('Nenašli sa žiadne cvičenia. Skontroluj formát zadania.');
+                return;
+            }
+
+            const testMeta = {
+                nazov: document.getElementById('tema').value || 'Test',
+                predmet: document.getElementById('predmet').value || '',
+                autor: document.getElementById('autor').value || '',
+                rok: document.getElementById('rok').value || ''
+            };
+
+            const htmlTemplate = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${testMeta.nazov} - Test</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; color: #333; margin: 0; padding: 15px; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 15px 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #2c3e50; text-align: center; margin: 10px 0;}
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        .btn { display: inline-block; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; text-align: center; transition: 0.3s; color: white; }
+        .btn-green { background: #2ecc71; width: 100%; margin-top: 20px; font-size: 18px; }
+        .btn-green:hover { background: #27ae60; }
+        .btn-blue { background: #3498db; }
+        .btn-blue:hover { background: #2980b9; }
+        
+        .nav-bar { display: flex; gap: 5px; margin-top: 15px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap; }
+        .nav-btn { width: 40px; height: 40px; border: none; border-radius: 5px; background: #e0e0e0; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .nav-btn.active { border: 2px solid #333; background: #fff; }
+        .nav-btn.solved { background: #add8e6; }
+        
+        .instructions { background: #eef2f5; padding: 10px 15px; border-left: 5px solid #3498db; margin-bottom: 15px; line-height: 1.4; font-size: 14px; }
+        
+        .exercise-layout { display: flex; flex-direction: column; gap: 15px; }
+        
+        .tables-container { display: flex; gap: 15px; justify-content: space-between; flex-wrap: wrap; }
+        .table-block { flex: 1; min-width: 300px; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        .table-title { margin-top: 0; margin-bottom: 10px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 16px; text-transform: uppercase; }
+        
+        .top-slots { display: flex; gap: 20px; justify-content: space-between; margin-bottom: 15px; }
+        .top-slot-container { text-align: center; flex: 1; }
+        .top-slot-title { font-weight: bold; color: black; margin-bottom: 5px; font-size: 16px; }
+        
+        .slots-table { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
+        .slots-table td { width: 50%; padding: 0 5px; }
+        
+        /* Zmenšené sloty a tlačidlá pre kompaktnejšie zobrazenie */
+        .slot { 
+            height: 42px; 
+            border: 2px dashed #999; 
+            border-radius: 5px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: #fafafa;
+            cursor: pointer;
+            transition: 0.2s;
+            padding: 2px;
+            box-sizing: border-box;
+        }
+        .slot.highlight { border-color: #3498db; background: #e6f2ff; }
+        
+        .btn-item {
+            font-size: 15px; 
+            font-weight: bold; 
+            color: black; 
+            padding: 4px 10px;
+            border-radius: 5px;
+            border: 2px solid #555;
+            cursor: pointer;
+            text-align: center;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 38px;
+            min-width: 100px;
+            box-sizing: border-box;
+        }
+        .btn-item.selected { border-color: #e74c3c; box-shadow: 0 0 10px rgba(231,76,60,0.5); transform: scale(1.05); z-index: 10; position: relative; }
+        
+        .slot .btn-item {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        .color-gray { background-color: #e0e0e0; }
+        .color-blue { background-color: #add8e6; }
+        .color-yellow { background-color: #ffeb3b; }
+
+        .pool-area { margin-top: 5px; padding-top: 10px; border-top: 2px dashed #ccc; }
+        .pool-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        
+        /* Zmena zarovnania tlačidiel z flex-end na center */
+        .bottom-actions { display: flex; justify-content: center; margin-top: 10px; }
+        
+        /* Vyhodnotenie farby */
+        .slot.correct { background-color: #c8e6c9 !important; border-color: #2e7d32; }
+        .slot.wrong { background-color: #ffcdd2 !important; border-color: #c62828; position: relative; }
+        .correct-answer-hint { display: block; font-size: 12px; color: #c62828; margin-top: 2px; font-weight: bold; text-align: center; line-height: 1; }
+        
+        .summary-box { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px; font-size: 18px; line-height: 1.8;}
+        
+        [style*="display: none"] { display: none !important; }
+
+        /* Schovanie neviditeľnej medzery na malých obrazovkách */
+        @media (max-width: 680px) {
+            .desktop-spacer { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div id="screen-intro" class="container">
+        <h1>${testMeta.nazov}</h1>
+        <div class="input-group">
+            <label>Meno žiaka:</label>
+            <input type="text" id="studentName" placeholder="Zadaj svoje meno a priezvisko">
+        </div>
+        <div class="input-group">
+            <label>Počet cvičení:</label>
+            <input type="number" id="numExercises" value="5" min="1" max="99">
+        </div>
+        <button class="btn btn-green" onclick="startTest()">Štart</button>
+    </div>
+
+    <div id="screen-test" class="container" style="display: none;">
+        <div class="instructions">
+            Klikni na tlačidlo a potom na príslušné voľné miesto (slot), kam chceš tlačidlo umiestniť. Ak si neskôr svoje rozhodnutie rozmyslíš, klikni na už umiestnený text dvakrát a ten sa potom vráti na svoje pôvodné miesto. Ak umiestniš všetky tlačidlá na miesto, kam patria, klikni na modré tlačidlo "Ďalej" alebo na ďalšie číslo v navigačnej lište. Na konci klikni na zelené tlačidlo "Vyhodnotiť".
+        </div>
+        
+        <div id="exercise-container"></div>
+        
+        <div class="nav-bar" id="navBar"></div>
+
+        <div class="bottom-actions">
+            <button class="btn btn-blue" id="btn-next" onclick="nextExercise()">Ďalej</button>
+            <button class="btn btn-green" id="btn-eval" onclick="evaluateTest()" style="display: none; width: auto; margin-top:0;">Vyhodnotiť</button>
+        </div>
+    </div>
+
+    <div id="screen-results" class="container" style="display: none;">
+        <h1>Vyhodnotenie</h1>
+        <div class="summary-box" id="summary-info"></div>
+        <button class="btn btn-blue" style="width: 100%; margin-bottom: 30px;" onclick="openDetailView()">Zobraziť detailný prehľad</button>
+        <div id="evaluated-exercises"></div>
+    </div>
+
+    <script>
+        const allExercisesPool = ${JSON.stringify(parsedExercises)};
+        const testTitle = "${testMeta.nazov}";
+        let testExercises = [];
+        let currentIndex = 0;
+        let selectedButton = null;
+        let studentNameStr = "";
+
+        function startTest() {
+            studentNameStr = document.getElementById('studentName').value.trim() || 'Anonym';
+            let reqNum = parseInt(document.getElementById('numExercises').value) || 5;
+            
+            let shuffled = [...allExercisesPool].sort(() => 0.5 - Math.random());
+            testExercises = shuffled.slice(0, Math.min(reqNum, shuffled.length));
+            
+            if(testExercises.length === 0) return;
+            
+            document.getElementById('screen-intro').style.display = 'none';
+            document.getElementById('screen-test').style.display = 'block';
+            
+            buildNavBar();
+            buildAllExercises();
+            showExercise(0);
+
+            document.addEventListener('keydown', handleEnter);
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter' && document.getElementById('screen-test').style.display !== 'none') {
+                if (document.getElementById('btn-next').style.display !== 'none') {
+                    nextExercise();
+                } else if (document.getElementById('btn-eval').style.display !== 'none') {
+                    evaluateTest();
+                }
+            }
+        }
+
+        function buildNavBar() {
+            const nav = document.getElementById('navBar');
+            nav.innerHTML = '';
+            testExercises.forEach((_, i) => {
+                let b = document.createElement('button');
+                b.className = 'nav-btn';
+                b.innerText = i + 1;
+                b.onclick = () => showExercise(i);
+                b.id = 'nav-btn-' + i;
+                nav.appendChild(b);
+            });
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function buildAllExercises() {
+            const container = document.getElementById('exercise-container');
+            container.innerHTML = '';
+            
+            testExercises.forEach((ex, index) => {
+                let div = document.createElement('div');
+                div.id = 'ex-wrap-' + index;
+                div.className = 'exercise-layout';
+                div.style.display = 'none';
+                
+                // Priprav tlačidlá včítane originálnych naformátovaných HTML textov zviazaných do datasetu
+                let btns = [];
+                btns.push({text: ex.infinitive, type: 'color-blue', raw: encodeURIComponent(ex.infinitive)});
+                btns.push({text: ex.translation, type: 'color-yellow', raw: encodeURIComponent(ex.translation)});
+                
+                ex.pairs.forEach((p) => {
+                    btns.push({text: p.pronoun, type: 'color-gray', raw: encodeURIComponent(p.pronoun)});
+                    btns.push({text: p.verb, type: 'color-blue', raw: encodeURIComponent(p.verb)});
+                });
+                
+                // Pridanie distraktorov
+                if (ex.distractors && ex.distractors.length > 0) {
+                    ex.distractors.forEach((d) => {
+                        btns.push({text: d, type: 'color-blue', raw: encodeURIComponent(d)});
+                    });
+                }
+                
+                btns = shuffleArray(btns);
+
+                // Rozdelenie na Singular (prvých 5) a Plural (zvyšné)
+                let singularPairs = ex.pairs.slice(0, 5);
+                let pluralPairs = ex.pairs.slice(5);
+
+                let html = \`
+                    <div class="tables-container">
+                        <div class="table-block">
+                            <div class="top-slots">
+                                <div class="top-slot-container">
+                                    <div class="top-slot-title">neurčitok slovesa</div>
+                                    <div class="slot top-slot" data-type="infinitive" data-expected="\${encodeURIComponent(ex.infinitive)}" data-exidx="\${index}"></div>
+                                </div>
+                                <div class="top-slot-container">
+                                    <div class="top-slot-title">slovenský preklad</div>
+                                    <div class="slot top-slot" data-type="translation" data-expected="\${encodeURIComponent(ex.translation)}" data-exidx="\${index}"></div>
+                                </div>
+                            </div>
+                            <h3 class="table-title">Jednotné číslo</h3>
+                            <table class="slots-table">\`;
+                
+                singularPairs.forEach((p, i) => {
+                    let groupAttr = (i >= 2 && i <= 4) ? ' data-group="sing3"' : '';
+                    html += \`<tr>
+                        <td><div class="slot left-slot" data-type="pronoun" data-expected="\${encodeURIComponent(p.pronoun)}"\${groupAttr} data-exidx="\${index}"></div></td>
+                        <td><div class="slot right-slot" data-type="verb" data-expected="\${encodeURIComponent(p.verb)}" data-exidx="\${index}"></div></td>
+                    </tr>\`;
+                });
+                
+                html += \`</table></div>
+                        <div class="table-block">
+                            <div class="top-slots desktop-spacer" style="visibility: hidden; pointer-events: none;">
+                                <div class="top-slot-container">
+                                    <div class="top-slot-title">&nbsp;</div>
+                                    <div style="height: 42px; box-sizing: border-box;"></div>
+                                </div>
+                            </div>
+                            <h3 class="table-title">Množné číslo</h3>
+                            <table class="slots-table">\`;
+                
+                pluralPairs.forEach((p, i) => {
+                    let groupAttr = (i >= 2 && i <= 3) ? ' data-group="plur3"' : '';
+                    html += \`<tr>
+                        <td><div class="slot left-slot" data-type="pronoun" data-expected="\${encodeURIComponent(p.pronoun)}"\${groupAttr} data-exidx="\${index}"></div></td>
+                        <td><div class="slot right-slot" data-type="verb" data-expected="\${encodeURIComponent(p.verb)}" data-exidx="\${index}"></div></td>
+                    </tr>\`;
+                });
+
+                html += \`</table></div></div><div class="pool-area"><div class="pool-grid" id="pool-\${index}">\`;
+                
+                btns.forEach(b => {
+                    // text prejde do innerHTML úplne bez zmien, zachová si HTML značky
+                    html += \`<div class="btn-item \${b.type}" data-rawval="\${b.raw}" onclick="btnClick(this)" ondblclick="btnDblClick(this)">\${b.text}</div>\`;
+                });
+                
+                html += \`</div></div>\`;
+                div.innerHTML = html;
+                container.appendChild(div);
+            });
+            
+            // Event listeners pre sloty
+            document.querySelectorAll('.slot').forEach(slot => {
+                slot.addEventListener('click', function() {
+                    if (selectedButton && this.children.length === 0) {
+                        this.appendChild(selectedButton);
+                        selectedButton.classList.remove('selected');
+                        selectedButton = null;
+                        checkSolvedState(this.dataset.exidx);
+                    } else if (selectedButton && this.children.length > 0) {
+                        selectedButton.classList.remove('selected');
+                        selectedButton = null;
+                    }
+                });
+            });
+        }
+
+        function btnClick(btn) {
+            if (selectedButton) selectedButton.classList.remove('selected');
+            if (selectedButton === btn) { selectedButton = null; return; }
+            selectedButton = btn;
+            btn.classList.add('selected');
+        }
+
+        function btnDblClick(btn) {
+            if (btn.parentElement.classList.contains('slot')) {
+                let exIdx = btn.parentElement.dataset.exidx;
+                document.getElementById('pool-' + exIdx).appendChild(btn);
+                btn.classList.remove('selected');
+                if (selectedButton === btn) selectedButton = null;
+                checkSolvedState(exIdx);
+            }
+        }
+
+        function checkSolvedState(index) {
+            let wrap = document.getElementById('ex-wrap-' + index);
+            let slots = wrap.querySelectorAll('.slot');
+            let isFull = Array.from(slots).every(s => s.children.length > 0);
+            let navBtn = document.getElementById('nav-btn-' + index);
+            if(isFull) navBtn.classList.add('solved');
+            else navBtn.classList.remove('solved');
+        }
+
+        function showExercise(index) {
+            if (selectedButton) { selectedButton.classList.remove('selected'); selectedButton = null; }
+            document.querySelectorAll('.exercise-layout').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById('ex-wrap-' + index).style.display = 'flex';
+            document.getElementById('nav-btn-' + index).classList.add('active');
+            currentIndex = index;
+            
+            document.getElementById('btn-next').style.display = (index < testExercises.length - 1) ? 'inline-block' : 'none';
+            document.getElementById('btn-eval').style.display = (index === testExercises.length - 1) ? 'inline-block' : 'none';
+        }
+
+        function nextExercise() {
+            if (currentIndex < testExercises.length - 1) showExercise(currentIndex + 1);
+        }
+
+        function evaluateTest() {
+            document.removeEventListener('keydown', handleEnter);
+            document.getElementById('screen-test').style.display = 'none';
+            document.getElementById('screen-results').style.display = 'block';
+            
+            let totalPoints = 0;
+            let maxPoints = 0;
+            
+            document.querySelectorAll('.exercise-layout').forEach(wrap => {
+                wrap.style.display = 'flex';
+                wrap.querySelector('.pool-area').style.display = 'none';
+                
+                wrap.querySelectorAll('.slot').forEach(slot => {
+                    maxPoints++;
+                    
+                    let expectedRaw = slot.dataset.expected;
+                    let actualRaw = slot.children.length > 0 ? slot.children[0].dataset.rawval : '';
+                    let expectedGroup = slot.dataset.group;
+                    let isCorrect = false;
+                    
+                    if (actualRaw !== '') {
+                        let plain1 = decodeURIComponent(expectedRaw).replace(/<[^>]*>?/gm, '').trim();
+                        let plain2 = decodeURIComponent(actualRaw).replace(/<[^>]*>?/gm, '').trim();
+                        
+                        if (expectedRaw === actualRaw || plain1 === plain2) {
+                            isCorrect = true;
+                        } else if (expectedGroup) {
+                            let groupSlots = slot.closest('.tables-container').querySelectorAll('.slot[data-group="' + expectedGroup + '"]');
+                            groupSlots.forEach(gs => {
+                                let gsExpected = gs.dataset.expected;
+                                let plainGs = decodeURIComponent(gsExpected).replace(/<[^>]*>?/gm, '').trim();
+                                if (gsExpected === actualRaw || plainGs === plain2) {
+                                    isCorrect = true;
+                                }
+                            });
+                        }
+                    }
+                    
+                    if (isCorrect) {
+                        totalPoints++;
+                        slot.classList.add('correct');
+                    } else {
+                        slot.classList.add('wrong');
+                        let div = document.createElement('div');
+                        div.className = 'correct-answer-hint';
+                        if (expectedGroup) {
+                            let groupExpected = [];
+                            let groupSlots = slot.closest('.tables-container').querySelectorAll('.slot[data-group="' + expectedGroup + '"]');
+                            groupSlots.forEach(gs => groupExpected.push(decodeURIComponent(gs.dataset.expected)));
+                            div.innerHTML = groupExpected.join(' / ');
+                        } else {
+                            div.innerHTML = decodeURIComponent(expectedRaw);
+                        }
+                        slot.parentElement.appendChild(div);
+                    }
+                    slot.style.pointerEvents = 'none';
+                });
+                
+                document.getElementById('evaluated-exercises').appendChild(wrap);
+            });
+            
+            let percent = Math.round((totalPoints / maxPoints) * 100);
+            let now = new Date();
+            let dateStr = now.toLocaleDateString('sk-SK') + ', ' + now.toLocaleTimeString('sk-SK');
+            
+            document.getElementById('summary-info').innerHTML = \`
+                <strong>Názov testu:</strong> \${testTitle}<br>
+                <strong>Meno žiaka:</strong> \${studentNameStr}<br>
+                <strong>Počet bodov:</strong> \${totalPoints} / \${maxPoints}<br>
+                <strong>Percentuálne hodnotenie:</strong> \${percent}%<br>
+                <strong>Dátum a čas:</strong> \${dateStr}
+            \`;
+        }
+
+        function openDetailView() {
+            let totalPoints = 0;
+            let maxPoints = 0;
+            let detailData = [];
+
+            document.querySelectorAll('.exercise-layout').forEach((wrap, exIdx) => {
+                let slots = wrap.querySelectorAll('.slot');
+                
+                slots.forEach(slot => {
+                    maxPoints++;
+                    
+                    let expectedRaw = slot.dataset.expected;
+                    let actualRaw = slot.children.length > 0 ? slot.children[0].dataset.rawval : '';
+                    let expectedGroup = slot.dataset.group;
+                    
+                    let isCorrect = false;
+                    let isMissing = actualRaw === '';
+                    let decodedExpected = decodeURIComponent(expectedRaw);
+                    
+                    if (!isMissing) {
+                        let plain1 = decodeURIComponent(expectedRaw).replace(/<[^>]*>?/gm, '').trim();
+                        let plain2 = decodeURIComponent(actualRaw).replace(/<[^>]*>?/gm, '').trim();
+                        
+                        if (expectedRaw === actualRaw || plain1 === plain2) {
+                            isCorrect = true;
+                        } else if (expectedGroup) {
+                            let groupSlots = slot.closest('.tables-container').querySelectorAll('.slot[data-group="' + expectedGroup + '"]');
+                            groupSlots.forEach(gs => {
+                                let gsExpected = gs.dataset.expected;
+                                let plainGs = decodeURIComponent(gsExpected).replace(/<[^>]*>?/gm, '').trim();
+                                if (gsExpected === actualRaw || plainGs === plain2) {
+                                    isCorrect = true;
+                                    decodedExpected = decodeURIComponent(actualRaw);
+                                }
+                            });
+                        }
+                    } else if (expectedGroup) {
+                        let groupExpected = [];
+                        let groupSlots = slot.closest('.tables-container').querySelectorAll('.slot[data-group="' + expectedGroup + '"]');
+                        groupSlots.forEach(gs => groupExpected.push(decodeURIComponent(gs.dataset.expected)));
+                        decodedExpected = groupExpected.join(' / ');
+                    }
+                    
+                    if (!isCorrect && !isMissing && expectedGroup) {
+                        let groupExpected = [];
+                        let groupSlots = slot.closest('.tables-container').querySelectorAll('.slot[data-group="' + expectedGroup + '"]');
+                        groupSlots.forEach(gs => groupExpected.push(decodeURIComponent(gs.dataset.expected)));
+                        decodedExpected = groupExpected.join(' / ');
+                    }
+                    
+                    if(isCorrect) totalPoints++;
+
+                    let actualHTML = isMissing ? '(chýba odpoveď)' : decodeURIComponent(actualRaw);
+
+                    let type = slot.dataset.type;
+                    let zadanie = "";
+                    if (type === 'infinitive') {
+                        zadanie = "Neurčitok slovesa";
+                    } else if (type === 'translation') {
+                        zadanie = "Slovenský preklad";
+                    } else if (type === 'pronoun') {
+                        let verbExpected = slot.parentElement.nextElementSibling.querySelector('.slot').dataset.expected;
+                        zadanie = "Osobné zámeno k tvaru '" + decodeURIComponent(verbExpected).replace(/<[^>]*>?/gm, '') + "'";
+                    } else if (type === 'verb') {
+                        let pronounExpected = slot.parentElement.previousElementSibling.querySelector('.slot').dataset.expected;
+                        zadanie = "Časovaný tvar k zámenu '" + decodeURIComponent(pronounExpected).replace(/<[^>]*>?/gm, '') + "'";
+                    }
+
+                    detailData.push({ zadanie, odpoved: actualHTML, spravna: decodedExpected, isCorrect, isMissing });
+                });
+            });
+
+            let percent = Math.round((totalPoints / maxPoints) * 100);
+            let now = new Date();
+            let dateStr = now.toLocaleDateString('sk-SK') + ', ' + now.toLocaleTimeString('sk-SK');
+            
+            let safeTitle = (testTitle + "_" + studentNameStr).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^\\w\\s-]/g, '').replace(/[\\s\\-\\(\\)]+/g, '_');
+
+            let html = \`<!DOCTYPE html>
+            <html lang="sk">
+            <head>
+                <meta charset="UTF-8">
+                <title>\${safeTitle}</title>
+                <style>
+                    body { font-family: 'Segoe UI', sans-serif; padding: 30px; line-height: 1.6; color: #333; }
+                    h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+                    .info { margin-bottom: 30px; font-size: 16px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                    th { background-color: #f4f7f6; }
+                    .correct { color: #2e7d32; font-weight: bold; }
+                    .wrong { color: #c62828; font-weight: bold; }
+                    .missing { color: #f39c12; font-weight: bold; font-size: 18px; }
+                    .legend { margin-top: 30px; font-size: 14px; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+                    @media print {
+                        .no-print { display: none !important; }
+                        body { padding: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                <p class="no-print" style="color: gray; font-style: italic;">(Pre tlač použite klávesovú skratku CTRL + P)</p>
+                <h1>Detailný prehľad výsledkov</h1>
+                <div class="info">
+                    <strong>Názov testu:</strong> \${testTitle}<br>
+                    <strong>Meno žiaka:</strong> \${studentNameStr}<br>
+                    <strong>Počet bodov:</strong> \${totalPoints} / \${maxPoints}<br>
+                    <strong>Percentuálne hodnotenie:</strong> \${percent}%<br>
+                    <strong>Dátum a čas:</strong> \${dateStr}
+                </div>
+                
+                <table>
+                    <tr>
+                        <th>Zadanie</th>
+                        <th>Odpoveď žiaka</th>
+                        <th>Správna odpoveď</th>
+                    </tr>\`;
+            
+            detailData.forEach(d => {
+                let symbol = '';
+                let styleOdpoved = '';
+                
+                if (d.isMissing) {
+                    symbol = '<span class="missing">!</span>';
+                    styleOdpoved = 'color: gray; font-style: italic;';
+                } else if (d.isCorrect) {
+                    symbol = '<span class="correct">✓</span>';
+                } else {
+                    symbol = '<span class="wrong">✗</span>';
+                }
+                
+                let correctCol = d.spravna;
+                
+                html += \`<tr>
+                    <td>\${d.zadanie}</td>
+                    <td><span style="\${styleOdpoved}">\${d.odpoved}</span> \${symbol}</td>
+                    <td>\${correctCol}</td>
+                </tr>\`;
+            });
+
+            html += \`</table>
+                <div class="legend">
+                    <strong>Vysvetlivky:</strong><br>
+                    <span class="correct">✓</span> - Správna odpoveď<br>
+                    <span class="wrong">✗</span> - Nesprávna odpoveď<br>
+                    <span class="missing">!</span> - Chýbajúca odpoveď
+                </div>
+            </body>
+            </html>\`;
+
+            let detailWin = window.open('', '_blank');
+            detailWin.document.open();
+            detailWin.document.write(html);
+            detailWin.document.close();
+        }
+    <\/script>
+</body>
+</html>`;
+
+            const blob = new Blob([htmlTemplate], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            // Úprava na odstránenie diakritiky
+            let safeFileName = testMeta.nazov.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, "_");
+            a.download = safeFileName + "_Test.html";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+    <br><br>
+    <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+    <br><br>
+</body>
+</html>
