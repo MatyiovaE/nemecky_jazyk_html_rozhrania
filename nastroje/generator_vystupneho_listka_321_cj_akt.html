@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor výstupných lístkov (3-2-1) pre cudzí jazyk</title>
+    <style>
+        /* Základné nastavenie pre Monaco font */
+        * {
+            font-family: 'Monaco', monospace;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+
+        /* --- UI GENERÁTORA --- */
+        .generator-ui {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .question-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #fafafa;
+            border-left: 5px solid #4CAF50;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .btn:hover { background: #45a049; }
+        .btn-secondary { background: #2196F3; }
+        .btn-secondary:hover { background: #0b7dda; }
+
+        .button-group {
+            margin-top: 20px;
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* --- TLAČOVÝ NÁHĽAD (Výstupný lístok) --- */
+        .ticket-preview {
+            display: none; /* Skryté pokiaľ sa neklikne na Zobraziť */
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+        }
+
+        .ticket-header {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .ticket-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            line-height: 2;
+        }
+
+        .ticket-info span.line {
+            display: inline-block;
+            border-bottom: 1px solid black;
+            min-width: 150px;
+        }
+
+        .instruction {
+            margin-bottom: 30px;
+            font-style: italic;
+            font-weight: bold;
+        }
+
+        .q-title {
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .q-text-lines {
+            border-bottom: 1px solid black;
+            height: 30px;
+            margin-bottom: 10px;
+        }
+
+        .ticket-footer {
+            text-align: center;
+            margin-top: 40px;
+            font-weight: bold;
+        }
+
+        .ticket-author {
+            margin-top: 30px;
+            font-size: 0.9em;
+        }
+
+        /* Skryť generátor pri tlači */
+        @media print {
+            body { background: white; padding: 0; }
+            .generator-ui { display: none !important; }
+            .ticket-preview { display: block !important; padding: 0; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="generator-ui" id="generator-ui">
+        <h1>Generátor: Výstupný lístok (3-2-1)</h1>
+        
+        <div class="form-group">
+            <label>Téma:</label>
+            <input type="text" id="topicInput">
+        </div>
+        <div class="form-group">
+            <label>Autor (Meno a priezvisko):</label>
+            <input type="text" id="authorInput">
+        </div>
+        <div class="form-group">
+            <label>Rok:</label>
+            <input type="number" id="yearInput" value="2026">
+        </div>
+        
+        <div class="form-group" style="background: #e3f2fd; padding: 10px; border-radius: 4px; border: 1px solid #90caf9;">
+            <label>Jazyk (zmenou tohto poľa sa automaticky upraví text v prvej otázke):</label>
+            <input type="text" id="langInput" value="nemecky" onkeyup="updateLanguage()">
+        </div>
+
+        <h2>Znenie otázok (3-2-1)</h2>
+        
+        <div class="question-item">
+            <div class="form-group">
+                <label>Časť 3 (1 riadok na odpoveď):</label>
+                <textarea id="q3Input">3 nové slovíčka, ktoré som sa dnes naučil/a:</textarea>
+            </div>
+        </div>
+
+        <div class="question-item">
+            <div class="form-group">
+                <label>Časť 2 (2 riadky na odpoveď):</label>
+                <textarea id="q2Input">2 užitočné frázy, ktoré môžem použiť:</textarea>
+            </div>
+        </div>
+
+        <div class="question-item">
+            <div class="form-group">
+                <label>Časť 1 (1 riadok na odpoveď):</label>
+                <textarea id="q1Input">1 otázka, ktorú by som chcel/a ešte položiť, alebo vec, s ktorou som mal/a problém (napríklad vo výslovnosti atď.):</textarea>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn btn-secondary" style="width: 100%; font-size: 1.1em;" onclick="showTicket()">Zobraziť výstupný lístok na vyplnenie (CTRL + P pre uloženie)</button>
+        </div>
+        <br><br>
+        <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+    </div>
+
+    <div class="ticket-preview" id="ticket-preview">
+        <div class="no-print" style="margin-bottom: 20px; text-align: center;">
+            <button class="btn" onclick="hideTicket()">Späť do generátora</button>
+            <p><i>Stlač <b>CTRL + P</b> pre uloženie do PDF (Názov súboru je už pripravený)</i></p>
+        </div>
+
+        <div class="ticket-header">Výstupný lístok (Exit ticket)</div>
+        
+        <div style="margin-bottom: 20px;">
+            <b>Téma:</b> <span id="out-topic"></span>
+        </div>
+        <div class="ticket-info">
+            <div><b>Meno:</b> <span class="line" style="width: 250px;"></span></div>
+            <div><b>Trieda:</b> <span class="line" style="width: 80px;"></span></div>
+            <div><b>Dátum:</b> <span class="line" style="width: 120px;"></span></div>
+        </div>
+
+        <div class="instruction">Vyplň pred odchodom z hodiny a odovzdaj učiteľovi:</div>
+
+        <div id="out-questions"></div>
+
+        <div class="ticket-footer">Ďakujem za spoluprácu a prajem veľa úspechov v učení ☺</div>
+        <div class="ticket-author">Autor: <span id="out-author"></span> (<span id="out-year"></span>)</div>
+
+    </div>
+
+<script>
+// --- POMOCNÉ FUNKCIE ---
+function sanitizeFilename(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '') // odstránenie diakritiky
+              .replace(/[^a-zA-Z0-9]/g, '_') // interpunkcia, zátvorky, medzery na podčiarkovníky
+              .replace(/_+/g, '_') // odstránenie viacnásobných podčiarkovníkov
+              .replace(/_$/, ''); // odstránenie podčiarkovníka na konci
+}
+
+function updateLanguage() {
+    const lang = document.getElementById('langInput').value;
+    document.getElementById('q3Input').value = `3 nové slovíčka, ktoré som sa dnes naučil/a po ${lang} (s určitým členom):`;
+}
+
+// --- ZOBRAZENIE A SKRYTIE LÍSTKA ---
+function showTicket() {
+    const topic = document.getElementById('topicInput').value;
+    document.getElementById('out-topic').innerText = topic;
+    document.getElementById('out-author').innerText = document.getElementById('authorInput').value;
+    document.getElementById('out-year').innerText = document.getElementById('yearInput').value;
+
+    const outQ = document.getElementById('out-questions');
+    outQ.innerHTML = '';
+
+    // Získanie hodnôt z textových polí
+    const q3Text = document.getElementById('q3Input').value;
+    const q2Text = document.getElementById('q2Input').value;
+    const q1Text = document.getElementById('q1Input').value;
+
+    // Vykreslenie Časti 3 (1 dlhý riadok)
+    outQ.innerHTML += `
+        <div class="q-title">${q3Text}</div>
+        <div class="q-text-lines"></div>
+    `;
+
+    // Vykreslenie Časti 2 (2 dlhé riadky)
+    outQ.innerHTML += `
+        <div class="q-title">${q2Text}</div>
+        <div class="q-text-lines"></div>
+        <div class="q-text-lines"></div>
+    `;
+
+    // Vykreslenie Časti 1 (1 dlhý riadok)
+    outQ.innerHTML += `
+        <div class="q-title">${q1Text}</div>
+        <div class="q-text-lines"></div>
+    `;
+
+    document.getElementById('generator-ui').style.display = 'none';
+    document.getElementById('ticket-preview').style.display = 'block';
+    
+    // Nastavenie titulku pre uloženie do PDF
+    document.title = sanitizeFilename(topic) + "_3-2-1";
+}
+
+function hideTicket() {
+    document.getElementById('generator-ui').style.display = 'block';
+    document.getElementById('ticket-preview').style.display = 'none';
+    document.title = 'Generátor výstupných lístkov (3-2-1)';
+}
+</script>
+
+</body>
+</html>
