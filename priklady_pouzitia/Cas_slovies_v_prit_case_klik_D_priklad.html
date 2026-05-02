@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Časovanie slovies v prítomnom čase (7. ročník) - Test</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; color: #333; margin: 0; padding: 15px; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 15px 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #2c3e50; text-align: center; margin: 10px 0;}
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        .btn { display: inline-block; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; text-align: center; transition: 0.3s; color: white; }
+        .btn-green { background: #2ecc71; width: 100%; margin-top: 20px; font-size: 18px; }
+        .btn-green:hover { background: #27ae60; }
+        .btn-blue { background: #3498db; }
+        .btn-blue:hover { background: #2980b9; }
+        
+        .nav-bar { display: flex; gap: 5px; margin-top: 15px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap; }
+        .nav-btn { width: 40px; height: 40px; border: none; border-radius: 5px; background: #e0e0e0; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .nav-btn.active { border: 2px solid #333; background: #fff; }
+        .nav-btn.solved { background: #add8e6; }
+        
+        .instructions { background: #eef2f5; padding: 10px 15px; border-left: 5px solid #3498db; margin-bottom: 15px; line-height: 1.4; font-size: 14px; }
+        
+        .exercise-layout { display: flex; flex-direction: column; gap: 15px; }
+        
+        .tables-container { display: flex; gap: 15px; justify-content: space-between; flex-wrap: wrap; }
+        .table-block { flex: 1; min-width: 300px; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        .table-title { margin-top: 0; margin-bottom: 10px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 16px; text-transform: uppercase; }
+        
+        .top-slots { display: flex; gap: 20px; justify-content: space-between; margin-bottom: 15px; }
+        .top-slot-container { text-align: center; flex: 1; }
+        .top-slot-title { font-weight: bold; color: black; margin-bottom: 5px; font-size: 16px; }
+        
+        .slots-table { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
+        .slots-table td { width: 50%; padding: 0 5px; }
+        
+        /* Zmenšené sloty a tlačidlá pre kompaktnejšie zobrazenie */
+        .slot { 
+            height: 42px; 
+            border: 2px dashed #999; 
+            border-radius: 5px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: #fafafa;
+            cursor: pointer;
+            transition: 0.2s;
+            padding: 2px;
+            box-sizing: border-box;
+        }
+        .slot.highlight { border-color: #3498db; background: #e6f2ff; }
+        
+        .btn-item {
+            font-size: 15px; 
+            font-weight: bold; 
+            color: black; 
+            padding: 4px 10px;
+            border-radius: 5px;
+            border: 2px solid #555;
+            cursor: pointer;
+            text-align: center;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 38px;
+            min-width: 100px;
+            box-sizing: border-box;
+        }
+        .btn-item.selected { border-color: #e74c3c; box-shadow: 0 0 10px rgba(231,76,60,0.5); transform: scale(1.05); z-index: 10; position: relative; }
+        
+        .slot .btn-item {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        .color-gray { background-color: #e0e0e0; }
+        .color-blue { background-color: #add8e6; }
+        .color-yellow { background-color: #ffeb3b; }
+
+        .pool-area { margin-top: 5px; padding-top: 10px; border-top: 2px dashed #ccc; }
+        .pool-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        
+        /* Zmena zarovnania tlačidiel z flex-end na center */
+        .bottom-actions { display: flex; justify-content: center; margin-top: 10px; }
+        
+        /* Vyhodnotenie farby */
+        .slot.correct { background-color: #c8e6c9 !important; border-color: #2e7d32; }
+        .slot.wrong { background-color: #ffcdd2 !important; border-color: #c62828; position: relative; }
+        .correct-answer-hint { display: block; font-size: 12px; color: #c62828; margin-top: 2px; font-weight: bold; text-align: center; line-height: 1; }
+        
+        .summary-box { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px; font-size: 18px; line-height: 1.8;}
+        
+        [style*="display: none"] { display: none !important; }
+
+        /* Schovanie neviditeľnej medzery na malých obrazovkách */
+        @media (max-width: 680px) {
+            .desktop-spacer { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div id="screen-intro" class="container">
+        <h1>Časovanie slovies v prítomnom čase (7. ročník)</h1>
+        <div class="input-group">
+            <label>Meno žiaka:</label>
+            <input type="text" id="studentName" placeholder="Zadaj svoje meno a priezvisko">
+        </div>
+        <div class="input-group">
+            <label>Počet cvičení:</label>
+            <input type="number" id="numExercises" value="5" min="1" max="99">
+        </div>
+        <button class="btn btn-green" onclick="startTest()">Štart</button>
+    </div>
+
+    <div id="screen-test" class="container" style="display: none;">
+        <div class="instructions">
+            Klikni na tlačidlo a potom na príslušné voľné miesto (slot), kam chceš tlačidlo umiestniť. Ak si neskôr svoje rozhodnutie rozmyslíš, klikni na už umiestnený text dvakrát a ten sa potom vráti na svoje pôvodné miesto. Ak umiestniš všetky tlačidlá na miesto, kam patria, klikni na modré tlačidlo "Ďalej" alebo na ďalšie číslo v navigačnej lište. Na konci klikni na zelené tlačidlo "Vyhodnotiť".
+        </div>
+        
+        <div id="exercise-container"></div>
+        
+        <div class="nav-bar" id="navBar"></div>
+
+        <div class="bottom-actions">
+            <button class="btn btn-blue" id="btn-next" onclick="nextExercise()">Ďalej</button>
+            <button class="btn btn-green" id="btn-eval" onclick="evaluateTest()" style="display: none; width: auto; margin-top:0;">Vyhodnotiť</button>
+        </div>
+    </div>
+
+    <div id="screen-results" class="container" style="display: none;">
+        <h1>Vyhodnotenie</h1>
+        <div class="summary-box" id="summary-info"></div>
+        <button class="btn btn-blue" style="width: 100%; margin-bottom: 30px;" onclick="openDetailView()">Zobraziť detailný prehľad</button>
+        <div id="evaluated-exercises"></div>
+    </div>
+
+    <script>
+        const allExercisesPool = [{"infinitive":"<b>buchstabieren</b>","translation":"hláskovať","pairs":[{"pronoun":"<b>ich</b>","verb":"buchstabiere"},{"pronoun":"<b>du</b>","verb":"buchstabierst"},{"pronoun":"<b>er</b>","verb":"buchstabiert"},{"pronoun":"<b>sie</b> (ona)","verb":"buchstabiert"},{"pronoun":"<b>es</b>","verb":"buchstabiert"},{"pronoun":"<b>wir</b>","verb":"buchstabieren"},{"pronoun":"<b>ihr</b>","verb":"buchstabiert"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"buchstabieren"},{"pronoun":"<b>Sie</b>","verb":"buchstabieren"}],"distractors":["buchstabieret","buchstabierest","buchstabierent"]},{"infinitive":"<b>spielen</b>","translation":"hrať (sa)","pairs":[{"pronoun":"<b>ich</b>","verb":"spiele"},{"pronoun":"<b>du</b>","verb":"spielst"},{"pronoun":"<b>er</b>","verb":"spielt"},{"pronoun":"<b>sie</b> (ona)","verb":"spielt"},{"pronoun":"<b>es</b>","verb":"spielt"},{"pronoun":"<b>wir</b>","verb":"spielen"},{"pronoun":"<b>ihr</b>","verb":"spielt"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"spielen"},{"pronoun":"<b>Sie</b>","verb":"spielen"}],"distractors":["spielet","spielent","spielest"]},{"infinitive":"<b>lernen</b>","translation":"učiť sa","pairs":[{"pronoun":"<b>ich</b>","verb":"lerne"},{"pronoun":"<b>du</b>","verb":"lernst"},{"pronoun":"<b>er</b>","verb":"lernt"},{"pronoun":"<b>sie</b> (ona)","verb":"lernt"},{"pronoun":"<b>es</b>","verb":"lernt"},{"pronoun":"<b>wir</b>","verb":"lernen"},{"pronoun":"<b>ihr</b>","verb":"lernt"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"lernen"},{"pronoun":"<b>Sie</b>","verb":"lernen"}],"distractors":["lernet","lernest","lernent"]},{"infinitive":"<b>machen</b>","translation":"robiť","pairs":[{"pronoun":"<b>ich</b>","verb":"mache"},{"pronoun":"<b>du</b>","verb":"machst"},{"pronoun":"<b>er</b>","verb":"macht"},{"pronoun":"<b>sie</b> (ona)","verb":"macht"},{"pronoun":"<b>es</b>","verb":"macht"},{"pronoun":"<b>wir</b>","verb":"machen"},{"pronoun":"<b>ihr</b>","verb":"macht"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"machen"},{"pronoun":"<b>Sie</b>","verb":"machen"}],"distractors":["machent","machest","machet"]},{"infinitive":"<b>telefonieren</b>","translation":"telefonovať","pairs":[{"pronoun":"<b>ich</b>","verb":"telefoniere"},{"pronoun":"<b>du</b>","verb":"telefonierst"},{"pronoun":"<b>er</b>","verb":"telefoniert"},{"pronoun":"<b>sie</b> (ona)","verb":"telefoniert"},{"pronoun":"<b>es</b>","verb":"telefoniert"},{"pronoun":"<b>wir</b>","verb":"telefonieren"},{"pronoun":"<b>ihr</b>","verb":"telefoniert"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"telefonieren"},{"pronoun":"<b>Sie</b>","verb":"telefonieren"}],"distractors":["telefonierent","telefonieret","telefonierest"]},{"infinitive":"<b>üben</b>","translation":"precvičovať","pairs":[{"pronoun":"<b>ich</b>","verb":"übe"},{"pronoun":"<b>du</b>","verb":"übst"},{"pronoun":"<b>er</b>","verb":"übt"},{"pronoun":"<b>sie</b> (ona)","verb":"übt"},{"pronoun":"<b>es</b>","verb":"übt"},{"pronoun":"<b>wir</b>","verb":"üben"},{"pronoun":"<b>ihr</b>","verb":"übt"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"üben"},{"pronoun":"<b>Sie</b>","verb":"üben"}],"distractors":["übest","übet","übent"]},{"infinitive":"<b>wohnen</b>","translation":"bývať","pairs":[{"pronoun":"<b>ich</b>","verb":"wohne"},{"pronoun":"<b>du</b>","verb":"wohnst"},{"pronoun":"<b>er</b>","verb":"wohnt"},{"pronoun":"<b>sie</b> (ona)","verb":"wohnt"},{"pronoun":"<b>es</b>","verb":"wohnt"},{"pronoun":"<b>wir</b>","verb":"wohnen"},{"pronoun":"<b>ihr</b>","verb":"wohnt"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"wohnen"},{"pronoun":"<b>Sie</b>","verb":"wohnen"}],"distractors":["wohnent","wohnet","wohnest"]},{"infinitive":"<b>sprechen</b>","translation":"hovoriť, rozprávať","pairs":[{"pronoun":"<b>ich</b>","verb":"spreche"},{"pronoun":"<b>du</b>","verb":"sprichst"},{"pronoun":"<b>er</b>","verb":"spricht"},{"pronoun":"<b>sie</b> (ona)","verb":"spricht"},{"pronoun":"<b>es</b>","verb":"spricht"},{"pronoun":"<b>wir</b>","verb":"sprechen"},{"pronoun":"<b>ihr</b>","verb":"sprecht"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"sprechen"},{"pronoun":"<b>Sie</b>","verb":"sprechen"}],"distractors":["sprechst","sprechent","sprechet"]},{"infinitive":"<b>finden</b>","translation":"nájsť, považovať niečo za nejaké","pairs":[{"pronoun":"<b>ich</b>","verb":"finde"},{"pronoun":"<b>du</b>","verb":"findest"},{"pronoun":"<b>er</b>","verb":"findet"},{"pronoun":"<b>sie</b> (ona)","verb":"findet"},{"pronoun":"<b>es</b>","verb":"findet"},{"pronoun":"<b>wir</b>","verb":"finden"},{"pronoun":"<b>ihr</b>","verb":"findet"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"finden"},{"pronoun":"<b>Sie</b>","verb":"finden"}],"distractors":["findt","findst","findent"]},{"infinitive":"<b>kommen</b>","translation":"prísť","pairs":[{"pronoun":"<b>ich</b>","verb":"komme"},{"pronoun":"<b>du</b>","verb":"kommst"},{"pronoun":"<b>er</b>","verb":"kommt"},{"pronoun":"<b>sie</b> (ona)","verb":"kommt"},{"pronoun":"<b>es</b>","verb":"kommt"},{"pronoun":"<b>wir</b>","verb":"kommen"},{"pronoun":"<b>ihr</b>","verb":"kommt"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"kommen"},{"pronoun":"<b>Sie</b>","verb":"kommen"}],"distractors":["komment","kommest","kommet"]},{"infinitive":"<b>gehen</b>","translation":"ísť","pairs":[{"pronoun":"<b>ich</b>","verb":"gehe"},{"pronoun":"<b>du</b>","verb":"gehst"},{"pronoun":"<b>er</b>","verb":"geht"},{"pronoun":"<b>sie</b> (ona)","verb":"geht"},{"pronoun":"<b>es</b>","verb":"geht"},{"pronoun":"<b>wir</b>","verb":"gehen"},{"pronoun":"<b>ihr</b>","verb":"geht"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"gehen"},{"pronoun":"<b>Sie</b>","verb":"gehen"}],"distractors":["gehet","gehest","gehent"]},{"infinitive":"<b>klettern</b>","translation":"liezť, loziť","pairs":[{"pronoun":"<b>ich</b>","verb":"klettere"},{"pronoun":"<b>du</b>","verb":"kletterst"},{"pronoun":"<b>er</b>","verb":"klettert"},{"pronoun":"<b>sie</b> (ona)","verb":"klettert"},{"pronoun":"<b>es</b>","verb":"klettert"},{"pronoun":"<b>wir</b>","verb":"klettern"},{"pronoun":"<b>ihr</b>","verb":"klettert"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"klettern"},{"pronoun":"<b>Sie</b>","verb":"klettern"}],"distractors":["kletterest","kletteret","kletterent"]},{"infinitive":"<b>heißen</b>","translation":"volať sa","pairs":[{"pronoun":"<b>ich</b>","verb":"heiße"},{"pronoun":"<b>du</b>","verb":"heißt"},{"pronoun":"<b>er</b>","verb":"heißt"},{"pronoun":"<b>sie</b> (ona)","verb":"heißt"},{"pronoun":"<b>es</b>","verb":"heißt"},{"pronoun":"<b>wir</b>","verb":"heißen"},{"pronoun":"<b>ihr</b>","verb":"heißt"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"heißen"},{"pronoun":"<b>Sie</b>","verb":"heißen"}],"distractors":["heißet","heißst","heißent"]},{"infinitive":"<b>sein</b>","translation":"byť, existovať","pairs":[{"pronoun":"<b>ich</b>","verb":"bin"},{"pronoun":"<b>du</b>","verb":"bist"},{"pronoun":"<b>er</b>","verb":"ist"},{"pronoun":"<b>sie</b> (ona)","verb":"ist"},{"pronoun":"<b>es</b>","verb":"ist"},{"pronoun":"<b>wir</b>","verb":"sind"},{"pronoun":"<b>ihr</b>","verb":"seid"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"sind"},{"pronoun":"<b>Sie</b>","verb":"sind"}],"distractors":["isst","bisst","sindet"]},{"infinitive":"<b>haben</b>","translation":"mať","pairs":[{"pronoun":"<b>ich</b>","verb":"habe"},{"pronoun":"<b>du</b>","verb":"hast"},{"pronoun":"<b>er</b>","verb":"hat"},{"pronoun":"<b>sie</b> (ona)","verb":"hat"},{"pronoun":"<b>es</b>","verb":"hat"},{"pronoun":"<b>wir</b>","verb":"haben"},{"pronoun":"<b>ihr</b>","verb":"habt"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"haben"},{"pronoun":"<b>Sie</b>","verb":"haben"}],"distractors":["habent","habet","habst"]},{"infinitive":"<b>surfen</b>","translation":"surfovať","pairs":[{"pronoun":"<b>ich</b>","verb":"surfe"},{"pronoun":"<b>du</b>","verb":"surfst"},{"pronoun":"<b>er</b>","verb":"surft"},{"pronoun":"<b>sie</b> (ona)","verb":"surft"},{"pronoun":"<b>es</b>","verb":"surft"},{"pronoun":"<b>wir</b>","verb":"surfen"},{"pronoun":"<b>ihr</b>","verb":"surft"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"surfen"},{"pronoun":"<b>Sie</b>","verb":"surfen"}],"distractors":["surfent","surfet","surfest"]},{"infinitive":"<b>tauchen</b>","translation":"potápať sa","pairs":[{"pronoun":"<b>ich</b>","verb":"tauche"},{"pronoun":"<b>du</b>","verb":"tauchst"},{"pronoun":"<b>er</b>","verb":"taucht"},{"pronoun":"<b>sie</b> (ona)","verb":"taucht"},{"pronoun":"<b>es</b>","verb":"taucht"},{"pronoun":"<b>wir</b>","verb":"tauchen"},{"pronoun":"<b>ihr</b>","verb":"taucht"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"tauchen"},{"pronoun":"<b>Sie</b>","verb":"tauchen"}],"distractors":["tauchet","tauchent","tauchest"]},{"infinitive":"<b>singen</b>","translation":"spievať","pairs":[{"pronoun":"<b>ich</b>","verb":"singe"},{"pronoun":"<b>du</b>","verb":"singst"},{"pronoun":"<b>er</b>","verb":"singt"},{"pronoun":"<b>sie</b> (ona)","verb":"singt"},{"pronoun":"<b>es</b>","verb":"singt"},{"pronoun":"<b>wir</b>","verb":"singen"},{"pronoun":"<b>ihr</b>","verb":"singt"},{"pronoun":"<b>sie</b> (oni/ony)","verb":"singen"},{"pronoun":"<b>Sie</b>","verb":"singen"}],"distractors":["singent","singest","singet"]}];
+        const testTitle = "Časovanie slovies v prítomnom čase (7. ročník)";
+        let testExercises = [];
+        let currentIndex = 0;
+        let selectedButton = null;
+        let studentNameStr = "";
+
+        function startTest() {
+            studentNameStr = document.getElementById('studentName').value.trim() || 'Anonym';
+            let reqNum = parseInt(document.getElementById('numExercises').value) || 5;
+            
+            let shuffled = [...allExercisesPool].sort(() => 0.5 - Math.random());
+            testExercises = shuffled.slice(0, Math.min(reqNum, shuffled.length));
+            
+            if(testExercises.length === 0) return;
+            
+            document.getElementById('screen-intro').style.display = 'none';
+            document.getElementById('screen-test').style.display = 'block';
+            
+            buildNavBar();
+            buildAllExercises();
+            showExercise(0);
+
+            document.addEventListener('keydown', handleEnter);
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter' && document.getElementById('screen-test').style.display !== 'none') {
+                if (document.getElementById('btn-next').style.display !== 'none') {
+                    nextExercise();
+                } else if (document.getElementById('btn-eval').style.display !== 'none') {
+                    evaluateTest();
+                }
+            }
+        }
+
+        function buildNavBar() {
+            const nav = document.getElementById('navBar');
+            nav.innerHTML = '';
+            testExercises.forEach((_, i) => {
+                let b = document.createElement('button');
+                b.className = 'nav-btn';
+                b.innerText = i + 1;
+                b.onclick = () => showExercise(i);
+                b.id = 'nav-btn-' + i;
+                nav.appendChild(b);
+            });
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function buildAllExercises() {
+            const container = document.getElementById('exercise-container');
+            container.innerHTML = '';
+            
+            testExercises.forEach((ex, index) => {
+                let div = document.createElement('div');
+                div.id = 'ex-wrap-' + index;
+                div.className = 'exercise-layout';
+                div.style.display = 'none';
+                
+                // Priprav tlačidlá včítane originálnych naformátovaných HTML textov zviazaných do datasetu
+                let btns = [];
+                btns.push({text: ex.infinitive, type: 'color-blue', raw: encodeURIComponent(ex.infinitive)});
+                btns.push({text: ex.translation, type: 'color-yellow', raw: encodeURIComponent(ex.translation)});
+                
+                ex.pairs.forEach((p) => {
+                    btns.push({text: p.pronoun, type: 'color-gray', raw: encodeURIComponent(p.pronoun)});
+                    btns.push({text: p.verb, type: 'color-blue', raw: encodeURIComponent(p.verb)});
+                });
+                
+                // Pridanie distraktorov
+                if (ex.distractors && ex.distractors.length > 0) {
+                    ex.distractors.forEach((d) => {
+                        btns.push({text: d, type: 'color-blue', raw: encodeURIComponent(d)});
+                    });
+                }
+                
+                btns = shuffleArray(btns);
+
+                // Rozdelenie na Singular (prvých 5) a Plural (zvyšné)
+                let singularPairs = ex.pairs.slice(0, 5);
+                let pluralPairs = ex.pairs.slice(5);
+
+                let html = `
+                    <div class="tables-container">
+                        <div class="table-block">
+                            <div class="top-slots">
+                                <div class="top-slot-container">
+                                    <div class="top-slot-title">neurčitok slovesa</div>
+                                    <div class="slot top-slot" data-type="infinitive" data-expected="${encodeURIComponent(ex.infinitive)}" data-exidx="${index}"></div>
+                                </div>
+                                <div class="top-slot-container">
+                                    <div class="top-slot-title">slovenský preklad</div>
+                                    <div class="slot top-slot" data-type="translation" data-expected="${encodeURIComponent(ex.translation)}" data-exidx="${index}"></div>
+                                </div>
+                            </div>
+                            <h3 class="table-title">Jednotné číslo</h3>
+                            <table class="slots-table">`;
+                
+                singularPairs.forEach((p, i) => {
+                    let groupAttr = (i >= 2 && i <= 4) ? ' data-group="sing3"' : '';
+                    html += `<tr>
+                        <td><div class="slot left-slot" data-type="pronoun" data-expected="${encodeURIComponent(p.pronoun)}"${groupAttr} data-exidx="${index}"></div></td>
+                        <td><div class="slot right-slot" data-type="verb" data-expected="${encodeURIComponent(p.verb)}" data-exidx="${index}"></div></td>
+                    </tr>`;
+                });
+                
+                html += `</table></div>
+                        <div class="table-block">
+                            <div class="top-slots desktop-spacer" style="visibility: hidden; pointer-events: none;">
+                                <div class="top-slot-container">
+                                    <div class="top-slot-title">&nbsp;</div>
+                                    <div style="height: 42px; box-sizing: border-box;"></div>
+                                </div>
+                            </div>
+                            <h3 class="table-title">Množné číslo</h3>
+                            <table class="slots-table">`;
+                
+                pluralPairs.forEach((p, i) => {
+                    let groupAttr = (i >= 2 && i <= 3) ? ' data-group="plur3"' : '';
+                    html += `<tr>
+                        <td><div class="slot left-slot" data-type="pronoun" data-expected="${encodeURIComponent(p.pronoun)}"${groupAttr} data-exidx="${index}"></div></td>
+                        <td><div class="slot right-slot" data-type="verb" data-expected="${encodeURIComponent(p.verb)}" data-exidx="${index}"></div></td>
+                    </tr>`;
+                });
+
+                html += `</table></div></div><div class="pool-area"><div class="pool-grid" id="pool-${index}">`;
+                
+                btns.forEach(b => {
+                    // text prejde do innerHTML úplne bez zmien, zachová si HTML značky
+                    html += `<div class="btn-item ${b.type}" data-rawval="${b.raw}" onclick="btnClick(this)" ondblclick="btnDblClick(this)">${b.text}</div>`;
+                });
+                
+                html += `</div></div>`;
+                div.innerHTML = html;
+                container.appendChild(div);
+            });
+            
+            // Event listeners pre sloty
+            document.querySelectorAll('.slot').forEach(slot => {
+                slot.addEventListener('click', function() {
+                    if (selectedButton && this.children.length === 0) {
+                        this.appendChild(selectedButton);
+                        selectedButton.classList.remove('selected');
+                        selectedButton = null;
+                        checkSolvedState(this.dataset.exidx);
+                    } else if (selectedButton && this.children.length > 0) {
+                        selectedButton.classList.remove('selected');
+                        selectedButton = null;
+                    }
+                });
+            });
+        }
+
+        function btnClick(btn) {
+            if (selectedButton) selectedButton.classList.remove('selected');
+            if (selectedButton === btn) { selectedButton = null; return; }
+            selectedButton = btn;
+            btn.classList.add('selected');
+        }
+
+        function btnDblClick(btn) {
+            if (btn.parentElement.classList.contains('slot')) {
+                let exIdx = btn.parentElement.dataset.exidx;
+                document.getElementById('pool-' + exIdx).appendChild(btn);
+                btn.classList.remove('selected');
+                if (selectedButton === btn) selectedButton = null;
+                checkSolvedState(exIdx);
+            }
+        }
+
+        function checkSolvedState(index) {
+            let wrap = document.getElementById('ex-wrap-' + index);
+            let slots = wrap.querySelectorAll('.slot');
+            let isFull = Array.from(slots).every(s => s.children.length > 0);
+            let navBtn = document.getElementById('nav-btn-' + index);
+            if(isFull) navBtn.classList.add('solved');
+            else navBtn.classList.remove('solved');
+        }
+
+        function showExercise(index) {
+            if (selectedButton) { selectedButton.classList.remove('selected'); selectedButton = null; }
+            document.querySelectorAll('.exercise-layout').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById('ex-wrap-' + index).style.display = 'flex';
+            document.getElementById('nav-btn-' + index).classList.add('active');
+            currentIndex = index;
+            
+            document.getElementById('btn-next').style.display = (index < testExercises.length - 1) ? 'inline-block' : 'none';
+            document.getElementById('btn-eval').style.display = (index === testExercises.length - 1) ? 'inline-block' : 'none';
+        }
+
+        function nextExercise() {
+            if (currentIndex < testExercises.length - 1) showExercise(currentIndex + 1);
+        }
+
+        function evaluateTest() {
+            document.removeEventListener('keydown', handleEnter);
+            document.getElementById('screen-test').style.display = 'none';
+            document.getElementById('screen-results').style.display = 'block';
+            
+            let totalPoints = 0;
+            let maxPoints = 0;
+            
+            document.querySelectorAll('.exercise-layout').forEach(wrap => {
+                wrap.style.display = 'flex';
+                wrap.querySelector('.pool-area').style.display = 'none';
+                
+                wrap.querySelectorAll('.slot').forEach(slot => {
+                    maxPoints++;
+                    
+                    let expectedRaw = slot.dataset.expected;
+                    let actualRaw = slot.children.length > 0 ? slot.children[0].dataset.rawval : '';
+                    let expectedGroup = slot.dataset.group;
+                    let isCorrect = false;
+                    
+                    if (actualRaw !== '') {
+                        let plain1 = decodeURIComponent(expectedRaw).replace(/<[^>]*>?/gm, '').trim();
+                        let plain2 = decodeURIComponent(actualRaw).replace(/<[^>]*>?/gm, '').trim();
+                        
+                        if (expectedRaw === actualRaw || plain1 === plain2) {
+                            isCorrect = true;
+                        } else if (expectedGroup) {
+                            let groupSlots = slot.closest('.tables-container').querySelectorAll('.slot[data-group="' + expectedGroup + '"]');
+                            groupSlots.forEach(gs => {
+                                let gsExpected = gs.dataset.expected;
+                                let plainGs = decodeURIComponent(gsExpected).replace(/<[^>]*>?/gm, '').trim();
+                                if (gsExpected === actualRaw || plainGs === plain2) {
+                                    isCorrect = true;
+                                }
+                            });
+                        }
+                    }
+                    
+                    if (isCorrect) {
+                        totalPoints++;
+                        slot.classList.add('correct');
+                    } else {
+                        slot.classList.add('wrong');
+                        let div = document.createElement('div');
+                        div.className = 'correct-answer-hint';
+                        if (expectedGroup) {
+                            let groupExpected = [];
+                            let groupSlots = slot.closest('.tables-container').querySelectorAll('.slot[data-group="' + expectedGroup + '"]');
+                            groupSlots.forEach(gs => groupExpected.push(decodeURIComponent(gs.dataset.expected)));
+                            div.innerHTML = groupExpected.join(' / ');
+                        } else {
+                            div.innerHTML = decodeURIComponent(expectedRaw);
+                        }
+                        slot.parentElement.appendChild(div);
+                    }
+                    slot.style.pointerEvents = 'none';
+                });
+                
+                document.getElementById('evaluated-exercises').appendChild(wrap);
+            });
+            
+            let percent = Math.round((totalPoints / maxPoints) * 100);
+            let now = new Date();
+            let dateStr = now.toLocaleDateString('sk-SK') + ', ' + now.toLocaleTimeString('sk-SK');
+            
+            document.getElementById('summary-info').innerHTML = `
+                <strong>Názov testu:</strong> ${testTitle}<br>
+                <strong>Meno žiaka:</strong> ${studentNameStr}<br>
+                <strong>Počet bodov:</strong> ${totalPoints} / ${maxPoints}<br>
+                <strong>Percentuálne hodnotenie:</strong> ${percent}%<br>
+                <strong>Dátum a čas:</strong> ${dateStr}
+            `;
+        }
+
+        function openDetailView() {
+            let totalPoints = 0;
+            let maxPoints = 0;
+            let detailData = [];
+
+            document.querySelectorAll('.exercise-layout').forEach((wrap, exIdx) => {
+                let slots = wrap.querySelectorAll('.slot');
+                
+                slots.forEach(slot => {
+                    maxPoints++;
+                    
+                    let expectedRaw = slot.dataset.expected;
+                    let actualRaw = slot.children.length > 0 ? slot.children[0].dataset.rawval : '';
+                    let expectedGroup = slot.dataset.group;
+                    
+                    let isCorrect = false;
+                    let isMissing = actualRaw === '';
+                    let decodedExpected = decodeURIComponent(expectedRaw);
+                    
+                    if (!isMissing) {
+                        let plain1 = decodeURIComponent(expectedRaw).replace(/<[^>]*>?/gm, '').trim();
+                        let plain2 = decodeURIComponent(actualRaw).replace(/<[^>]*>?/gm, '').trim();
+                        
+                        if (expectedRaw === actualRaw || plain1 === plain2) {
+                            isCorrect = true;
+                        } else if (expectedGroup) {
+                            let groupSlots = slot.closest('.tables-container').querySelectorAll('.slot[data-group="' + expectedGroup + '"]');
+                            groupSlots.forEach(gs => {
+                                let gsExpected = gs.dataset.expected;
+                                let plainGs = decodeURIComponent(gsExpected).replace(/<[^>]*>?/gm, '').trim();
+                                if (gsExpected === actualRaw || plainGs === plain2) {
+                                    isCorrect = true;
+                                    decodedExpected = decodeURIComponent(actualRaw);
+                                }
+                            });
+                        }
+                    } else if (expectedGroup) {
+                        let groupExpected = [];
+                        let groupSlots = slot.closest('.tables-container').querySelectorAll('.slot[data-group="' + expectedGroup + '"]');
+                        groupSlots.forEach(gs => groupExpected.push(decodeURIComponent(gs.dataset.expected)));
+                        decodedExpected = groupExpected.join(' / ');
+                    }
+                    
+                    if (!isCorrect && !isMissing && expectedGroup) {
+                        let groupExpected = [];
+                        let groupSlots = slot.closest('.tables-container').querySelectorAll('.slot[data-group="' + expectedGroup + '"]');
+                        groupSlots.forEach(gs => groupExpected.push(decodeURIComponent(gs.dataset.expected)));
+                        decodedExpected = groupExpected.join(' / ');
+                    }
+                    
+                    if(isCorrect) totalPoints++;
+
+                    let actualHTML = isMissing ? '(chýba odpoveď)' : decodeURIComponent(actualRaw);
+
+                    let type = slot.dataset.type;
+                    let zadanie = "";
+                    if (type === 'infinitive') {
+                        zadanie = "Neurčitok slovesa";
+                    } else if (type === 'translation') {
+                        zadanie = "Slovenský preklad";
+                    } else if (type === 'pronoun') {
+                        let verbExpected = slot.parentElement.nextElementSibling.querySelector('.slot').dataset.expected;
+                        zadanie = "Osobné zámeno k tvaru '" + decodeURIComponent(verbExpected).replace(/<[^>]*>?/gm, '') + "'";
+                    } else if (type === 'verb') {
+                        let pronounExpected = slot.parentElement.previousElementSibling.querySelector('.slot').dataset.expected;
+                        zadanie = "Časovaný tvar k zámenu '" + decodeURIComponent(pronounExpected).replace(/<[^>]*>?/gm, '') + "'";
+                    }
+
+                    detailData.push({ zadanie, odpoved: actualHTML, spravna: decodedExpected, isCorrect, isMissing });
+                });
+            });
+
+            let percent = Math.round((totalPoints / maxPoints) * 100);
+            let now = new Date();
+            let dateStr = now.toLocaleDateString('sk-SK') + ', ' + now.toLocaleTimeString('sk-SK');
+            
+            let safeTitle = (testTitle + "_" + studentNameStr).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s-]/g, '').replace(/[\s\-\(\)]+/g, '_');
+
+            let html = `<!DOCTYPE html>
+            <html lang="sk">
+            <head>
+                <meta charset="UTF-8">
+                <title>${safeTitle}</title>
+                <style>
+                    body { font-family: 'Segoe UI', sans-serif; padding: 30px; line-height: 1.6; color: #333; }
+                    h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+                    .info { margin-bottom: 30px; font-size: 16px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                    th { background-color: #f4f7f6; }
+                    .correct { color: #2e7d32; font-weight: bold; }
+                    .wrong { color: #c62828; font-weight: bold; }
+                    .missing { color: #f39c12; font-weight: bold; font-size: 18px; }
+                    .legend { margin-top: 30px; font-size: 14px; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+                    @media print {
+                        .no-print { display: none !important; }
+                        body { padding: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                <p class="no-print" style="color: gray; font-style: italic;">(Pre tlač použite klávesovú skratku CTRL + P)</p>
+                <h1>Detailný prehľad výsledkov</h1>
+                <div class="info">
+                    <strong>Názov testu:</strong> ${testTitle}<br>
+                    <strong>Meno žiaka:</strong> ${studentNameStr}<br>
+                    <strong>Počet bodov:</strong> ${totalPoints} / ${maxPoints}<br>
+                    <strong>Percentuálne hodnotenie:</strong> ${percent}%<br>
+                    <strong>Dátum a čas:</strong> ${dateStr}
+                </div>
+                
+                <table>
+                    <tr>
+                        <th>Zadanie</th>
+                        <th>Odpoveď žiaka</th>
+                        <th>Správna odpoveď</th>
+                    </tr>`;
+            
+            detailData.forEach(d => {
+                let symbol = '';
+                let styleOdpoved = '';
+                
+                if (d.isMissing) {
+                    symbol = '<span class="missing">!</span>';
+                    styleOdpoved = 'color: gray; font-style: italic;';
+                } else if (d.isCorrect) {
+                    symbol = '<span class="correct">✓</span>';
+                } else {
+                    symbol = '<span class="wrong">✗</span>';
+                }
+                
+                let correctCol = d.spravna;
+                
+                html += `<tr>
+                    <td>${d.zadanie}</td>
+                    <td><span style="${styleOdpoved}">${d.odpoved}</span> ${symbol}</td>
+                    <td>${correctCol}</td>
+                </tr>`;
+            });
+
+            html += `</table>
+                <div class="legend">
+                    <strong>Vysvetlivky:</strong><br>
+                    <span class="correct">✓</span> - Správna odpoveď<br>
+                    <span class="wrong">✗</span> - Nesprávna odpoveď<br>
+                    <span class="missing">!</span> - Chýbajúca odpoveď
+                </div>
+            </body>
+            </html>`;
+
+            let detailWin = window.open('', '_blank');
+            detailWin.document.open();
+            detailWin.document.write(html);
+            detailWin.document.close();
+        }
+    </script>
+</body>
+</html>
