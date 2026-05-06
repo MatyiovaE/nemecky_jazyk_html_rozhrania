@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="sk">
 <head>
@@ -206,13 +205,11 @@
             border: 1px solid #0056b3;
         }
 		
-		/* Zafarbenie tlačidiel pre vyriešené úlohy */
         #navButtons button.completed {
             background-color: #add8e6; 
             border: 1px solid #8abccf;
         }
 
-        /* Aby aktuálna úloha zostala výrazná, aj keď je už "vyriešená" */
         #navButtons button.current.completed {
             background-color: #007bff; 
             color: white;
@@ -350,8 +347,7 @@
 
         <div id="startScreen">
             <div id="blockSettings" class="start-settings">
-                <!-- Vstupne polia pre bloky sa vygeneruju automaticky -->
-            </div>
+                </div>
             <button id="startBtn">Štart</button>
         </div>
 
@@ -402,15 +398,20 @@
     </div>
 
     <script>
-        // --- UPRAVENÁ LOGIKA CVIČENIA S PODPOROU BLOKOV ---
+        // --- UPRAVENÁ LOGIKA CVIČENIA S PODPOROU BLOKOV A BODOVANIA ---
 
-        const rawExerciseBlocks = [[{"subText":"čaj (jednotné číslo)","components":[{"type":"answer","value":"der"},{"type":"stub","value":" "},{"type":"answer","value":"Tee"}],"fullAnswer":"der Tee"},{"subText":"ovocie (jednotné číslo)","components":[{"type":"answer","value":"das"},{"type":"stub","value":" "},{"type":"answer","value":"Obst"}],"fullAnswer":"das Obst"},{"subText":"cukor (jednotné číslo)","components":[{"type":"answer","value":"der"},{"type":"stub","value":" "},{"type":"answer","value":"Zucker"}],"fullAnswer":"der Zucker"},{"subText":"fľaše (množné číslo)","components":[{"type":"answer","value":"die"},{"type":"stub","value":" "},{"type":"answer","value":"Flaschen"}],"fullAnswer":"die Flaschen"},{"subText":"nápoje (množné číslo)","components":[{"type":"answer","value":"die"},{"type":"stub","value":" "},{"type":"answer","value":"Getränke"}],"fullAnswer":"die Getränke"},{"subText":"šťava (jednotné číslo)","components":[{"type":"answer","value":"der"},{"type":"stub","value":" "},{"type":"answer","value":"Saft"}],"fullAnswer":"der Saft"},{"subText":"citrón (jednotné číslo)","components":[{"type":"answer","value":"die"},{"type":"stub","value":" "},{"type":"answer","value":"Zitrone"}],"fullAnswer":"die Zitrone"},{"subText":"kniha (jednotné číslo)","components":[{"type":"answer","value":"das"},{"type":"stub","value":" "},{"type":"answer","value":"Buch"}],"fullAnswer":"das Buch"},{"subText":"peniaze (jednotné číslo)","components":[{"type":"answer","value":"das"},{"type":"stub","value":" "},{"type":"answer","value":"Geld"}],"fullAnswer":"das Geld"},{"subText":"smäd (jednotné číslo)","components":[{"type":"answer","value":"der"},{"type":"stub","value":" "},{"type":"answer","value":"Durst"}],"fullAnswer":"der Durst"},{"subText":"zmrzlina, ľad (jednotné číslo)","components":[{"type":"answer","value":"das"},{"type":"stub","value":" "},{"type":"answer","value":"Eis"}],"fullAnswer":"das Eis"},{"subText":"jablká (množné číslo)","components":[{"type":"answer","value":"die"},{"type":"stub","value":" "},{"type":"answer","value":"Äpfel"}],"fullAnswer":"die Äpfel"},{"subText":"druhy ovocia (množné číslo)","components":[{"type":"answer","value":"die"},{"type":"stub","value":" "},{"type":"answer","value":"Obstsorten"}],"fullAnswer":"die Obstsorten"},{"subText":"mlieko (jednotné číslo)","components":[{"type":"answer","value":"die"},{"type":"stub","value":" "},{"type":"answer","value":"Milch"}],"fullAnswer":"die Milch"},{"subText":"káva (jednotné číslo)","components":[{"type":"answer","value":"der"},{"type":"stub","value":" "},{"type":"answer","value":"Kaffee"}],"fullAnswer":"der Kaffee"},{"subText":"vec (jednotné číslo)","components":[{"type":"answer","value":"die"},{"type":"stub","value":" "},{"type":"answer","value":"Sache"}],"fullAnswer":"die Sache"}],[{"subText":"chutiť","components":[{"type":"answer","value":"schmecken"}],"fullAnswer":"schmecken"},{"subText":"my by sme chceli","components":[{"type":"answer","value":"wir"},{"type":"stub","value":" "},{"type":"answer","value":"möchten"}],"fullAnswer":"wir möchten"},{"subText":"pán Wagner","components":[{"type":"answer","value":"Herr"},{"type":"stub","value":" Wagner"}],"fullAnswer":"Herr Wagner"},{"subText":"viac","components":[{"type":"answer","value":"mehr"}],"fullAnswer":"mehr"},{"subText":"pri stánku","components":[{"type":"answer","value":"am"},{"type":"stub","value":" "},{"type":"answer","value":"Kiosk"}],"fullAnswer":"am Kiosk"},{"subText":"Vy (vykanie)","components":[{"type":"answer","value":"Sie"}],"fullAnswer":"Sie"},{"subText":"s, so","components":[{"type":"answer","value":"mit"}],"fullAnswer":"mit"},{"subText":"stáť (byť zapísané)","components":[{"type":"answer","value":"stehen"}],"fullAnswer":"stehen"},{"subText":"ja mám rád","components":[{"type":"answer","value":"ich"},{"type":"stub","value":" "},{"type":"answer","value":"mag"}],"fullAnswer":"ich mag"},{"subText":"Prepáčte!","components":[{"type":"answer","value":"Entschuldigung"},{"type":"stub","value":"!"}],"fullAnswer":"Entschuldigung!"},{"subText":"stáť (o cene)","components":[{"type":"answer","value":"kosten"}],"fullAnswer":"kosten"},{"subText":"strašne","components":[{"type":"answer","value":"furchtbar"}],"fullAnswer":"furchtbar"},{"subText":"Dovidenia.","components":[{"type":"answer","value":"Auf"},{"type":"stub","value":" "},{"type":"answer","value":"Wiedersehen"},{"type":"stub","value":"."}],"fullAnswer":"Auf Wiedersehen."},{"subText":"pani Wagner","components":[{"type":"answer","value":"Frau"},{"type":"stub","value":" Wagner"}],"fullAnswer":"Frau Wagner"},{"subText":"ty by si chcel","components":[{"type":"answer","value":"du"},{"type":"stub","value":" "},{"type":"answer","value":"möchtest"}],"fullAnswer":"du möchtest"},{"subText":"menej","components":[{"type":"answer","value":"weniger"}],"fullAnswer":"weniger"}]]; // Pole blokov (každý blok obsahuje úlohy)
+        const rawExerciseBlocks = [[{"subText":"čaj (jednotné číslo)","components":[{"type":"answer","value":"der","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Tee","points":1}],"fullAnswer":"der Tee"},{"subText":"ovocie (jednotné číslo)","components":[{"type":"answer","value":"das","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Obst","points":1}],"fullAnswer":"das Obst"},{"subText":"cukor (jednotné číslo)","components":[{"type":"answer","value":"der","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Zucker","points":1}],"fullAnswer":"der Zucker"},{"subText":"fľaše (množné číslo)","components":[{"type":"answer","value":"die","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Flaschen","points":1}],"fullAnswer":"die Flaschen"},{"subText":"nápoje (množné číslo)","components":[{"type":"answer","value":"die","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Getränke","points":1}],"fullAnswer":"die Getränke"},{"subText":"šťava (jednotné číslo)","components":[{"type":"answer","value":"der","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Saft","points":1}],"fullAnswer":"der Saft"},{"subText":"citrón (jednotné číslo)","components":[{"type":"answer","value":"die","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Zitrone","points":1}],"fullAnswer":"die Zitrone"},{"subText":"kniha (jednotné číslo)","components":[{"type":"answer","value":"das","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Buch","points":1}],"fullAnswer":"das Buch"},{"subText":"peniaze (jednotné číslo)","components":[{"type":"answer","value":"das","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Geld","points":1}],"fullAnswer":"das Geld"},{"subText":"smäd (jednotné číslo)","components":[{"type":"answer","value":"der","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Durst","points":1}],"fullAnswer":"der Durst"},{"subText":"zmrzlina, ľad (jednotné číslo)","components":[{"type":"answer","value":"das","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Eis","points":1}],"fullAnswer":"das Eis"},{"subText":"jablká (množné číslo)","components":[{"type":"answer","value":"die","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Äpfel","points":1}],"fullAnswer":"die Äpfel"},{"subText":"druhy ovocia (množné číslo)","components":[{"type":"answer","value":"die","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Obstsorten","points":1}],"fullAnswer":"die Obstsorten"},{"subText":"mlieko (jednotné číslo)","components":[{"type":"answer","value":"die","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Milch","points":1}],"fullAnswer":"die Milch"},{"subText":"káva (jednotné číslo)","components":[{"type":"answer","value":"der","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Kaffee","points":1}],"fullAnswer":"der Kaffee"},{"subText":"vec (jednotné číslo)","components":[{"type":"answer","value":"die","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Sache","points":1}],"fullAnswer":"die Sache"}],[{"subText":"chutiť","components":[{"type":"answer","value":"schmecken","points":1}],"fullAnswer":"schmecken"},{"subText":"my by sme chceli","components":[{"type":"answer","value":"wir","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"möchten","points":1}],"fullAnswer":"wir möchten"},{"subText":"pán Wagner","components":[{"type":"answer","value":"Herr","points":1},{"type":"stub","value":" Wagner"}],"fullAnswer":"Herr Wagner"},{"subText":"viac","components":[{"type":"answer","value":"mehr","points":1}],"fullAnswer":"mehr"},{"subText":"pri stánku","components":[{"type":"answer","value":"am","points":1},{"type":"stub","value":" "},{"type":"answer","value":"Kiosk","points":1}],"fullAnswer":"am Kiosk"},{"subText":"Vy (vykanie)","components":[{"type":"answer","value":"Sie","points":1}],"fullAnswer":"Sie"},{"subText":"s, so","components":[{"type":"answer","value":"mit","points":1}],"fullAnswer":"mit"},{"subText":"stáť (byť zapísané)","components":[{"type":"answer","value":"stehen","points":1}],"fullAnswer":"stehen"},{"subText":"ja mám rád","components":[{"type":"answer","value":"ich","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"mag","points":1}],"fullAnswer":"ich mag"},{"subText":"Prepáčte!","components":[{"type":"answer","value":"Entschuldigung","points":1},{"type":"stub","value":"!"}],"fullAnswer":"Entschuldigung!"},{"subText":"stáť (o cene)","components":[{"type":"answer","value":"kosten","points":1}],"fullAnswer":"kosten"},{"subText":"strašne","components":[{"type":"answer","value":"furchtbar","points":1}],"fullAnswer":"furchtbar"},{"subText":"Dovidenia.","components":[{"type":"answer","value":"Auf","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"Wiedersehen","points":1},{"type":"stub","value":"."}],"fullAnswer":"Auf Wiedersehen."},{"subText":"pani Wagner","components":[{"type":"answer","value":"Frau","points":1},{"type":"stub","value":" Wagner"}],"fullAnswer":"Frau Wagner"},{"subText":"ty by si chcel","components":[{"type":"answer","value":"du","points":0.5},{"type":"stub","value":" "},{"type":"answer","value":"möchtest","points":1}],"fullAnswer":"du möchtest"},{"subText":"menej","components":[{"type":"answer","value":"weniger","points":1}],"fullAnswer":"weniger"}]]; // Pole blokov (každý blok obsahuje úlohy)
         const exerciseTitle = "NEJ - 8. lekcia (8. ročník)";
         const generatorMaxTasks = 0; 
 
         let allTasks = [];     
         let globalTaskIndex = 0;
         
+        // Pomocná funkcia pre pekný výpis bodov (zaokrúhli a vymení bodku za čiarku)
+        function formatScore(num) {
+            return (Math.round(num * 100) / 100).toString().replace('.', ',');
+        }
+
         function shuffle(array) {
             let currentIndex = array.length, randomIndex;
             while (currentIndex !== 0) {
@@ -432,15 +433,12 @@
         } else {
             let html = '';
             rawExerciseBlocks.forEach((block, index) => {
-                // --- TU JE ZMENA ---
-    // index 0 je 1. blok, index 1 je 2. blok
 				let defaultCount = block.length; // záložná hodnota
-    if (index === 0) defaultCount = 8; // Predvolené pre 1. blok
-    if (index === 1) defaultCount = 10;  // Predvolené pre 2. blok
-    
-    // Ošetrenie, aby predvolené číslo nebolo vyššie ako počet úloh v bloku
-    if (defaultCount > block.length) defaultCount = block.length;
-    // -------------------
+                if (index === 0) defaultCount = 8; // Predvolené pre 1. blok
+                if (index === 1) defaultCount = 10;  // Predvolené pre 2. blok
+                
+                // Ošetrenie, aby predvolené číslo nebolo vyššie ako počet úloh v bloku
+                if (defaultCount > block.length) defaultCount = block.length;
 				
                 html += `
                     <div style="margin-bottom: 15px; display: flex; justify-content: center; align-items: center; gap: 10px;">
@@ -638,42 +636,53 @@
             renderTask(0);
         };
 
+        // --- UPRAVENÁ LOGIKA HODNOTENIA (S BODOVANÍM ZA KAŽDÉ SLOVO ZVLÁŠŤ) ---
         function evaluate() {
             isEvaluated = true;
             let totalScore = 0;
             let maxTotalScore = 0;
             const results = [];
+            const epsilon = 0.0001; // kvôli float zaokrúhľovaniu
 
             allTasks.forEach((task, index) => {
                 const studentAnswers = userAnswers[index] || [];
                 let studentTextAnswer = "";
                 let inputCounter = 0;
-                let isCompletelyCorrect = true;
+                let taskScore = 0;
+                let taskMaxScore = 0;
 
                 task.components.forEach(c => {
                     if (c.type === 'stub') {
                         studentTextAnswer += c.value;
                     } else {
+                        let compCorrect = true;
                         for(let i=0; i<c.value.length; i++) {
                             let charAns = studentAnswers[inputCounter] || "";
                             studentTextAnswer += (charAns || "_");
+                            // Zisťujeme zhodu jednotlivých písmen aktuálneho slova
                             if (charAns !== c.value[i]) {
-                                isCompletelyCorrect = false;
+                                compCorrect = false;
                             }
                             inputCounter++;
+                        }
+                        
+                        taskMaxScore += c.points;
+                        // Pridanie bodov za slovo len ak je napísané úplne bezchybne
+                        if (compCorrect) {
+                            taskScore += c.points;
                         }
                     }
                 });
 
-                let taskScore = isCompletelyCorrect ? 1 : 0;
                 totalScore += taskScore;
-                maxTotalScore += 1;
+                maxTotalScore += taskMaxScore;
 
                 results.push({
                     ...task,
                     studentAnswers,
                     studentTextAnswer, 
-                    taskScore
+                    taskScore,
+                    taskMaxScore
                 });
             });
 
@@ -689,7 +698,7 @@
             resultsSummary.innerHTML = `
                 <p><strong>Názov cvičenia:</strong> ${exerciseTitle}</p>
                 <p><strong>Meno žiaka:</strong> ${studentName}</p>
-                <p><strong>Bodové hodnotenie:</strong> ${totalScore} b. z ${maxTotalScore} b. (hodnotí sa celá úloha)</p>
+                <p><strong>Bodové hodnotenie:</strong> ${formatScore(totalScore)} b. z ${formatScore(maxTotalScore)} b.</p>
                 <p><strong>Percentuálna úspešnosť:</strong> ${percentage.toFixed(1)} %</p>
                 <p><strong>Dátum a čas:</strong> ${timestamp}</p>
             `;
@@ -698,8 +707,14 @@
             results.forEach(res => {
                 let symbolClass = '';
                 let symbol = '';
-                if (res.taskScore === 1) {
+                
+                let isCompletelyCorrect = Math.abs(res.taskScore - res.taskMaxScore) < epsilon && res.taskMaxScore > 0;
+                let isPartial = res.taskScore > epsilon && !isCompletelyCorrect;
+
+                if (isCompletelyCorrect) {
                      symbolClass = 'correct'; symbol = '✓';
+                } else if (isPartial) {
+                     symbolClass = 'partial'; symbol = 'O';
                 } else {
                      symbolClass = 'incorrect'; symbol = '✗';
                 }
@@ -707,11 +722,13 @@
                 resultsHTML += `<div class="result-item ${symbolClass}">`;
                 resultsHTML += `<span class="symbol ${symbolClass}">${symbol}</span>`;
                 resultsHTML += `<div>
-                                    <span><strong>${res.studentTextAnswer}</strong> (${res.taskScore}/1 b.)</span>
+                                    <span><strong>${res.studentTextAnswer}</strong> (${formatScore(res.taskScore)}/${formatScore(res.taskMaxScore)} b.)</span>
                                     ${res.subText ? `<br><span style="font-size:0.8em; color:#666;">${res.subText}</span>` : ''}
                                 </div>`;
-                if (res.taskScore === 0) {
-                    resultsHTML += `<span class="correct-answer">(Správne: ${res.fullAnswer})</span>`;
+                
+                // Vypísanie správnej odpovede, ak nie je úloha úplne bez chýb
+                if (!isCompletelyCorrect) {
+                    resultsHTML += `<span class="correct-answer" style="margin-left: 20px;">(Správne: ${res.fullAnswer})</span>`;
                 }
                 resultsHTML += `</div>`;
             });
@@ -734,6 +751,7 @@
                 return;
             }
             const data = detailedResultsData;
+            const epsilon = 0.0001;
 
             const newWin = window.open('', 'DetailnéVýsledky', 'width=900,height=700,scrollbars=yes,resizable=yes'); 
             if (!newWin) {
@@ -768,7 +786,7 @@
                 <body class="detail-results-body">
                     <h1>${data.title}</h1>
                     <p><strong>Meno žiaka:</strong> ${data.name}</p>
-                    <p><strong>Bodové a percentuálne hodnotenie:</strong> ${data.totalScore} b. z ${data.maxTotalScore} b. (${data.percentage.toFixed(1)}%)</p>
+                    <p><strong>Bodové a percentuálne hodnotenie:</strong> ${formatScore(data.totalScore)} b. z ${formatScore(data.maxTotalScore)} b. (${data.percentage.toFixed(1)}%)</p>
                     <p><strong>Dátum a čas:</strong> ${data.timestamp}</p>
 
                     <h2>Detailný prehľad</h2>
@@ -787,8 +805,14 @@
             data.results.forEach(res => {
                 let symbolClass = '';
                 let symbol = '';
-                if (res.taskScore === 1) {
+                
+                let isCompletelyCorrect = Math.abs(res.taskScore - res.taskMaxScore) < epsilon && res.taskMaxScore > 0;
+                let isPartial = res.taskScore > epsilon && !isCompletelyCorrect;
+
+                if (isCompletelyCorrect) {
                      symbolClass = 'correct'; symbol = '✓';
+                } else if (isPartial) {
+                     symbolClass = 'partial'; symbol = 'O';
                 } else {
                      symbolClass = 'incorrect'; symbol = '✗';
                 }
@@ -798,7 +822,7 @@
                         <td>${res.subText || '–'}</td>
                         <td><strong>${res.studentTextAnswer || '–'}</strong></td>
                         <td><strong>${res.fullAnswer}</strong></td>
-                        <td class="symbol ${symbolClass}" style="white-space: nowrap;">${symbol} <span style="font-size: 0.8em; color: #333; margin-left: 8px;">(${res.taskScore}/1 b.)</span></td>
+                        <td class="symbol ${symbolClass}" style="white-space: nowrap;">${symbol} <span style="font-size: 0.8em; color: #333; margin-left: 8px;">(${formatScore(res.taskScore)}/${formatScore(res.taskMaxScore)} b.)</span></td>
                     </tr>
                 `;
             });
@@ -810,7 +834,8 @@
                         <p><strong>Vysvetlivky:</strong></p>
                         <ul>
                             <li><span class="symbol correct">✓</span> = Úloha vyriešená úplne správne</li>
-                            <li><span class="symbol incorrect">✗</span> = Úloha vyriešená nesprávne (alebo s chybou)</li>
+                            <li><span class="symbol partial">O</span> = Úloha vyriešená čiastočne (niektoré slová správne, iné nie)</li>
+                            <li><span class="symbol incorrect">✗</span> = Úloha vyriešená nesprávne (žiadne skryté slovo nebolo úplne správne)</li>
                         </ul>
                     </div>
                     <div class="no-print" style="margin-top: 40px;"><p>Túto stránku je možné vytlačiť pomocou Ctrl + P (alebo Command + P).</p></div>
