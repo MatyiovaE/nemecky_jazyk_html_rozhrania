@@ -1,0 +1,319 @@
+
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <title>In der Konditorei/V cukrárni - redukované</title>
+  <style>
+    body { font-family: Courier bold, monospace; max-width: 1000px; margin: 2em auto; padding: 1em; background:#f9f9f9; }
+    .header { border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; }
+    .student-name { margin-bottom: 20px; font-size: 1.2em; }
+    .student-name input { padding: 8px; width: 300px; border: 1px solid #888; font-family: sans-serif; }
+    .task { background:#fff; border: 1px solid #ccc; padding: 20px; margin-bottom: 30px; border-radius: 8px; }
+    .exerciseRow { display: flex; gap: 20px; margin: 20px 0; }
+    .slots { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .cards { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 50px; }
+    
+    /* OPRAVA: Zarovnanie textu nahor pri viacriadkových replikách */
+    .slot { min-height: 44px; border: 2px dashed #bbb; padding: 8px; background:#fff; border-radius: 4px; cursor: pointer; display: flex; align-items: flex-start; box-sizing: border-box; }
+    
+    .slot.correct { border-color: green; background: #e8f5e9; }
+    .slot.incorrect { border-color: red; background: #ffebee; }
+    .card { background: #eee; padding: 10px; border: 1px solid #999; border-radius: 4px; cursor: pointer; line-height: 1.2; user-select: none; }
+    .card.selected { background: #bbdefb; border-color: #007bff; box-shadow: 0 0 8px #007bff; }
+    .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 10px; background: #007bff; color: #fff; }
+    
+    @media print {
+      .no-print, .btn, .cards, .student-name input { display: none !important; }
+      body { background: white; margin: 0; padding: 0; }
+      .task { border: 1px solid #000; break-inside: avoid; }
+      .student-name::after { content: " " attr(data-name); font-weight: bold; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>In der Konditorei/V cukrárni - redukované</h1>
+    <p><b>Predmet:</b> NEJ | <b>Autor:</b> Mgr. Erika Matyiová</p>
+  </div>
+
+  <div class="student-name">
+    Meno žiaka: <input type="text" id="nameInput" oninput="this.parentElement.setAttribute('data-name', this.value)">
+  </div>
+
+  <div class="no-print"><p>1. Klikni na kartičku (zvýrazní sa modrou). <br> 2. Klikni do prázdnej bunky. <br> 3. Kliknutím na text v bunke ho vrátiš späť.</p></div>
+
+  
+      <div class="task" id="task-0" data-idx="0" data-display-idx="1">
+        <h2>Úloha 1</h2>
+        <div class="exerciseRow">
+          <div class="slots"><div class="slot" data-pos="0"></div><div class="slot" data-pos="1"></div><div class="slot" data-pos="2"></div><div class="slot" data-pos="3"></div><div class="slot" data-pos="4"></div><div class="slot" data-pos="5"></div><div class="slot" data-pos="6"></div><div class="slot" data-pos="7"></div></div>
+          <div class="cards"><div class="card"><b>Mia:</b> Mmm, das klingt gut. Ich nehme einen Eisbecher mit Erdbeer- und Blaubeereis, bitte.</div><div class="card"><b>Kellner: </b>Wir haben leckeres Eis im Becher. Ihr könnt wählen: Zitroneneis, Erdbeereis, Schokoladeneis, Blaubeereis und Vanilleeis.</div><div class="card"><b>Kellner:</b> Was möchtet ihr essen und trinken?</div><div class="card"><b>Mia:</b> Hallo, danke schön!</div><div class="card"><b>Lukas:</b> Wir möchten Eis und Kuchen, bitte. Was haben Sie?</div><div class="card"><b>Kellner:</b> Wir haben heute eine große Auswahl: Apfelstrudel, Sachertorte, Gerbeaud-Schnitte, Schwarzwälder Kirschtorte und Windbeutel mit Vanillecreme.</div><div class="card"><b>Lukas:</b> Und was für Kuchen haben Sie heute im Angebot?</div><div class="card"><b>Kellner:</b> Hallo ihr zwei! Setzt euch. Hier ist ein Tisch frei.</div></div>
+        </div>
+        <div class="no-print">
+          <button class="btn btn-check" data-idx="0">Vyhodnotiť</button>
+          <button class="btn btn-details" id="detBtn-0" data-idx="0" style="display:none; background:#28a745;">Detailné výsledky</button>
+          <button class="btn btn-retry" data-idx="0" style="background:#6c757d;">Opakovať pokus</button>
+        </div>
+      </div>
+      <div class="task" id="task-1" data-idx="1" data-display-idx="2">
+        <h2>Úloha 2</h2>
+        <div class="exerciseRow">
+          <div class="slots"><div class="slot" data-pos="0"></div><div class="slot" data-pos="1"></div><div class="slot" data-pos="2"></div><div class="slot" data-pos="3"></div><div class="slot" data-pos="4"></div><div class="slot" data-pos="5"></div><div class="slot" data-pos="6"></div><div class="slot" data-pos="7"></div></div>
+          <div class="cards"><div class="card"><b>Kellner: </b>Alles klar! Ein Eisbecher mit Erdbeer- und Blaubeereis, ein Eisbecher mit Schokoladen- und Vanilleeis, eine Sachertorte, ein Windbeutel, ein Mineralwasser mit Kohlensäure und ein Ananassaft. Kommt sofort!</div><div class="card"><b>Mia: </b>Super! Ich nehme noch ein Stück Sachertorte, bitte.</div><div class="card"><b>Lukas: </b>Und für mich bitte einen Windbeutel mit Vanillecreme und einen Eisbecher mit Schokoladen- und Vanilleeis.</div><div class="card"><b>Mia:</b> Ich trinke ein Mineralwasser, mit Kohlensäure bitte.</div><div class="card"><b>Kellner: </b>Gerne. Und was möchtet ihr trinken?</div><div class="card"><b>Lukas:</b> Und ich möchte einen Ananassaft.</div><div class="card"><b>Kellner: </b>Wir haben Mineralwasser - mit oder ohne Kohlensäure. Und wir haben Fruchtsaft: Johannisbeersaft, Erdbeersaft, Ananassaft und Apfelsaft.</div><div class="card"><b>Lukas: </b>Was gibt es zum Trinken?</div></div>
+        </div>
+        <div class="no-print">
+          <button class="btn btn-check" data-idx="1">Vyhodnotiť</button>
+          <button class="btn btn-details" id="detBtn-1" data-idx="1" style="display:none; background:#28a745;">Detailné výsledky</button>
+          <button class="btn btn-retry" data-idx="1" style="background:#6c757d;">Opakovať pokus</button>
+        </div>
+      </div>
+
+  <div class="no-print" style="text-align: center; margin: 40px 0; display: flex; justify-content: center; gap: 15px;">
+    <button class="btn btn-global-check" style="background: #28a745; font-size: 1.1em; padding: 12px 24px;">Vyhodnotenie všetkých úloh</button>
+    <button class="btn" style="background: #6c757d; font-size: 1.1em; padding: 12px 24px;" onclick="if(confirm('Chcete vymazať odpovede a reštartovať celé cvičenie?')) location.reload();">Reštartovať celé cvičenie</button>
+  </div>
+
+  <div style="margin-top: 30px; font-size: 0.8em; text-align: center; font-family: sans-serif;">
+    Spracovala pomocou UI: Mgr. Erika Matyiová (2025)
+  </div>
+
+  <script>
+    const originals = [["<b>Kellner:</b> Hallo ihr zwei! Setzt euch. Hier ist ein Tisch frei.","<b>Mia:</b> Hallo, danke schön!","<b>Kellner:</b> Was möchtet ihr essen und trinken?","<b>Lukas:</b> Wir möchten Eis und Kuchen, bitte. Was haben Sie?","<b>Kellner: </b>Wir haben leckeres Eis im Becher. Ihr könnt wählen: Zitroneneis, Erdbeereis, Schokoladeneis, Blaubeereis und Vanilleeis.","<b>Mia:</b> Mmm, das klingt gut. Ich nehme einen Eisbecher mit Erdbeer- und Blaubeereis, bitte.","<b>Lukas:</b> Und was für Kuchen haben Sie heute im Angebot?","<b>Kellner:</b> Wir haben heute eine große Auswahl: Apfelstrudel, Sachertorte, Gerbeaud-Schnitte, Schwarzwälder Kirschtorte und Windbeutel mit Vanillecreme."],["<b>Mia: </b>Super! Ich nehme noch ein Stück Sachertorte, bitte.","<b>Lukas: </b>Und für mich bitte einen Windbeutel mit Vanillecreme und einen Eisbecher mit Schokoladen- und Vanilleeis.","<b>Kellner: </b>Gerne. Und was möchtet ihr trinken?","<b>Lukas: </b>Was gibt es zum Trinken?","<b>Kellner: </b>Wir haben Mineralwasser - mit oder ohne Kohlensäure. Und wir haben Fruchtsaft: Johannisbeersaft, Erdbeersaft, Ananassaft und Apfelsaft.","<b>Mia:</b> Ich trinke ein Mineralwasser, mit Kohlensäure bitte.","<b>Lukas:</b> Und ich möchte einen Ananassaft.","<b>Kellner: </b>Alles klar! Ein Eisbecher mit Erdbeer- und Blaubeereis, ein Eisbecher mit Schokoladen- und Vanilleeis, eine Sachertorte, ein Windbeutel, ein Mineralwasser mit Kohlensäure und ein Ananassaft. Kommt sofort!"]];
+    let selectedElement = null;
+
+    // Globálny delegovaný listener na kliknutia (OPRAVA: Citlivosť celej kartičky a b tagov)
+    document.addEventListener('click', function(e) {
+      const cardEl = e.target.closest('.card');
+      const slotEl = e.target.closest('.slot');
+      const btnCheckEl = e.target.closest('.btn-check');
+      const btnDetailsEl = e.target.closest('.btn-details');
+      const btnRetryEl = e.target.closest('.btn-retry');
+      const btnGlobalCheckEl = e.target.closest('.btn-global-check');
+
+      // 1. Kliknutie na kartičku
+      if (cardEl) {
+        if (selectedElement) selectedElement.classList.remove('selected');
+        selectedElement = cardEl;
+        selectedElement.classList.add('selected');
+      }
+
+      // 2. Kliknutie na slot
+      else if (slotEl) {
+        const slot = slotEl;
+        if (selectedElement) {
+          if (slot.innerHTML.trim() !== "") returnToCards(slot);
+          slot.innerHTML = selectedElement.innerHTML;
+          selectedElement.remove();
+          selectedElement = null;
+        } else if (slot.innerHTML.trim() !== "") {
+          returnToCards(slot);
+        }
+      }
+      
+      // 3. Obsluha lokálneho vyhodnotenia úlohy
+      else if (btnCheckEl) {
+        check(btnCheckEl.dataset.idx);
+      }
+      
+      // 4. Obsluha lokálnych detailov úlohy
+      else if (btnDetailsEl) {
+        showDetails(btnDetailsEl.dataset.idx);
+      }
+
+      // 5. Lokálny reset konkrétnej úlohy (žiak nestratí progres v ostatných úlohách)
+      else if (btnRetryEl) {
+        retryTask(btnRetryEl.dataset.idx);
+      }
+
+      // 6. Globálne vyhodnotenie všetkých úloh naraz
+      else if (btnGlobalCheckEl) {
+        checkAll();
+      }
+    });
+
+    function returnToCards(slot) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = slot.innerHTML;
+      slot.closest('.exerciseRow').querySelector('.cards').appendChild(card);
+      slot.innerHTML = "";
+    }
+
+    function check(idx) {
+      const taskEl = document.getElementById('task-' + idx);
+      const slots = taskEl.querySelectorAll('.slot');
+      slots.forEach((s, i) => {
+        s.classList.remove('correct', 'incorrect');
+        if (s.innerHTML.trim() === originals[idx][i]) s.classList.add('correct');
+        else s.classList.add('incorrect');
+      });
+      document.getElementById('detBtn-' + idx).style.display = 'inline-block';
+    }
+
+    function retryTask(idx) {
+      const taskEl = document.getElementById('task-' + idx);
+      const slots = taskEl.querySelectorAll('.slot');
+      const cardsContainer = taskEl.querySelector('.cards');
+      
+      slots.forEach(s => {
+        if (s.innerHTML.trim() !== "") {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = s.innerHTML;
+          cardsContainer.appendChild(card);
+          s.innerHTML = "";
+        }
+        s.classList.remove('correct', 'incorrect');
+      });
+      
+      if (selectedElement && selectedElement.closest('#task-' + idx)) {
+        selectedElement = null;
+      }
+      
+      const detBtn = document.getElementById('detBtn-' + idx);
+      if (detBtn) detBtn.style.display = 'none';
+      
+      const resultsDiv = document.getElementById('results-' + idx);
+      if (resultsDiv) resultsDiv.innerHTML = "";
+    }
+
+    // Vyhodnotenie jednej konkrétnej úlohy (detaily)
+    function showDetails(idx) {
+      const taskEl = document.getElementById('task-' + idx);
+      const slots = taskEl.querySelectorAll('.slot');
+      const studentName = document.getElementById('nameInput').value || '__________';
+      const testTitle = "In der Konditorei/V cukrárni - redukované";
+      const displayIdx = taskEl.dataset.displayIdx;
+      
+      let points = 0;
+      let total = originals[idx].length;
+      
+      let tableRows = "";
+      originals[idx].forEach((correct, i) => {
+        const student = slots[i].innerHTML.trim();
+        let icon = '❌';
+        if (student === correct) { icon = '✅'; points++; }
+        else if (!student) icon = '❗';
+        
+        tableRows += '<tr>' +
+          '<td>' + (i+1) + '</td>' +
+          '<td>' + correct + '</td>' +
+          '<td>' + (student || '(prázdne)') + '</td>' +
+          '<td style="text-align:center">' + icon + '</td>' +
+        '</tr>';
+      });
+
+      const percent = ((points / total) * 100).toFixed(1);
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('sk-SK');
+      const timeStr = now.toLocaleTimeString('sk-SK', {hour: '2-digit', minute:'2-digit'});
+
+      const resultsWin = window.open('', '_blank');
+      resultsWin.document.write('<html><head><title>Detailné výsledky - ' + studentName + '</title>' +
+        '<style>' +
+          'body { font-family: Courier bold, monospace; padding: 40px; }' +
+          'h1 { text-decoration: underline; margin-bottom: 30px; }' +
+          '.header-info { margin-bottom: 30px; line-height: 1.6; }' +
+          'table { width: 100%; border-collapse: collapse; margin-top: 20px; font-family: sans-serif; }' +
+          'th, td { border: 1px solid #000; padding: 10px; text-align: left; }' +
+          'th { background: #eee; }' +
+          '@media print { .no-print { display: none; } }' +
+        '</style>' +
+        '</head><body>' +
+        '<h1>Detailné výsledky:</h1>' +
+        '<div class="header-info">' +
+          '<strong>Názov testu:</strong> ' + testTitle + ' (Úloha ' + displayIdx + ')<br>' +
+          '<strong>Meno žiaka:</strong> ' + studentName + '<br>' +
+          '<strong>Bodové a percentuálne hodnotenie:</strong> ' + points + '/' + total + ', ' + percent + '%<br>' +
+          '<strong>Dátum a čas:</strong> ' + dateStr + ', ' + timeStr + '' +
+        '</div>' +
+        '<table><thead><tr><th>#</th><th>Správna replika v poradí</th><th>Odpoveď žiaka</th><th>Stav</th></tr></thead>' +
+        '<tbody>' + tableRows + '</tbody></table>' +
+        '</body></html>');
+      resultsWin.document.close();
+    }
+
+    // NOVÉ: Globálne vyhodnotenie všetkých úloh spoločne
+    function checkAll() {
+      let totalPoints = 0;
+      let totalReplicas = 0;
+      let allTableRows = "";
+      
+      const taskEls = document.querySelectorAll('.task');
+      taskEls.forEach((taskEl) => {
+        const idx = parseInt(taskEl.dataset.idx);
+        const displayIdx = parseInt(taskEl.dataset.displayIdx);
+        const slots = taskEl.querySelectorAll('.slot');
+        
+        // Lokálne vizuálne vyhodnotenie (označenie správnych a nesprávnych odpovedí)
+        slots.forEach((s, i) => {
+          s.classList.remove('correct', 'incorrect');
+          if (s.innerHTML.trim() === originals[idx][i]) {
+            s.classList.add('correct');
+          } else {
+            s.classList.add('incorrect');
+          }
+        });
+        
+        // Zobrazenie lokálneho tlačidla "Detailné výsledky"
+        const detBtn = document.getElementById('detBtn-' + idx);
+        if (detBtn) detBtn.style.display = 'inline-block';
+        
+        // Medzi-riadok s označením Úlohy
+        allTableRows += '<tr><th colspan="4" style="background:#ddd; text-align:left;">Úloha ' + displayIdx + '</th></tr>';
+        
+        originals[idx].forEach((correct, i) => {
+          const student = slots[i].innerHTML.trim();
+          let icon = '❌';
+          if (student === correct) { 
+            icon = '✅'; 
+            totalPoints++; 
+          } else if (!student) {
+            icon = '❗';
+          }
+          totalReplicas++;
+          
+          allTableRows += '<tr>' +
+            '<td>' + (i+1) + '</td>' +
+            '<td>' + correct + '</td>' +
+            '<td>' + (student || '(prázdne)') + '</td>' +
+            '<td style="text-align:center">' + icon + '</td>' +
+          '</tr>';
+        });
+      });
+      
+      const percent = totalReplicas > 0 ? ((totalPoints / totalReplicas) * 100).toFixed(1) : 0;
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('sk-SK');
+      const timeStr = now.toLocaleTimeString('sk-SK', {hour: '2-digit', minute:'2-digit'});
+      const studentName = document.getElementById('nameInput').value || '__________';
+      const testTitle = "In der Konditorei/V cukrárni - redukované";
+      
+      const resultsWin = window.open('', '_blank');
+      resultsWin.document.write('<html><head><title>Detailné výsledky - ' + studentName + '</title>' +
+        '<style>' +
+          'body { font-family: Courier bold, monospace; padding: 40px; }' +
+          'h1 { text-decoration: underline; margin-bottom: 30px; }' +
+          '.header-info { margin-bottom: 30px; line-height: 1.6; }' +
+          'table { width: 100%; border-collapse: collapse; margin-top: 20px; font-family: sans-serif; }' +
+          'th, td { border: 1px solid #000; padding: 10px; text-align: left; }' +
+          'th { background: #eee; }' +
+          '@media print { .no-print { display: none; } }' +
+        '</style>' +
+        '</head><body>' +
+        '<h1>Detailné výsledky:</h1>' +
+        '<div class="header-info">' +
+          '<strong>Názov testu:</strong> ' + testTitle + '<br>' +
+          '<strong>Meno žiaka:</strong> ' + studentName + '<br>' +
+          '<strong>Bodové a percentuálne hodnotenie:</strong> ' + totalPoints + '/' + totalReplicas + ', ' + percent + '%<br>' +
+          '<strong>Dátum a čas:</strong> ' + dateStr + ', ' + timeStr + '' +
+        '</div>' +
+        '<table><thead><tr><th>#</th><th>Správna replika v poradí</th><th>Odpoveď žiaka</th><th>Stav</th></tr></thead>' +
+        '<tbody>' + allTableRows + '</tbody></table>' +
+        '</body></html>');
+      resultsWin.document.close();
+    }
+  </script>
+</body>
+</html>
