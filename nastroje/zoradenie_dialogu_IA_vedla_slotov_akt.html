@@ -2,372 +2,490 @@
 <html lang="sk">
 <head>
   <meta charset="UTF-8">
-  <title>Zoradenie dialógov - IA cvičenie</title>
+  <title>Zoradenie dialógov - generátor</title>
   <style>
-    body {
-      font-family: Courier bold, monospace;
-      max-width: 1100px;
-      margin: 2em auto;
-      padding: 0 1em;
-    }
-    textarea {
-      width: 100%;
-      height: 180px;
-      font-family: monospace;
-	  font-size: 16px;
-      margin-bottom: 1em;
-    }
-    #output {
-      margin: 1.5em 0;
-      white-space: pre-wrap;
-      font-family: sans-serif;
-    }
-    .button {
-      display: inline-block;
-      background-color: #007BFF;
-      color: #fff;
-      padding: 0.5em 1em;
-      border: none;
-      border-radius: 4px;
-      text-decoration: none;
-      font-size: 1em;
-      cursor: pointer;
-      margin-right: 0.5em;
-    }
-    .button.disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
+    body { font-family: Courier bold, monospace; max-width: 1100px; margin: 2em auto; padding: 0 1em; background-color: #f4f4f9; }
+    .container { background: #fff; padding: 2em; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .meta-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 1.5em; }
+    .meta-inputs input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: sans-serif; width: 100%; box-sizing: border-box; }
+    .toolbar { margin-bottom: 0.5em; display: flex; align-items: center; gap: 10px; }
+    textarea { width: 100%; height: 200px; font-family: monospace; font-size: 16px; margin-bottom: 1em; padding: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; box-sizing: border-box; }
+    .button-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 1.5em; }
+    .button { background-color: #007BFF; color: #fff; padding: 0.7em 1.2em; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; text-decoration: none; transition: background 0.3s; }
+    .button:hover { background-color: #0056b3; }
+    .button.secondary { background-color: #6c757d; }
+    .button.mini { padding: 4px 10px; font-weight: bold; background-color: #343a40; }
+    .button.disabled { opacity: 0.5; pointer-events: none; }
+    label { font-size: 0.85em; color: #666; font-family: sans-serif; font-weight: bold; }
   </style>
 </head>
 <body>
 
- <h1 style="text-align: center;">Zoradenie viet v dialógoch -<br>generátor PL a IA cvičení na zoradenie dialógov<br>(kartičky vedľa slotov)</h1>
+<div class="container">
+  <h1 style="text-align: center;">Zoradenie dialógov - generátor<br>(repliky vedľa slotov, možnosť rozdelenia jedného dialógu na viac častí)</h1>
  
-  <p style="font-weight: bold;">
-    Vložte viacero dialógov.<br>
-    Každú vetu v rámci konkrétneho dialógu zadajte na nový riadok.<br>
-    Každý dialóg oddeľte jedným prázdnym riadkom.
-  </p>
+  <div class="meta-inputs">
+    <div><label>Predmet:</label><br><input type="text" id="subject" placeholder="NEJ"></div>
+    <div><label>Názov testu:</label><br><input type="text" id="title" placeholder="Nakupovanie"></div>
+    <div><label>Autor:</label><br><input type="text" id="author" placeholder="Mgr. Meno Priezvisko"></div>
+  </div>
+
+  <div style="margin-bottom: 1.5em; font-family: sans-serif; background: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+    <label style="font-weight: bold; font-size: 0.9em; color: #333; display: block; margin-bottom: 8px;">Usporiadanie úloh (ak je v dialógu viac samostatných blokov):</label>
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9em;">
+      <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: normal; color: #444;">
+        <input type="radio" name="taskMode" value="fixed" checked style="margin: 0; width: auto;"> Jeden dialóg rozdelený na viac úloh (poradie úloh zostane pevné)
+      </label>
+      <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: normal; color: #444;">
+        <input type="radio" name="taskMode" value="shuffled" style="margin: 0; width: auto;"> Nezávislé úlohy (poradie úloh sa náhodne zamieša)
+      </label>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button id="formatBold" class="button mini" title="Formátovať ako tučné">B</button>
+    <span style="font-size: 0.8em; font-family: sans-serif; color: #666;">Označte text a kliknutím na B ho naformátujete ako <b>tučné písmo</b>.</span>
+  </div>
 
   <textarea id="inputArea" placeholder="A: Hallo, wie geht's?
 B: Hallo, es geht, danke. Und dir?
-A: Danke, es geht.
+A: Danke, es geht."></textarea>
 
-A: Guten Morgen!
-B: Morgen, wie war dein Wochenende?
-A: Super, danke."></textarea>
+  <div class="button-group">
+    <button id="generateHTML" class="button">Generovať interaktívne cvičenie (.html)</button>
+    <button id="generateRTF" class="button">Generovať pracovný list (.rtf)</button>
+    <a id="downloadRTF" class="button disabled">Stiahnuť .rtf</a>
+  </div>
 
-  <button id="generate" class="button">Generovať .rtf</button>
-  <button id="generateInteractive" class="button">Generovať interaktívne cvičenie .html</button>
-  <a id="download" class="button disabled">Stiahnuť .rtf</a>
+  <div class="button-group" style="border-bottom: none;">
+    <button id="exportJSON" class="button secondary">Exportovať nastavenia (.json)</button>
+    <button id="importJSON" class="button secondary">Importovať nastavenia (.json)</button>
+    <input type="file" id="fileInput" style="display:none" accept=".json">
+  </div>
+</div>
 
-  <div id="output" aria-live="polite"></div>
+<div style="text-align: center; margin-top: 1em; font-size: 0.9em; font-family: sans-serif;">
+  <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025 - 2026)
+</div>
 
 <script>
-  const STORAGE_KEY = 'dialogueInput';
   const textarea = document.getElementById('inputArea');
-  const btnRTF = document.getElementById('generate');
-  const btnHTML = document.getElementById('generateInteractive');
-  const downloadLink = document.getElementById('download');
-  const outputDiv = document.getElementById('output');
+  const inpSubj = document.getElementById('subject');
+  const inpTitle = document.getElementById('title');
+  const inpAuth = document.getElementById('author');
 
-  // 1) Obnova z localStorage
-  document.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved !== null) textarea.value = saved;
+  // Funkcia pre tučné písmo
+  document.getElementById('formatBold').addEventListener('click', () => {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const val = textarea.value;
+    textarea.value = val.substring(0, start) + "<b>" + val.substring(start, end) + "</b>" + val.substring(end);
+    textarea.focus();
   });
 
-  // 2) Ukladanie pri zmene
-  textarea.addEventListener('input', () => {
-    localStorage.setItem(STORAGE_KEY, textarea.value);
+  // Export JSON (rozšírený o voľbu režimu úloh)
+  document.getElementById('exportJSON').addEventListener('click', () => {
+    const taskMode = document.querySelector('input[name="taskMode"]:checked').value;
+    const data = { 
+      subject: inpSubj.value, 
+      title: inpTitle.value, 
+      author: inpAuth.value, 
+      content: textarea.value,
+      taskMode: taskMode
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'nastavenia_dialogu.json';
+    a.click();
   });
 
-  // 3) Pomocná: náhodne premešia pole
-  function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  }
+  // Import JSON
+  document.getElementById('importJSON').addEventListener('click', () => document.getElementById('fileInput').click());
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (re) => {
+      const data = JSON.parse(re.target.result);
+      inpSubj.value = data.subject || '';
+      inpTitle.value = data.title || '';
+      inpAuth.value = data.author || '';
+      textarea.value = data.content || '';
+      if (data.taskMode) {
+        const rButton = document.querySelector(`input[name="taskMode"][value="${data.taskMode}"]`);
+        if (rButton) rButton.checked = true;
+      }
+    };
+    reader.readAsText(file);
+  });
 
-  // 4) Parsovanie textarea na originálne + scrambled úlohy
-  function prepareTasks() {
+  function getTasks() {
     const raw = textarea.value.trim();
     if (!raw) return null;
-
-    const blocks = raw
-      .split(/\n\s*\n/)        // každý dialóg oddelený prázdnym riadkom
-      .map(b => b.trim())
-      .filter(b => b);
-
-    const original = blocks.map(b =>
-      b.split('\n')
-       .map(l => l.trim())
-       .filter(l => l)
-    );
-
-    const scrambled = original.map(lines => shuffle([...lines]));
+    const blocks = raw.split(/\n\s*\n/).map(b => b.trim()).filter(b => b);
+    const original = blocks.map(b => b.split('\n').map(l => l.trim()).filter(l => l));
+    const scrambled = original.map(lines => [...lines].sort(() => Math.random() - 0.5));
     return { original, scrambled };
   }
 
-  // 5) Escapovanie reťazcov do RTF Unicode/špeciálnych znakov
-  function rtfEscape(str) {
-    return str.replace(/[\u0080-\uFFFF]|[\\{}]/g, ch => {
-      if (ch === '\\') return '\\\\';
-      if (ch === '{')  return '\\{';
-      if (ch === '}')  return '\\}';
-      return `\\u${ch.charCodeAt(0)}?`;
-    });
-  }
-
-  // 6) Generovanie .rtf súboru
-  btnRTF.addEventListener('click', () => {
-    const tasks = prepareTasks();
+  // RTF Generovanie
+  document.getElementById('generateRTF').addEventListener('click', () => {
+    const tasks = getTasks();
     if (!tasks) return;
-
-    const { scrambled } = tasks;
-
-    // zobrazím v <div id="output">
-    const lines = scrambled.map((task, i) =>
-      `Úloha ${i+1}: ${task.join(' / ')}`
-    );
-    outputDiv.textContent = lines.join('\n\n');
-
-    // RTF header
-    const rtfHeader = [
-      '{\\rtf1',
-      '\\ansi',
-      '\\ansicpg1250',
-      '{\\fonttbl{\\f0 Courier New;}}',
-      '\\deff0',
-      '\\viewkind4\\uc1',
-      ''
-    ].join('');
-
-    // RTF body
- let rtfBody = '';
-
-// 1) "Pracovný list" – 16 pt, tučne
-rtfBody +=
-  '\\pard\\f0\\fs32\\b '
-  + rtfEscape('Pracovný list')
-  + ' \\b0\\fs24\\par\\par\n';
-
-// 2) Pre každú úlohu
-scrambled.forEach((task, i) => {
-  // 2a) Nadpis "Úloha X" – 14 pt, tučne
-  rtfBody +=
-    '\\pard\\f0\\fs28\\b '
-    + rtfEscape(`Úloha ${i+1}`)
-    + ' \\b0\\fs24\\par\n';
-
-  // 2b) Text viet – 12 pt, normálne
-  rtfBody +=
-    '\\pard\\f0\\fs24 '
-    + rtfEscape(task.join(' / '))
-    + '\\par\\par\n';
-});
-
-
-    const rtfFooter = '}';
-
-    // blob + nastavenie odkazu na stiahnutie
-    const blob = new Blob([rtfHeader + rtfBody + rtfFooter], { type: 'application/rtf' });
-    const url  = URL.createObjectURL(blob);
-
-    downloadLink.href = url;
-    downloadLink.download = 'pracovny_list_dialogy.rtf';
-    downloadLink.classList.remove('disabled');
+    const clean = (s) => s.replace(/<\/?[^>]+(>|$)/g, "");
+    let rtf = '{\\rtf1\\ansi\\ansicpg1250\\deff0{\\fonttbl{\\f0 Courier New;}}\n';
+    rtf += `\\fs36\\b ${clean(inpTitle.value || 'Cvičenie')}\\b0\\fs24\\par\n`;
+    rtf += `${clean(inpSubj.value)} - ${clean(inpAuth.value)}\\par\\par\n`;
+    tasks.scrambled.forEach((t, i) => {
+      rtf += `\\b Úloha ${i+1}:\\b0  ${clean(t.join(' / '))}\\par\\par\n`;
+    });
+    rtf += '}';
+    const blob = new Blob([rtf], { type: 'application/rtf' });
+    const btn = document.getElementById('downloadRTF');
+    btn.href = URL.createObjectURL(blob);
+    btn.download = 'pracovny_list.rtf';
+    btn.classList.remove('disabled');
   });
 
-  // 7) Generovanie interaktívneho HTML cvičenia
-  btnHTML.addEventListener('click', () => {
-    const tasks = prepareTasks();
+  // HTML Generovanie
+  document.getElementById('generateHTML').addEventListener('click', () => {
+    const tasks = getTasks();
     if (!tasks) return;
-    const { original, scrambled } = tasks;
 
-    const html = `
+    const taskMode = document.querySelector('input[name="taskMode"]:checked').value;
+    
+    // Vytvorenie počiatočného zoznamu indexov úloh
+    let taskIndices = tasks.original.map((_, i) => i);
+    
+    // Ak je zvolený režim "shuffled", náhodne zamiešame poradie úloh
+    if (taskMode === 'shuffled') {
+      taskIndices.sort(() => Math.random() - 0.5);
+    }
+
+    let tasksHTML = "";
+    taskIndices.forEach((origIdx, displayIdx) => {
+      let t = tasks.scrambled[origIdx];
+      let slotsHTML = t.map((_, i) => `<div class="slot" data-pos="${i}"></div>`).join('');
+      let cardsHTML = t.map(text => `<div class="card">${text}</div>`).join('');
+      
+      tasksHTML += `
+      <div class="task" id="task-${origIdx}" data-idx="${origIdx}" data-display-idx="${displayIdx + 1}">
+        <h2>Úloha ${displayIdx + 1}</h2>
+        <div class="exerciseRow">
+          <div class="slots">${slotsHTML}</div>
+          <div class="cards">${cardsHTML}</div>
+        </div>
+        <div class="no-print">
+          <button class="btn btn-check" data-idx="${origIdx}">Vyhodnotiť</button>
+          <button class="btn btn-details" id="detBtn-${origIdx}" data-idx="${origIdx}" style="display:none; background:#28a745;">Detailné výsledky</button>
+          <button class="btn btn-retry" data-idx="${origIdx}" style="background:#6c757d;">Opakovať pokus</button>
+        </div>
+      </div>`;
+    });
+
+    const finalHTML = `
 <!DOCTYPE html>
 <html lang="sk">
 <head>
   <meta charset="UTF-8">
-  <title>Zoradenie viet v dialógoch - IA cvičenie</title>
-   <style>
-    body { font-family:Courier bold, monospace; max-width:1200px; margin:2em auto; padding:0 1em;}
-    .task { border:1px solid #ccc; padding:1em; margin-bottom:2em; border-radius:4px; }
+  <title>${inpTitle.value || 'Zoradenie dialógu'}</title>
+  <style>
+    body { font-family: Courier bold, monospace; max-width: 1000px; margin: 2em auto; padding: 1em; background:#f9f9f9; }
+    .header { border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; }
+    .student-name { margin-bottom: 20px; font-size: 1.2em; }
+    .student-name input { padding: 8px; width: 300px; border: 1px solid #888; font-family: sans-serif; }
+    .task { background:#fff; border: 1px solid #ccc; padding: 20px; margin-bottom: 30px; border-radius: 8px; }
+    .exerciseRow { display: flex; gap: 20px; margin: 20px 0; }
+    .slots { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .cards { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 50px; }
     
-    /* === ZAČIATOK ÚPRAVY === */
-    .exerciseRow { display: flex; align-items: center; gap: 1.5em; margin-bottom: 1em; }
-    .slots { flex: 2; display:flex; flex-direction:column; gap:.2em; font-size: 20px; font-weight: bold; }
-    .cards { flex: 2; display:flex; flex-direction: column; gap:.3em; font-size: 20px; font-weight: bold; }
-    /* === KONIEC ÚPRAVY === */
-
-    .slot { min-height:1.5em; border:2px dashed #888; padding:.5em; cursor:pointer; }
-    .slot.correct { border-color:green; background:#e0ffe0; }
-    .slot.incorrect { border-color:red; background:#ffe0e0; }
+    /* OPRAVA: Zarovnanie textu nahor pri viacriadkových replikách */
+    .slot { min-height: 44px; border: 2px dashed #bbb; padding: 8px; background:#fff; border-radius: 4px; cursor: pointer; display: flex; align-items: flex-start; box-sizing: border-box; }
     
-    .card { background:#f0f0f0; padding:.5em 1em; border:1px solid #888; border-radius:4px; cursor:pointer; }
-    .card.selected { background:#d0e6ff; box-shadow:0 0 0 2px #007BFF; transform:scale(1.05); }
+    .slot.correct { border-color: green; background: #e8f5e9; }
+    .slot.incorrect { border-color: red; background: #ffebee; }
+    .card { background: #eee; padding: 10px; border: 1px solid #999; border-radius: 4px; cursor: pointer; line-height: 1.2; user-select: none; }
+    .card.selected { background: #bbdefb; border-color: #007bff; box-shadow: 0 0 8px #007bff; }
+    .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 10px; background: #007bff; color: #fff; }
     
-    .buttons { display:flex; gap:1em; }
-    .buttons button { padding:.5em 1em; background:#007BFF; color:#fff; border:none; border-radius:4px; font-size: 120%; }
-    .buttons button:hover { background:#005bb5; }
+    @media print {
+      .no-print, .btn, .cards, .student-name input { display: none !important; }
+      body { background: white; margin: 0; padding: 0; }
+      .task { border: 1px solid #000; break-inside: avoid; }
+      .student-name::after { content: " " attr(data-name); font-weight: bold; }
+    }
   </style>
 </head>
 <body>
-  <h1>Zoradenie viet v dialógoch - IA cvičenie</h1>
-  <p>Klikni najprv na kartičku, potom na bunku. Kliknutím na vloženú vetu ju vrátiš späť medzi kartičky.</p>
+  <div class="header">
+    <h1>${inpTitle.value || 'Zoradenie dialógu'}</h1>
+    <p><b>Predmet:</b> ${inpSubj.value} | <b>Autor:</b> ${inpAuth.value}</p>
+  </div>
 
-  ${scrambled.map((task, idx) => `
-    <div class="task" data-index="${idx}">
-      <h2>Úloha ${idx+1}</h2>
-      
-      <div class="exerciseRow">
-        <div class="slots">
-          ${task.map((_, j) => `<div class="slot" data-slot="${j}"></div>`).join('')}
-        </div>
-        <div class="cards">
-          </div>
-      </div>
-      <div class="buttons">
-        <button class="check">Vyhodnotiť</button>
-        <button class="retry">Opakovať pokus</button>
-      </div>
-    </div>
-  `).join('')}
-<br><br>
-      <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
-<br><br>
+  <div class="student-name">
+    Meno žiaka: <input type="text" id="nameInput" oninput="this.parentElement.setAttribute('data-name', this.value)">
+  </div>
+
+  <div class="no-print"><p>1. Klikni na kartičku (zvýrazní sa modrou). <br> 2. Klikni do prázdnej bunky. <br> 3. Kliknutím na text v bunke ho vrátiš späť.</p></div>
+
+  ${tasksHTML}
+
+  <div class="no-print" style="text-align: center; margin: 40px 0; display: flex; justify-content: center; gap: 15px;">
+    <button class="btn btn-global-check" style="background: #28a745; font-size: 1.1em; padding: 12px 24px;">Vyhodnotenie všetkých úloh</button>
+    <button class="btn" style="background: #6c757d; font-size: 1.1em; padding: 12px 24px;" onclick="if(confirm('Chcete vymazať odpovede a reštartovať celé cvičenie?')) location.reload();">Reštartovať celé cvičenie</button>
+  </div>
+
+  <div style="margin-top: 30px; font-size: 0.8em; text-align: center; font-family: sans-serif;">
+    Spracovala pomocou UI: Mgr. Erika Matyiová (2025)
+  </div>
+
   <script>
-    const originalData = ${JSON.stringify(original)};
+    const originals = ${JSON.stringify(tasks.original)};
+    let selectedElement = null;
 
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random()*(i+1));
-        [arr[i],arr[j]]=[arr[j],arr[i]];
+    // Globálny delegovaný listener na kliknutia (OPRAVA: Citlivosť celej kartičky a b tagov)
+    document.addEventListener('click', function(e) {
+      const cardEl = e.target.closest('.card');
+      const slotEl = e.target.closest('.slot');
+      const btnCheckEl = e.target.closest('.btn-check');
+      const btnDetailsEl = e.target.closest('.btn-details');
+      const btnRetryEl = e.target.closest('.btn-retry');
+      const btnGlobalCheckEl = e.target.closest('.btn-global-check');
+
+      // 1. Kliknutie na kartičku
+      if (cardEl) {
+        if (selectedElement) selectedElement.classList.remove('selected');
+        selectedElement = cardEl;
+        selectedElement.classList.add('selected');
       }
-      return arr;
+
+      // 2. Kliknutie na slot
+      else if (slotEl) {
+        const slot = slotEl;
+        if (selectedElement) {
+          if (slot.innerHTML.trim() !== "") returnToCards(slot);
+          slot.innerHTML = selectedElement.innerHTML;
+          selectedElement.remove();
+          selectedElement = null;
+        } else if (slot.innerHTML.trim() !== "") {
+          returnToCards(slot);
+        }
+      }
+      
+      // 3. Obsluha lokálneho vyhodnotenia úlohy
+      else if (btnCheckEl) {
+        check(btnCheckEl.dataset.idx);
+      }
+      
+      // 4. Obsluha lokálnych detailov úlohy
+      else if (btnDetailsEl) {
+        showDetails(btnDetailsEl.dataset.idx);
+      }
+
+      // 5. Lokálny reset konkrétnej úlohy (žiak nestratí progres v ostatných úlohách)
+      else if (btnRetryEl) {
+        retryTask(btnRetryEl.dataset.idx);
+      }
+
+      // 6. Globálne vyhodnotenie všetkých úloh naraz
+      else if (btnGlobalCheckEl) {
+        checkAll();
+      }
+    });
+
+    function returnToCards(slot) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = slot.innerHTML;
+      slot.closest('.exerciseRow').querySelector('.cards').appendChild(card);
+      slot.innerHTML = "";
     }
 
-    document.querySelectorAll('.task').forEach(taskEl => {
-      const idx = +taskEl.dataset.index;
-      let selectedCard = null;
-      
-      /* === ZAČIATOK ÚPRAVY (presmerovanie na nové rodičovské prvky) === */
-      const exerciseRow = taskEl.querySelector('.exerciseRow');
-      const slotsEl = exerciseRow.querySelector('.slots');
-      const cardsEl = exerciseRow.querySelector('.cards');
-      /* === KONIEC ÚPRAVY === */
+    function check(idx) {
+      const taskEl = document.getElementById('task-' + idx);
+      const slots = taskEl.querySelectorAll('.slot');
+      slots.forEach((s, i) => {
+        s.classList.remove('correct', 'incorrect');
+        if (s.innerHTML.trim() === originals[idx][i]) s.classList.add('correct');
+        else s.classList.add('incorrect');
+      });
+      document.getElementById('detBtn-' + idx).style.display = 'inline-block';
+    }
 
-      // === ZMENA ===
-      // Funkcia na (re)inicializáciu kartičiek
-      function initializeCards() {
-        cardsEl.innerHTML = ''; // Vyčistí staré kartičky (ak existujú)
-        shuffle([...originalData[idx]]).forEach(text => {
+    function retryTask(idx) {
+      const taskEl = document.getElementById('task-' + idx);
+      const slots = taskEl.querySelectorAll('.slot');
+      const cardsContainer = taskEl.querySelector('.cards');
+      
+      slots.forEach(s => {
+        if (s.innerHTML.trim() !== "") {
           const card = document.createElement('div');
           card.className = 'card';
-          card.textContent = text;
-          cardsEl.append(card);
-        });
+          card.innerHTML = s.innerHTML;
+          cardsContainer.appendChild(card);
+          s.innerHTML = "";
+        }
+        s.classList.remove('correct', 'incorrect');
+      });
+      
+      if (selectedElement && selectedElement.closest('#task-' + idx)) {
+        selectedElement = null;
       }
       
-      // Zavoláme ju hneď pri načítaní stránky, aby sa vygenerovali kartičky
-      initializeCards();
-      // === KONIEC ZMENY ===
+      const detBtn = document.getElementById('detBtn-' + idx);
+      if (detBtn) detBtn.style.display = 'none';
+      
+      const resultsDiv = document.getElementById('results-' + idx);
+      if (resultsDiv) resultsDiv.innerHTML = "";
+    }
 
-
-      cardsEl.addEventListener('click', e => {
-        if (!e.target.classList.contains('card')) return;
-        if (selectedCard) selectedCard.classList.remove('selected');
-        selectedCard = e.target;
-        selectedCard.classList.add('selected');
+    // Vyhodnotenie jednej konkrétnej úlohy (detaily)
+    function showDetails(idx) {
+      const taskEl = document.getElementById('task-' + idx);
+      const slots = taskEl.querySelectorAll('.slot');
+      const studentName = document.getElementById('nameInput').value || '__________';
+      const testTitle = "${inpTitle.value || 'Zoradenie dialógu'}";
+      const displayIdx = taskEl.dataset.displayIdx;
+      
+      let points = 0;
+      let total = originals[idx].length;
+      
+      let tableRows = "";
+      originals[idx].forEach((correct, i) => {
+        const student = slots[i].innerHTML.trim();
+        let icon = '❌';
+        if (student === correct) { icon = '✅'; points++; }
+        else if (!student) icon = '❗';
+        
+        tableRows += '<tr>' +
+          '<td>' + (i+1) + '</td>' +
+          '<td>' + correct + '</td>' +
+          '<td>' + (student || '(prázdne)') + '</td>' +
+          '<td style="text-align:center">' + icon + '</td>' +
+        '</tr>';
       });
 
-      slotsEl.addEventListener('click', e => {
-        if (!e.target.classList.contains('slot')) return;
-        const slot = e.target;
-        
-        // 1. Ak máme vybranú kartičku (chceme ju vložiť)
-        if (selectedCard) {
-          
-          // Ak je slot už obsadený, vráťme jeho obsah najprv do kariet
-          if (slot.dataset.value) {
-            const oldText = slot.dataset.value;
-            // Vytvorenie a pridanie kartičky pre pôvodný obsah slotu
-            const oldCard = document.createElement('div');
-            oldCard.className = 'card';
-            oldCard.textContent = oldText;
-            cardsEl.append(oldCard);
-            
-            // Vyčistenie stavu slotu (farby)
-            slot.classList.remove('correct', 'incorrect');
-          }
+      const percent = ((points / total) * 100).toFixed(1);
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('sk-SK');
+      const timeStr = now.toLocaleTimeString('sk-SK', {hour: '2-digit', minute:'2-digit'});
 
-          // Vloženie novej kartičky do slotu
-          slot.textContent = selectedCard.textContent;
-          slot.dataset.value = selectedCard.textContent;
-          
-          // Odstránenie vybranej kartičky a zrušenie stavu
-          selectedCard.remove();
-          selectedCard = null;
-          return;
-        }
-        
-        // 2. Ak nemáme vybranú kartičku (chceme vrátiť obsah slotu)
-        if (slot.dataset.value) {
-          const text = slot.dataset.value;
-          slot.textContent = '';
-          delete slot.dataset.value;
-          slot.classList.remove('correct','incorrect');
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.textContent = text;
-          cardsEl.append(card);
-        }
-      });
+      const resultsWin = window.open('', '_blank');
+      resultsWin.document.write('<html><head><title>Detailné výsledky - ' + studentName + '</title>' +
+        '<style>' +
+          'body { font-family: Courier bold, monospace; padding: 40px; }' +
+          'h1 { text-decoration: underline; margin-bottom: 30px; }' +
+          '.header-info { margin-bottom: 30px; line-height: 1.6; }' +
+          'table { width: 100%; border-collapse: collapse; margin-top: 20px; font-family: sans-serif; }' +
+          'th, td { border: 1px solid #000; padding: 10px; text-align: left; }' +
+          'th { background: #eee; }' +
+          '@media print { .no-print { display: none; } }' +
+        '</style>' +
+        '</head><body>' +
+        '<h1>Detailné výsledky:</h1>' +
+        '<div class="header-info">' +
+          '<strong>Názov testu:</strong> ' + testTitle + ' (Úloha ' + displayIdx + ')<br>' +
+          '<strong>Meno žiaka:</strong> ' + studentName + '<br>' +
+          '<strong>Bodové a percentuálne hodnotenie:</strong> ' + points + '/' + total + ', ' + percent + '%<br>' +
+          '<strong>Dátum a čas:</strong> ' + dateStr + ', ' + timeStr + '' +
+        '</div>' +
+        '<table><thead><tr><th>#</th><th>Správna replika v poradí</th><th>Odpoveď žiaka</th><th>Stav</th></tr></thead>' +
+        '<tbody>' + tableRows + '</tbody></table>' +
+        '</body></html>');
+      resultsWin.document.close();
+    }
 
-      taskEl.querySelector('.check').addEventListener('click', () => {
-        slotsEl.querySelectorAll('.slot').forEach((slot, pos) => {
-          slot.classList.remove('correct','incorrect');
-          if (slot.dataset.value === originalData[idx][pos]) {
-            slot.classList.add('correct');
+    // NOVÉ: Globálne vyhodnotenie všetkých úloh spoločne
+    function checkAll() {
+      let totalPoints = 0;
+      let totalReplicas = 0;
+      let allTableRows = "";
+      
+      const taskEls = document.querySelectorAll('.task');
+      taskEls.forEach((taskEl) => {
+        const idx = parseInt(taskEl.dataset.idx);
+        const displayIdx = parseInt(taskEl.dataset.displayIdx);
+        const slots = taskEl.querySelectorAll('.slot');
+        
+        // Lokálne vizuálne vyhodnotenie (označenie správnych a nesprávnych odpovedí)
+        slots.forEach((s, i) => {
+          s.classList.remove('correct', 'incorrect');
+          if (s.innerHTML.trim() === originals[idx][i]) {
+            s.classList.add('correct');
           } else {
-            slot.classList.add('incorrect');
+            s.classList.add('incorrect');
           }
         });
-      });
-
-      taskEl.querySelector('.retry').addEventListener('click', () => {
-        slotsEl.querySelectorAll('.slot').forEach(slot => {
-          slot.textContent = '';
-          delete slot.dataset.value;
-          slot.classList.remove('correct','incorrect');
-        });
         
-        // === ZMENA ===
-        // Použijeme tú istú funkciu aj pre "Opakovať pokus"
-        initializeCards();
-        // === KONIEC ZMENY ===
+        // Zobrazenie lokálneho tlačidla "Detailné výsledky"
+        const detBtn = document.getElementById('detBtn-' + idx);
+        if (detBtn) detBtn.style.display = 'inline-block';
+        
+        // Medzi-riadok s označením Úlohy
+        allTableRows += '<tr><th colspan="4" style="background:#ddd; text-align:left;">Úloha ' + displayIdx + '</th></tr>';
+        
+        originals[idx].forEach((correct, i) => {
+          const student = slots[i].innerHTML.trim();
+          let icon = '❌';
+          if (student === correct) { 
+            icon = '✅'; 
+            totalPoints++; 
+          } else if (!student) {
+            icon = '❗';
+          }
+          totalReplicas++;
+          
+          allTableRows += '<tr>' +
+            '<td>' + (i+1) + '</td>' +
+            '<td>' + correct + '</td>' +
+            '<td>' + (student || '(prázdne)') + '</td>' +
+            '<td style="text-align:center">' + icon + '</td>' +
+          '</tr>';
+        });
       });
-    });
+      
+      const percent = totalReplicas > 0 ? ((totalPoints / totalReplicas) * 100).toFixed(1) : 0;
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('sk-SK');
+      const timeStr = now.toLocaleTimeString('sk-SK', {hour: '2-digit', minute:'2-digit'});
+      const studentName = document.getElementById('nameInput').value || '__________';
+      const testTitle = "${inpTitle.value || 'Zoradenie dialógu'}";
+      
+      const resultsWin = window.open('', '_blank');
+      resultsWin.document.write('<html><head><title>Detailné výsledky - ' + studentName + '</title>' +
+        '<style>' +
+          'body { font-family: Courier bold, monospace; padding: 40px; }' +
+          'h1 { text-decoration: underline; margin-bottom: 30px; }' +
+          '.header-info { margin-bottom: 30px; line-height: 1.6; }' +
+          'table { width: 100%; border-collapse: collapse; margin-top: 20px; font-family: sans-serif; }' +
+          'th, td { border: 1px solid #000; padding: 10px; text-align: left; }' +
+          'th { background: #eee; }' +
+          '@media print { .no-print { display: none; } }' +
+        '</style>' +
+        '</head><body>' +
+        '<h1>Detailné výsledky:</h1>' +
+        '<div class="header-info">' +
+          '<strong>Názov testu:</strong> ' + testTitle + '<br>' +
+          '<strong>Meno žiaka:</strong> ' + studentName + '<br>' +
+          '<strong>Bodové a percentuálne hodnotenie:</strong> ' + totalPoints + '/' + totalReplicas + ', ' + percent + '%<br>' +
+          '<strong>Dátum a čas:</strong> ' + dateStr + ', ' + timeStr + '' +
+        '</div>' +
+        '<table><thead><tr><th>#</th><th>Správna replika v poradí</th><th>Odpoveď žiaka</th><th>Stav</th></tr></thead>' +
+        '<tbody>' + allTableRows + '</tbody></table>' +
+        '</body></html>');
+      resultsWin.document.close();
+    }
   <\/script>
 </body>
-</html>`.trim();
+</html>`;
 
-    // vygenerovať a stiahnuť HTML
-    const blob = new Blob([html], { type: 'text/html' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = 'zoradenie_viet_dialogy.html';
+    const blob = new Blob([finalHTML], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (inpTitle.value || 'zoradenie_dialogu') + '.html';
     a.click();
-    URL.revokeObjectURL(url);
   });
 </script>
- <br><br>
-  &nbsp;&nbsp;<b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2025)
-  <br><br>
 </body>
 </html>
