@@ -82,6 +82,17 @@
         #file-input {
             display: none;
         }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 20px;
+        }
+        .btn-toolbar {
+            padding: 5px 15px;
+            font-weight: bold;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -115,7 +126,10 @@
         <input type="color" id="farba_textu" value="#222222">
     </div>
 
-    <label for="dialog" style="display: block; margin-top: 20px;">Dialóg (každá replika do nového riadku, povolené HTML tagy):</label>
+    <div class="toolbar">
+        <label for="dialog">Dialóg (každá replika do nového riadku, povolené HTML tagy):</label>
+        <button class="btn btn-toolbar" onclick="wrapBold()" title="Obaliť označený text do tagov pre tučné písmo">B (Tučné)</button>
+    </div>
     <textarea id="dialog" placeholder="Napr.:&#10;Tomáš: Hallo Lukáš, bist du da?&#10;Lukáš: Ja, was gibt's?"></textarea>
 
     <button class="btn btn-success" onclick="generateScrambledDialogue()">Vygenerovať pomiešaný dialóg</button>
@@ -176,6 +190,33 @@
             
             reader.readAsText(file);
             event.target.value = ''; 
+        }
+
+        function wrapBold() {
+            const textarea = document.getElementById('dialog');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            
+            // Uloženie aktuálnej pozície rolovania
+            const scrollTop = textarea.scrollTop;
+            
+            if (start === end) {
+                alert("Najprv označte text v dialógu, ktorý chcete zmeniť na tučný.");
+                return;
+            }
+            
+            const text = textarea.value;
+            const selectedText = text.substring(start, end);
+            const replacement = `<b>${selectedText}</b>`;
+            
+            textarea.value = text.substring(0, start) + replacement + text.substring(end);
+            
+            // Obnovenie zamerania na textové pole a výberu obaleného textu
+            textarea.focus();
+            textarea.setSelectionRange(start, start + replacement.length);
+            
+            // Obnovenie pozície rolovania
+            textarea.scrollTop = scrollTop;
         }
 
         function generateScrambledDialogue() {
@@ -243,18 +284,23 @@
                         width: 100%;
                     }
                     .replika-wrapper {
+  break-inside: avoid;
+  page-break-inside: avoid;
+
                         display: block;
                         width: 100%;
-                        margin: 10px 0;
+                        margin: 0;
                     }
                     .replika {
+  break-inside: avoid;
+  page-break-inside: avoid;
                         background-color: #ffffff;
                         color: ${farbaTextu};
                         padding: 15px 20px;
                         border-radius: 6px;
                         border: 1px solid #ccc;
                         box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
-                        font-size: 70px;
+                        font-size: 60px;
                         line-height: 1.2;
                         display: block;
                         white-space: normal;
@@ -287,20 +333,28 @@
                         border-left: 3px solid #ccc;
                         padding: 8px 15px;
                         margin-bottom: 8px;
-                        font-size: 14px;
+                        font-size: 20px; /* <--- ZVÄČŠENÉ PÍSMO PRE BEŽNÉ ZOBRAZENIE */
                     }
 
                     @media print {
                         body { padding: 10px; }
                         .hlavicka { border-bottom: 1px solid black; }
-                        .replika { 
+                        .replika {
+  break-inside: avoid;
+  page-break-inside: avoid; 
                             box-shadow: none !important; 
                             border: 1px solid #000 !important;
                             page-break-inside: avoid; 
-                            font-size: 70px !important;
+                            font-size: 60px !important;
+  .replika-wrapper {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 0;
+  }
+
                         }
                         .dialog-container { display: flex !important; flex-direction: column !important; }
-                        .replika-wrapper { display: block !important; margin: 5px 0; }
+                        .replika-wrapper { display: block !important; margin: 0; }
                         .oddelovac { border-top: 2px solid #000 !important; }
                         
                         /* Pre istotu pridávame page-break aj priamo do media print */
@@ -310,15 +364,12 @@
                         }
                         .riesenie-riadok {
                             border-left: 3px solid #000 !important;
+                            font-size: 20px !important; /* <--- ZVÄČŠENÉ PÍSMO PRE TLAČ */
                         }
                     }
                 </style>
             </head>
             <body>
-                <div class="hlavicka">
-                    <strong>Téma:</strong> ${tema || '---'}<br>
-                    <strong>Predmet:</strong> ${predmet || '---'}<br>  <strong>Autor:</strong> ${autor || '---'}<br> <strong>Rok:</strong> ${rok || '---'}
-                </div>
                 <div class="dialog-container">
             `;
 
@@ -328,18 +379,20 @@
                         <div class="replika">${riadok}</div>
                     </div>
                 `;
-                // Pridanie vodorovnej čiary s menším odstupom medzi replikami
-                if (index < riadky.length - 1) {
-                    htmlContent += `<hr class="oddelovac">`;
-                }
-            });
+});
 
             htmlContent += `</div>`; // Koniec pomiešaného dialógu
             
             // PRIDANIE SEKCIÍ PRE RIEŠENIE (SPRÁVNE PORADIE)
             htmlContent += `
                 <div class="riesenie-container">
-                    <div class="riesenie-hlavicka">Riešenie (správne poskladaný dialóg)</div>
+                    <div class="hlavicka">
+ <strong>Téma:</strong> ${tema || '---'}<br>
+ <strong>Predmet:</strong> ${predmet || '---'}<br>
+ <strong>Autor:</strong> ${autor || '---'}<br>
+ <strong>Rok:</strong> ${rok || '---'}
+</div>
+<div class="riesenie-hlavicka">Riešenie (správne poskladaný dialóg)</div>
             `;
             
             povodneRiadky.forEach(riadok => {
