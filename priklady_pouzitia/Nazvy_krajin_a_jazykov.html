@@ -1,0 +1,314 @@
+
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Názvy krajín a jazykov</title>
+    <style>
+        * { font-family: "Monaco", monospace; box-sizing: border-box; }
+        body { background-color: #f4f7f9; padding: 40px; display: flex; justify-content: center; color: #333; }
+        .card { 
+            background: white; 
+            width: 100%; 
+            max-width: 1150px; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+            text-align: center; 
+            margin-bottom: 20px;
+        }
+        h1 { color: #2c3e50; margin-bottom: 10px; }
+        input#studentName { padding: 12px; width: 300px; border: 2px solid #ddd; border-radius: 8px; margin: 20px 0; text-align: center; font-size: 16px; }
+        .btn-start { background: #27ae60; color: white; padding: 15px 40px; font-size: 20px; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px;}
+        
+        .task-container { display: none; margin-top: 20px; }
+        .left-items { margin-bottom: 30px; }
+        
+        .row { 
+            display: flex; 
+            align-items: flex-start; 
+            justify-content: flex-start; 
+            margin-bottom: 15px; 
+            gap: 8px; /* ZMENŠENÁ MEDZERA */
+        }
+        
+        .item-left { 
+            width: 210px;      /* ZÚŽENÝ STĹPEC PRE TEXT */
+            text-align: left; /* ZMENA: Zarovnanie textu doľava */
+            font-weight: bold; 
+            font-size: 17px; 
+            flex-shrink: 0;
+            padding-top: 10px;
+        }
+        
+        .slot { 
+            width: 200px; 
+            height: 45px; 
+            border: 2px dashed #bbb; 
+            border-radius: 6px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-start; 
+            padding-left: 12px;
+            background: #fcfcfc; 
+            cursor: pointer; 
+            font-size: 18px; 
+            font-weight: bold; 
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .btn-pool { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 30px 0; padding-top: 20px; border-top: 1px solid #eee; }
+        .ans-btn { background: #bdc3c7; color: #000; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 17px; }
+        .ans-btn.selected { background: #3498db; color: white; }
+        
+        .nav-row { margin-top: 30px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .btn-next { background: #3498db; color: white; padding: 12px 60px; font-size: 18px; border: none; border-radius: 6px; cursor: pointer; }
+        .btn-eval { background: #27ae60; color: white; padding: 12px 60px; font-size: 18px; border: none; border-radius: 6px; cursor: pointer; }
+        
+        .mini-dots { display: flex; gap: 8px; }
+        .dot { width: 35px; height: 35px; background: #ecf0f1; color: #7f8c8d; border-radius: 5px; border: none; font-size: 14px; cursor: pointer; }
+        .dot.active { border: 2px solid #3498db; font-weight: bold; }
+        .dot.done { background: #d6eaf8; color: #2980b9; }
+
+        .results-page { display: none; }
+        .btn-detail { background: #3498db; color: white; padding: 12px 40px; border: none; border-radius: 6px; cursor: pointer; margin-top: 20px; font-size: 16px;}
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #000; padding: 10px; text-align: left; }
+        th { background: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="start-screen">
+    <h1>Názvy krajín a jazykov</h1>
+    <div>
+        <input type="text" id="studentName" placeholder="Meno žiaka (nepovinné)">
+    </div>
+    
+    <div style="margin: 15px 0;">
+        <label for="blockCountInput" style="font-size: 16px; font-weight: bold; margin-right: 10px;">Počet blokov úloh v teste:</label>
+        <input type="number" id="blockCountInput" min="1" max="3" value="3" style="width: 70px; padding: 8px; font-size: 16px; border: 2px solid #ddd; border-radius: 8px; text-align: center;">
+        <div style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">Maximum dostupných blokov: 3</div>
+    </div>
+
+    <button class="btn-start" onclick="initTest()">Štart</button>
+</div>
+
+<div class="card task-container" id="task-screen">
+    <h2 id="bTitle">Blok 1</h2>
+    <p id="bInstr" style="font-style: italic; margin-bottom: 20px;"></p>
+    
+    <div id="matchingArea" class="left-items"></div>
+    <div id="poolArea" class="btn-pool"></div>
+
+    <div class="nav-row">
+        <button id="mainBtn" onclick="moveNext()"></button>
+        <div id="dotArea" class="mini-dots"></div>
+    </div>
+</div>
+
+<div class="card results-page" id="result-screen">
+    <h2 style="font-size: 28px; color: #27ae60;">Test bol ukončený!</h2>
+    <h3 id="scoreText" style="font-size: 22px; margin: 20px 0;"></h3>
+    <button class="btn-detail" onclick="openDetail()">Zobraziť detailné vyhodnotenie</button>
+</div>
+
+<script>
+    const data = {"tName":"Názvy krajín a jazykov","instr":"Priraď správne jazyky ku krajinám. Klikni na tlačidlo a umiestni ho na správne miesto. Ak si svoje rozhodnutie rozmyslíš, klikni na už umiestnený text dvakrát a ten sa vráti na pôvodné miesto.","blocks":[{"tasks":[{"left":"Italien","rights":["Italienisch"]},{"left":"Russland","rights":["Russisch"]},{"left":"Schweiz","rights":["Deutsch","Französisch","Italienisch","Rätoromanisch"]},{"left":"Belgien","rights":["Französisch","Niederländisch (Flämisch)","Deutsch"]},{"left":"England","rights":["Englisch"]},{"left":"USA","rights":["Englisch"]}],"distractors":["Spanisch","Rumänisch","Deutsch"]},{"tasks":[{"left":"Tschechien","rights":["Tschechisch"]},{"left":"Slowakei","rights":["Slowakisch"]},{"left":"Vietnam","rights":["Vietnamesisch"]},{"left":"Österreich","rights":["Deutsch"]},{"left":"Frankreich","rights":["Französisch"]},{"left":"Kanada","rights":["Englisch","Französisch"]}],"distractors":["Ungarisch","Polnisch","Deutsch"]},{"tasks":[{"left":"Polen","rights":["Polnisch"]},{"left":"Ukraine","rights":["Ukrainisch"]},{"left":"Rumänien","rights":["Rumänisch"]},{"left":"Ungarn","rights":["Ungarisch"]},{"left":"Deutschland","rights":["Deutsch"]},{"left":"Liechtenstein","rights":["Deutsch"]}],"distractors":["Rätoromanisch","Französisch","Deutsch"]}]};
+    let currentIdx = 0;
+    let sName = "";
+    let userAnswers = []; 
+    let activeBtnText = null;
+
+    function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function initTest() {
+        sName = document.getElementById('studentName').value.trim() || "Nezadané";
+        let wantedBlocks = parseInt(document.getElementById('blockCountInput').value) || data.blocks.length;
+        if(wantedBlocks < 1) wantedBlocks = 1;
+        if(wantedBlocks > data.blocks.length) wantedBlocks = data.blocks.length;
+        data.blocks = shuffle(data.blocks).slice(0, wantedBlocks);
+        data.blocks.forEach((b, bi) => {
+            b.tasks = shuffle(b.tasks);
+            userAnswers[bi] = b.tasks.map(t => new Array(t.rights.length).fill(null));
+        });
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('task-screen').style.display = 'block';
+        renderBlock();
+    }
+
+    function renderBlock() {
+        const b = data.blocks[currentIdx];
+        document.getElementById('bTitle').innerText = "Blok " + (currentIdx + 1) + " / " + data.blocks.length;
+        document.getElementById('bInstr').innerText = data.instr;
+        const area = document.getElementById('matchingArea');
+        area.innerHTML = "";
+        b.tasks.forEach((t, ti) => {
+            const row = document.createElement('div');
+            row.className = "row";
+            const lbl = document.createElement('div');
+            lbl.className = "item-left";
+            lbl.innerText = t.left;
+            row.appendChild(lbl);
+            t.rights.forEach((_, si) => {
+                const slot = document.createElement('div');
+                slot.className = "slot";
+                slot.innerText = userAnswers[currentIdx][ti][si] || "";
+                slot.onclick = () => placeItem(ti, si);
+                slot.ondblclick = () => removeItem(ti, si);
+                row.appendChild(slot);
+            });
+            area.appendChild(row);
+        });
+        const pool = document.getElementById('poolArea');
+        pool.innerHTML = "";
+        let items = [];
+        b.tasks.forEach(t => items.push(...t.rights));
+        items.push(...b.distractors);
+        items = shuffle(items);
+        const usedMap = {};
+        userAnswers[currentIdx].flat().forEach(v => { if(v) usedMap[v] = (usedMap[v] || 0) + 1; });
+        const localCount = {};
+        items.forEach(txt => {
+            localCount[txt] = (localCount[txt] || 0) + 1;
+            const btn = document.createElement('button');
+            btn.className = "ans-btn";
+            btn.innerText = txt;
+            if((usedMap[txt] || 0) >= localCount[txt]) { btn.style.display = "none"; }
+            btn.onclick = () => {
+                document.querySelectorAll('.ans-btn').forEach(x => x.classList.remove('selected'));
+                activeBtnText = txt;
+                btn.classList.add('selected');
+            };
+            pool.appendChild(btn);
+        });
+        const mainBtn = document.getElementById('mainBtn');
+        if(currentIdx === data.blocks.length - 1) { mainBtn.innerText = "Vyhodnotiť"; mainBtn.className = "btn-eval"; }
+        else { mainBtn.innerText = "Ďalej"; mainBtn.className = "btn-next"; }
+        renderDots();
+    }
+
+    function placeItem(ti, si) {
+        if(!activeBtnText) return;
+        if(userAnswers[currentIdx][ti][si]) return;
+        userAnswers[currentIdx][ti][si] = activeBtnText;
+        activeBtnText = null;
+        renderBlock();
+    }
+
+    function removeItem(ti, si) { userAnswers[currentIdx][ti][si] = null; renderBlock(); }
+
+    function renderDots() {
+        const dArea = document.getElementById('dotArea');
+        dArea.innerHTML = "";
+        for(let i=0; i<data.blocks.length; i++) {
+            const d = document.createElement('button');
+            d.className = "dot";
+            if(i === currentIdx) d.classList.add('active');
+            if(userAnswers[i].flat().some(x => x !== null)) d.classList.add('done');
+            d.innerText = i + 1;
+            d.onclick = () => { currentIdx = i; renderBlock(); };
+            dArea.appendChild(d);
+        }
+    }
+
+    function moveNext() { if(currentIdx < data.blocks.length - 1) { currentIdx++; renderBlock(); } else { processResults(); } }
+    function movePrev() { if(currentIdx > 0) { currentIdx--; renderBlock(); } }
+
+    function processResults() {
+        document.getElementById('task-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        let correct = 0, total = 0;
+        data.blocks.forEach((b, bi) => {
+            b.tasks.forEach((t, ti) => {
+                let unassignedCorrect = [...t.rights];
+                total += t.rights.length;
+                userAnswers[bi][ti].forEach(ans => {
+                    if (ans) {
+                        let idx = unassignedCorrect.indexOf(ans);
+                        if (idx !== -1) { correct++; unassignedCorrect.splice(idx, 1); }
+                    }
+                });
+            });
+        });
+        const p = ((correct/total)*100).toFixed(1);
+        document.getElementById('scoreText').innerText = "Úspešnosť: " + correct + " z " + total + " (" + p + "%)";
+    }
+
+    function openDetail() {
+        const win = window.open('', '_blank');
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('sk-SK') + ", " + now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+        let correct = 0, total = 0;
+        data.blocks.forEach((b, bi) => {
+            b.tasks.forEach((t, ti) => {
+                let unassignedCorrect = [...t.rights];
+                total += t.rights.length;
+                userAnswers[bi][ti].forEach(ans => {
+                    if (ans) {
+                        let idx = unassignedCorrect.indexOf(ans);
+                        if (idx !== -1) { correct++; unassignedCorrect.splice(idx, 1); }
+                    }
+                });
+            });
+        });
+        let h = "<html><head><style>* { font-family: 'Monaco', monospace; } table { width: 100%; border-collapse: collapse; margin: 20px 0; } th, td { border: 1px solid #000; padding: 8px; text-align: left; } @media print { .no-print { display: none; } }</style></head><body>";
+        h += "<h2>Názov testu: " + data.tName + "</h2>";
+        h += "<p>Meno žiaka: " + sName + "</p>";
+        h += "<p>Bodové a percentuálne hodnotenie: " + correct + "/" + total + ", " + ((correct/total)*100).toFixed(1) + "%</p>";
+        h += "<p>Dátum a čas: " + dateStr + "</p>";
+        h += "<table><tr><th>Zadanie</th><th>Správna odpoveď</th><th>Odpoveď žiaka</th><th>Vyhodnotenie</th></tr>";
+        data.blocks.forEach((b, bi) => {
+            b.tasks.forEach((t, ti) => {
+                let unassignedCorrect = [...t.rights];
+                let unassignedUser = [...userAnswers[bi][ti]];
+                let matchPairs = [];
+                let matchedUserIndices = [];
+                for(let i = 0; i < unassignedUser.length; i++) {
+                    let uAns = unassignedUser[i];
+                    if (uAns) {
+                        let cIdx = unassignedCorrect.indexOf(uAns);
+                        if (cIdx !== -1) {
+                            matchPairs.push({ right: unassignedCorrect[cIdx], user: uAns, sym: "✓" });
+                            unassignedCorrect.splice(cIdx, 1);
+                            matchedUserIndices.push(i);
+                        }
+                    }
+                }
+                for(let i = 0; i < unassignedUser.length; i++) {
+                    if (!matchedUserIndices.includes(i)) {
+                        let uAns = unassignedUser[i];
+                        let rAns = unassignedCorrect.shift() || "---";
+                        let sym = !uAns ? "!" : "✘";
+                        matchPairs.push({ right: rAns, user: uAns || "---", sym: sym });
+                    }
+                }
+                while(unassignedCorrect.length > 0) { matchPairs.push({ right: unassignedCorrect.shift(), user: "---", sym: "!" }); }
+                matchPairs.forEach(pair => {
+                    h += "<tr><td>" + t.left + "</td><td>" + pair.right + "</td><td>" + pair.user + "</td><td style='text-align:center; font-weight:bold;'>" + pair.sym + "</td></tr>";
+                });
+            });
+        });
+        h += "</table><p><b>Vysvetlivky:</b> ✓ správna odpoveď, ✘ nesprávna odpoveď, ! chýbajúca odpoveď</p></body></html>";
+        win.document.write(h);
+        win.document.close();
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if(document.getElementById('task-screen').style.display === 'block') {
+            if(e.key === 'Enter') moveNext();
+            if(e.key === 'ArrowRight') moveNext();
+            if(e.key === 'ArrowLeft') movePrev();
+        }
+    });
+</script>
+</body>
+</html>
