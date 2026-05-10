@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nakupovanie ovocia a zeleniny</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Monaco', monospace;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #ece5dd;
+        }
+        #header {
+            padding: 10px 20px;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 10;
+            flex-shrink: 0; 
+        }
+        h1 {
+            color: #595959;
+            font-size: 2.5em;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .meta-inputs {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+        .meta-inputs input {
+            font-family: 'Monaco', monospace;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        #chat-history {
+            flex-grow: 1;
+            min-height: 70vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message-wrapper {
+            display: flex;
+            flex-direction: column;
+            max-width: 70%;
+            margin-bottom: 10px;
+        }
+        .msg-name {
+            font-size: 0.8em;
+            color: #555;
+            margin-bottom: 2px;
+            margin-left: 5px;
+        }
+        .edit-btn {
+            background: none; border: none; cursor: pointer; opacity: 0.4; font-size: 0.9em; margin-left: 5px;
+        }
+        .edit-btn:hover {
+            opacity: 1; color: #0084ff;
+        }
+        .message {
+            padding: 4px 15px; 
+            border-radius: 15px;
+            position: relative;
+            color: #000;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+            word-wrap: break-word;
+            white-space: pre-wrap; 
+            font-size: 1.1em; 
+        }
+        .msg-time {
+            font-size: 0.55em;
+            color: #444;
+            text-align: right;
+            margin-top: 2px;
+        }
+        
+        #input-container {
+            background: #f0f0f0;
+            border-top: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0; 
+        }
+        #emoji-bar {
+            padding: 5px 15px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .emoji-btn {
+            background: none; border: none; font-size: 1.4em; cursor: pointer; padding: 2px;
+            transition: transform 0.2s;
+        }
+        .emoji-btn:hover { transform: scale(1.2); }
+        .emoji-btn:disabled { filter: grayscale(100%); cursor: not-allowed; opacity: 0.5; }
+
+        #char-bar {
+            padding: 5px 15px;
+            display: flex;
+            gap: 5px;
+            background: #e8e8e8;
+        }
+        .char-btn {
+            background: #fff; border: 1px solid #ccc; border-radius: 4px;
+            padding: 2px 10px; cursor: pointer; font-family: 'Monaco', monospace;
+            font-size: 1em;
+        }
+        .char-btn:hover { background: #ddd; }
+        .char-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+
+        #input-area {
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+        #msg-input {
+            flex-grow: 1;
+            font-family: 'Monaco', monospace;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 1.1em;
+            resize: vertical;
+            min-height: 45px;
+            max-height: 150px;
+        }
+        #msg-input:disabled { background: #ddd; cursor: not-allowed; }
+        #send-btn {
+            background: #0084ff; color: white; border: none; border-radius: 50%;
+            width: 45px; height: 45px; font-size: 1.2em; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; flex-shrink: 0;
+        }
+        #send-btn:disabled { background: #aaa; cursor: not-allowed; }
+        
+        #participants-bar {
+            background: #fff; padding: 10px; display: flex; gap: 15px;
+            overflow-x: auto; border-top: 1px solid #ddd; justify-content: center;
+            flex-shrink: 0; 
+        }
+        .participant-btn {
+            display: flex; flex-direction: column; align-items: center; background: none;
+            border: 2px solid transparent; cursor: pointer; padding: 5px; border-radius: 8px;
+            font-family: 'Monaco', monospace;
+        }
+        .participant-btn:hover { background: #f9f9f9; }
+        .participant-btn.active { border-color: #0084ff; background: #eef7ff; }
+        .participant-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-bottom: 5px; }
+        
+        #footer-controls {
+            padding: 10px; background: #e0e0e0; display: flex; justify-content: center; gap: 10px;
+            flex-shrink: 0; 
+        }
+        #footer-controls button {
+            font-family: 'Monaco', monospace; padding: 10px 20px; color: white;
+            border: none; border-radius: 4px; cursor: pointer; font-size: 1em;
+        }
+        .btn-pdf { background: #4CAF50; }
+        .btn-html { background: #008CBA; }
+        
+        .chat-footer {
+            text-align: center; font-size: 0.8em; color: #666; padding: 8px; background: #ece5dd;
+            flex-shrink: 0; 
+        }
+
+        .edit-textarea { width: 100%; font-family: 'Monaco', monospace; font-size: 1em; padding: 5px; box-sizing: border-box; border-radius: 5px; border: 1px solid #ccc; resize: vertical; margin-bottom: 5px; }
+        .save-btn { background: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Monaco', monospace; margin-right: 5px; font-size: 0.8em; }
+        .cancel-btn { background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Monaco', monospace; font-size: 0.8em; }
+        
+        #attachment-preview {
+            display: none; position: absolute; bottom: 100%; left: 15px; 
+            background: #fff; padding: 5px; border: 1px solid #ccc; 
+            border-radius: 5px; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #attachment-preview img {
+            max-height: 80px; vertical-align: middle; border-radius: 4px;
+        }
+        .clear-att-btn {
+            background: #f44336; color: white; border: none; border-radius: 50%; 
+            width: 24px; height: 24px; cursor: pointer; margin-left: 10px; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="saved-data" style="display:none">[]</div>
+
+    <div id="header">
+        <h1>Chat bez internetu</h1>
+        <div class="meta-inputs">
+            <input type="text" id="datum" placeholder="Dátum (napr. 15.10.2026)">
+            <input type="text" id="trieda" placeholder="Trieda/skupina">
+        </div>
+    </div>
+
+    <div id="chat-history"></div>
+
+    <div id="input-container">
+        <div id="emoji-bar">
+            <button class="emoji-btn" onclick="insertEmoji('👍')" disabled>👍</button>
+            <button class="emoji-btn" onclick="insertEmoji('👎')" disabled>👎</button>
+			<button class="emoji-btn" onclick="insertEmoji('🙂')" disabled>🙂</button>
+            <button class="emoji-btn" onclick="insertEmoji('😊')" disabled>😊</button>
+			<button class="emoji-btn" onclick="insertEmoji('😉')" disabled>😉</button>
+            <button class="emoji-btn" onclick="insertEmoji('😂')" disabled>😂</button>
+			<button class="emoji-btn" onclick="insertEmoji('😮')" disabled>😮</button>           
+            <button class="emoji-btn" onclick="insertEmoji('🤔')" disabled>🤔</button>
+            <button class="emoji-btn" onclick="insertEmoji('🔥')" disabled>🔥</button>
+            <button class="emoji-btn" onclick="insertEmoji('👏')" disabled>👏</button>
+			<button class="emoji-btn" onclick="insertEmoji('❤️')" disabled>❤️</button>
+			<button class="emoji-btn" onclick="insertEmoji('🍎')" disabled>🍎</button>
+			<button class="emoji-btn" onclick="insertEmoji('💡')" disabled>💡</button>
+            
+            <div style="flex-grow: 1;"></div>
+            <button id="attach-btn" class="emoji-btn" onclick="document.getElementById('attach-img').click()" disabled title="Pridať obrázok">📎</button>
+            <input type="file" id="attach-img" accept="image/*" style="display:none" onchange="handleAttachment(event)">
+        </div>
+        <div id="input-area">
+            <div id="attachment-preview">
+                <img id="preview-img">
+                <button class="clear-att-btn" onclick="clearAttachment()">X</button>
+            </div>
+            <textarea id="msg-input" rows="1" placeholder="Vyberte účastníka kliknutím na jeho meno dole..." disabled></textarea>
+            <button id="send-btn" disabled>&#10148;</button>
+        </div>
+        <div id="char-bar">
+            <button class="char-btn" onclick="insertEmoji('ä')" disabled>ä</button>
+            <button class="char-btn" onclick="insertEmoji('ö')" disabled>ö</button>
+            <button class="char-btn" onclick="insertEmoji('ü')" disabled>ü</button>
+            <button class="char-btn" onclick="insertEmoji('ß')" disabled>ß</button>
+            <button class="char-btn" onclick="insertEmoji('Ä')" disabled>Ä</button>
+            <button class="char-btn" onclick="insertEmoji('Ö')" disabled>Ö</button>
+            <button class="char-btn" onclick="insertEmoji('Ü')" disabled>Ü</button>
+        </div>
+    </div>
+
+    <div id="participants-bar"></div>
+
+    <div id="footer-controls">
+        <button class="btn-html" onclick="saveAsHTML()">Uložiť chat ako HTML (pre pokračovanie)</button>
+        <button class="btn-pdf" onclick="generateSummary()">Zobraziť prehľad a uložiť ako PDF</button>
+    </div>
+    
+    <div class="chat-footer">
+        Vygenerované nástrojom. Autor: <b>Mgr. Erika Matyiová</b> | Rok: <b>2026</b>
+    </div>
+
+    <script>
+        const chatData = {"nazov":"Nakupovanie ovocia a zeleniny","predmet":"NEJ (8. ročník)","autor":"Mgr. Erika Matyiová","rok":"2026","participants":[{"name":"Franz Müller","avatar":"data:image/jpeg;base64,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","color":"#ffadad"},{"name":"Ján Kováč","avatar":"data:image/jpeg;base64,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","color":"#ffd6a5"},{"name":"Anna Nová","avatar":"data:image/jpeg;base64,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","color":"#fdffb6"}]};
+        let activeUser = null;
+        let messages = [];
+        let currentAttachment = null;
+
+        window.onload = function() {
+            const savedRaw = document.getElementById('saved-data').textContent;
+            try {
+                messages = JSON.parse(savedRaw || "[]");
+                if (messages.length > 0) renderAllMessages();
+            } catch(e) {}
+            
+            const pBar = document.getElementById('participants-bar');
+            pBar.innerHTML = '';
+            chatData.participants.forEach((p, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'participant-btn';
+                btn.id = 'pbtn-' + index;
+                btn.setAttribute('onclick', 'selectUser(' + index + ')');
+                btn.innerHTML = `<img src="${p.avatar || defaultAvatar}" class="participant-img"><span>${p.name}</span>`;
+                pBar.appendChild(btn);
+            });
+        };
+
+        const defaultAvatar = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2220%22%20fill%3D%22%23ddd%22%2F%3E%3C%2Fsvg%3E';
+
+        function selectUser(index) {
+            activeUser = chatData.participants[index];
+            document.querySelectorAll('.participant-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('pbtn-' + index).classList.add('active');
+            
+            const msgInput = document.getElementById('msg-input');
+            msgInput.disabled = false;
+            document.getElementById('send-btn').disabled = false;
+            document.getElementById('attach-btn').disabled = false;
+            document.querySelectorAll('.emoji-btn').forEach(b => b.disabled = false);
+            document.querySelectorAll('.char-btn').forEach(b => b.disabled = false);
+            
+            msgInput.placeholder = "Píše: " + activeUser.name + " (Shift + Enter pre nový riadok)";
+            msgInput.focus();
+        }
+
+        function insertEmoji(emoji) {
+            const msgInput = document.getElementById('msg-input');
+            const start = msgInput.selectionStart;
+            const end = msgInput.selectionEnd;
+            const text = msgInput.value;
+            msgInput.value = text.substring(0, start) + emoji + text.substring(end);
+            msgInput.selectionStart = msgInput.selectionEnd = start + emoji.length;
+            msgInput.focus();
+        }
+        
+        window.handleAttachment = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 800; 
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    currentAttachment = canvas.toDataURL('image/jpeg', 0.8);
+                    document.getElementById('attachment-preview').style.display = 'block';
+                    document.getElementById('preview-img').src = currentAttachment;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+        
+        window.clearAttachment = function() {
+            currentAttachment = null;
+            document.getElementById('attachment-preview').style.display = 'none';
+            document.getElementById('attach-img').value = '';
+        };
+
+        function formatDateTime() {
+            const now = new Date();
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yyyy = now.getFullYear();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            return { full: `${dd}.${mm}.${yyyy}, ${hh}:${min}` };
+        }
+
+        function sendMessage() {
+            const msgInput = document.getElementById('msg-input');
+            const text = msgInput.value.trim();
+            if ((!text && !currentAttachment) || !activeUser) return;
+
+            const msgObj = {
+                id: Date.now().toString() + Math.random().toString().substr(2, 5),
+                user: activeUser,
+                text: text,
+                datetime: formatDateTime().full,
+                attachment: currentAttachment
+            };
+            
+            messages.push(msgObj);
+            renderAllMessages();
+            msgInput.value = '';
+            clearAttachment();
+            msgInput.focus();
+        }
+
+        function renderAllMessages() {
+            const chatHistory = document.getElementById('chat-history');
+            chatHistory.innerHTML = '';
+            messages.forEach((msg, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'message-wrapper';
+                
+                const isMe = chatData.participants.findIndex(p => p.name === msg.user.name) === 0; 
+                
+                wrapper.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
+
+                wrapper.innerHTML = `
+                    <div class="msg-name" style="text-align: ${isMe ? 'right' : 'left'}">
+                        ${msg.user.name} 
+                        <button class="edit-btn" onclick="startEdit('${msg.id}')" title="Upraviť správu">&#9998;</button>
+                        <button class="edit-btn" onclick="deleteMessage('${msg.id}')" title="Zmazať správu" style="color: #f44336; font-weight: bold;">&#10006;</button>
+                    </div>
+                    <div class="message" style="background-color: ${msg.user.color}; border-bottom-${isMe ? 'right' : 'left'}-radius: 0;">
+                        <div id="msg-content-${msg.id}"></div>
+                        ${msg.attachment ? '<div style="margin-top: 8px;"><a href="' + msg.attachment + '" download="priloha_' + msg.id + '.jpg" title="Kliknite pre stiahnutie obrázka"><img src="' + msg.attachment + '" style="max-width: 100%; max-height: 250px; border-radius: 8px; cursor: pointer;"></a></div>' : ''}
+                        <div class="msg-time">${msg.datetime}</div>
+                    </div>
+                `;
+                chatHistory.appendChild(wrapper);
+                document.getElementById('msg-content-' + msg.id).textContent = msg.text;
+            });
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        window.startEdit = function(id) {
+            const msg = messages.find(m => m.id === id);
+            const contentDiv = document.getElementById('msg-content-' + id);
+            contentDiv.innerHTML = `
+                <textarea id="edit-input-${id}" class="edit-textarea"></textarea>
+                <div style="text-align: right;">
+                    <button class="save-btn" onclick="saveEdit('${id}')">Uložiť</button>
+                    <button class="cancel-btn" onclick="renderAllMessages()">Zrušiť</button>
+                </div>
+            `;
+            document.getElementById('edit-input-' + id).value = msg.text;
+        };
+
+        window.saveEdit = function(id) {
+            const msg = messages.find(m => m.id === id);
+            const newText = document.getElementById('edit-input-' + id).value.trim();
+            if (newText !== '' || msg.attachment) msg.text = newText;
+            renderAllMessages();
+        };
+
+        window.deleteMessage = function(id) {
+            if (confirm("Naozaj chcete zmazať túto správu?")) {
+                messages = messages.filter(m => m.id !== id);
+                renderAllMessages();
+            }
+        };
+
+        document.getElementById('send-btn').onclick = sendMessage;
+        document.getElementById('msg-input').onkeydown = function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        };
+
+        function sanitizeFilename(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\s\(\)\[\]\{\}]+/g, "_").replace(/[^\w\.\-]/g, "") || "subor";
+        }
+
+        function saveAsHTML() {
+            document.getElementById('datum').setAttribute('value', document.getElementById('datum').value);
+            document.getElementById('trieda').setAttribute('value', document.getElementById('trieda').value);
+            document.getElementById('saved-data').textContent = JSON.stringify(messages);
+            
+            const clone = document.documentElement.cloneNode(true);
+            clone.querySelector('#chat-history').innerHTML = '';
+            clone.querySelector('#participants-bar').innerHTML = '';
+            
+            const htmlContent = clone.outerHTML;
+            
+            const blob = new Blob(["<!DOCTYPE html>\n" + htmlContent], { type: "text/html;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = sanitizeFilename(chatData.nazov) + "_pokracovanie.html";
+            a.click();
+        }
+
+        function generateSummary() {
+            const nazovChatu = chatData.nazov;
+            const datum = document.getElementById('datum').value || 'Neuvedené';
+            const trieda = document.getElementById('trieda').value || 'Neuvedené';
+            
+            const activeUsersSet = new Set(messages.map(m => m.user.name));
+            const ucastnici = activeUsersSet.size > 0 ? Array.from(activeUsersSet).join(', ') : 'Nikto neposlal správu';
+            
+            let casOdDo = "Žiadne správy";
+            if (messages.length > 0) {
+                const start = messages[0].datetime;
+                const end = messages[messages.length - 1].datetime;
+                casOdDo = start === end ? start : `${start} - ${end}`;
+            }
+
+            const win = window.open('', '_blank');
+            win.document.write(`
+                <html>
+                <head>
+                    <title>Prehľad - ${nazovChatu}</title>
+                    <style>
+                        body { font-family: 'Monaco', monospace; padding: 20px; line-height: 1.5; color: #333; }
+                        h2 { text-align: center; color: #444; margin-bottom: 20px; }
+                        .header-info { margin-bottom: 20px; border-bottom: 2px solid #555; padding-bottom: 15px; }
+                        .header-info p { margin: 5px 0; }
+                        .chat-content { margin-top: 20px; }
+                        .msg { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #ccc; }
+                        .msg:last-child { border-bottom: none; }
+                        .msg-meta { font-size: 0.85em; color: #666; margin-bottom: 5px; }
+                        .att-img { max-height: 200px; display: block; margin-top: 8px; border-radius: 6px; border: 1px solid #eee; }
+                        .footer-info { margin-top: 40px; border-top: 2px solid #555; padding-top: 15px; text-align: right; font-size: 0.9em; color: #555; }
+                    </style>
+                </head>
+                <body>
+                    <h2>Prehľad četu: ${nazovChatu}</h2>
+                    <div class="header-info">
+                        <p><b>Dátum:</b> ${datum}</p>
+                        <p><b>Trieda/Skupina:</b> ${trieda}</p>
+                        <p><b>Účastníci (aktívni):</b> ${ucastnici}</p>
+                        <p><b>Čas od - do:</b> ${casOdDo}</p>
+                    </div>
+                    
+                    <div class="chat-content">
+                        ${messages.map(m => `
+                            <div class="msg">
+                                <div class="msg-meta"><b>${m.user.name}</b> [${m.datetime}]</div>
+                                <div>${m.text}</div>
+                                ${m.attachment ? '<img src="' + m.attachment + '" class="att-img">' : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="footer-info">
+                        Vytvorené pomocou generátora | <b>Autor:</b> ${chatData.autor} | <b>Rok:</b> ${chatData.rok}
+                    </div>
+                    <script>setTimeout(() => window.print(), 500);<\/script>
+                </body>
+                </html>
+            `);
+            win.document.close();
+        }
+    </script>
+</body>
+</html>
