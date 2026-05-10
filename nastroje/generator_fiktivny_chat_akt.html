@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor četového rozhrania</title>
+    <style>
+        body {
+            font-family: 'Monaco', monospace;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"] {
+            font-family: 'Monaco', monospace;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            font-family: 'Monaco', monospace;
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .btn-secondary {
+            background-color: #008CBA;
+        }
+        .btn-secondary:hover {
+            background-color: #007bb5;
+        }
+        .btn-danger {
+            background-color: #f44336;
+        }
+        .btn-danger:hover {
+            background-color: #da190b;
+        }
+        .participant-row {
+            background: #fff;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .participant-row input[type="text"] {
+            flex-grow: 1;
+        }
+        .avatar-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #ccc;
+            background: #eee;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        hr {
+            border: 1px solid #ddd;
+            margin: 30px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+        }
+        .main-btn {
+            width: 100%;
+            font-size: 1.2em;
+            padding: 15px;
+            background-color: #ff9800;
+        }
+        .main-btn:hover {
+            background-color: #e68a00;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Generátor četového rozhrania</h1>
+
+    <div class="form-group">
+        <label for="nazov">Názov četu:</label>
+        <input type="text" id="nazov" placeholder="Napr. Diskusia o literatúre">
+    </div>
+    <div class="form-group">
+        <label for="predmet">Predmet:</label>
+        <input type="text" id="predmet" placeholder="Napr. Slovenský jazyk">
+    </div>
+    <div class="form-group">
+        <label for="autor">Autor:</label>
+        <input type="text" id="autor" placeholder="Meno autora">
+    </div>
+    <div class="form-group">
+        <label for="rok">Rok:</label>
+        <input type="number" id="rok" placeholder="Napr. 2026">
+    </div>
+
+    <hr>
+
+    <h2>Účastníci četu</h2>
+    <div id="participants-container"></div>
+    <button onclick="addParticipant()">+ Pridať účastníka</button>
+
+    <hr>
+
+    <div class="actions">
+        <button class="btn-secondary" onclick="exportJSON()">Exportovať nastavenia (.json)</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+        <button class="btn-secondary" onclick="document.getElementById('importFile').click()">Importovať nastavenia (.json)</button>
+    </div>
+
+    <button class="main-btn" onclick="generateHTML()">Stiahnuť súbor ako HTML</button>
+
+    <div class="footer">
+        <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová (2026)
+    </div>
+
+    <script>
+        const colors = ["#ffadad", "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff", "#a0c4ff", "#bdb2ff", "#ffc6ff", "#fffffc", "#e4c1f9"];
+        let pCounter = 0;
+        
+        const defaultAvatar = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2220%22%20fill%3D%22%23ddd%22%2F%3E%3C%2Fsvg%3E';
+
+        function sanitizeFilename(str) {
+            let s = str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+            s = s.replace(/[\s\(\)\[\]\{\}]+/g, "_"); 
+            s = s.replace(/[^\w\.\-]/g, ""); 
+            return s || "subor";
+        }
+
+        function addParticipant(name = "", avatarBase64 = "", color = "") {
+            const container = document.getElementById('participants-container');
+            const id = pCounter++;
+            const c = color || colors[id % colors.length];
+            
+            const div = document.createElement('div');
+            div.className = 'participant-row';
+            div.id = `p-${id}`;
+            div.dataset.color = c;
+            
+            div.innerHTML = `
+                <img src="${avatarBase64 || defaultAvatar}" class="avatar-preview" id="avatar-img-${id}">
+                <input type="file" accept="image/*" onchange="handleImage(this, ${id})" style="width: 180px;">
+                <input type="hidden" id="avatar-data-${id}" value="${avatarBase64}">
+                <input type="text" id="p-name-${id}" placeholder="Meno účastníka" value="${name}">
+                <div style="width: 20px; height: 20px; background-color: ${c}; border: 1px solid #000; border-radius: 50%;"></div>
+                <button class="btn-danger" onclick="document.getElementById('p-${id}').remove()">X</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function handleImage(inputElement, id) {
+            const file = inputElement.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 100;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    
+                    document.getElementById(`avatar-img-${id}`).src = dataUrl;
+                    document.getElementById(`avatar-data-${id}`).value = dataUrl;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function collectData() {
+            const participants = [];
+            document.querySelectorAll('.participant-row').forEach(row => {
+                const id = row.id.split('-')[1];
+                participants.push({
+                    name: document.getElementById(`p-name-${id}`).value,
+                    avatar: document.getElementById(`avatar-data-${id}`).value,
+                    color: row.dataset.color
+                });
+            });
+
+            return {
+                nazov: document.getElementById('nazov').value || "Bez názvu",
+                predmet: document.getElementById('predmet').value || "Neurčený predmet",
+                autor: document.getElementById('autor').value || "Neuvedený",
+                rok: document.getElementById('rok').value || new Date().getFullYear(),
+                participants: participants
+            };
+        }
+
+        function exportJSON() {
+            const data = collectData();
+            const filename = sanitizeFilename(data.nazov) + "_nastavenia.json";
+            const jsonStr = JSON.stringify(data, null, 2);
+            
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.href = url;
+            downloadAnchorNode.download = filename;
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            document.body.removeChild(downloadAnchorNode);
+            URL.revokeObjectURL(url);
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    document.getElementById('nazov').value = data.nazov || '';
+                    document.getElementById('predmet').value = data.predmet || '';
+                    document.getElementById('autor').value = data.autor || '';
+                    document.getElementById('rok').value = data.rok || '';
+                    
+                    document.getElementById('participants-container').innerHTML = '';
+                    pCounter = 0;
+                    if(data.participants) {
+                        data.participants.forEach(p => addParticipant(p.name, p.avatar, p.color));
+                    }
+                } catch(err) {
+                    alert("Chyba pri čítaní súboru.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function generateHTML() {
+            const data = collectData();
+            const safeName = sanitizeFilename(data.nazov) + "_chat.html";
+
+            const generatedHtml = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${data.nazov}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Monaco', monospace;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #ece5dd;
+        }
+        #header {
+            padding: 10px 20px;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 10;
+            flex-shrink: 0; 
+        }
+        h1 {
+            color: #595959;
+            font-size: 2.5em;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .meta-inputs {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+        .meta-inputs input {
+            font-family: 'Monaco', monospace;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        #chat-history {
+            flex-grow: 1;
+            min-height: 70vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message-wrapper {
+            display: flex;
+            flex-direction: column;
+            max-width: 70%;
+            margin-bottom: 10px;
+        }
+        .msg-name {
+            font-size: 0.8em;
+            color: #555;
+            margin-bottom: 2px;
+            margin-left: 5px;
+        }
+        .edit-btn {
+            background: none; border: none; cursor: pointer; opacity: 0.4; font-size: 0.9em; margin-left: 5px;
+        }
+        .edit-btn:hover {
+            opacity: 1; color: #0084ff;
+        }
+        .message {
+            padding: 4px 15px; 
+            border-radius: 15px;
+            position: relative;
+            color: #000;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+            word-wrap: break-word;
+            white-space: pre-wrap; 
+            font-size: 1.1em; 
+        }
+        .msg-time {
+            font-size: 0.55em;
+            color: #444;
+            text-align: right;
+            margin-top: 2px;
+        }
+        
+        #input-container {
+            background: #f0f0f0;
+            border-top: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0; 
+        }
+        #emoji-bar {
+            padding: 5px 15px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .emoji-btn {
+            background: none; border: none; font-size: 1.4em; cursor: pointer; padding: 2px;
+            transition: transform 0.2s;
+        }
+        .emoji-btn:hover { transform: scale(1.2); }
+        .emoji-btn:disabled { filter: grayscale(100%); cursor: not-allowed; opacity: 0.5; }
+
+        #char-bar {
+            padding: 5px 15px;
+            display: flex;
+            gap: 5px;
+            background: #e8e8e8;
+        }
+        .char-btn {
+            background: #fff; border: 1px solid #ccc; border-radius: 4px;
+            padding: 2px 10px; cursor: pointer; font-family: 'Monaco', monospace;
+            font-size: 1em;
+        }
+        .char-btn:hover { background: #ddd; }
+        .char-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+
+        #input-area {
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+        #msg-input {
+            flex-grow: 1;
+            font-family: 'Monaco', monospace;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 1.1em;
+            resize: vertical;
+            min-height: 45px;
+            max-height: 150px;
+        }
+        #msg-input:disabled { background: #ddd; cursor: not-allowed; }
+        #send-btn {
+            background: #0084ff; color: white; border: none; border-radius: 50%;
+            width: 45px; height: 45px; font-size: 1.2em; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; flex-shrink: 0;
+        }
+        #send-btn:disabled { background: #aaa; cursor: not-allowed; }
+        
+        #participants-bar {
+            background: #fff; padding: 10px; display: flex; gap: 15px;
+            overflow-x: auto; border-top: 1px solid #ddd; justify-content: center;
+            flex-shrink: 0; 
+        }
+        .participant-btn {
+            display: flex; flex-direction: column; align-items: center; background: none;
+            border: 2px solid transparent; cursor: pointer; padding: 5px; border-radius: 8px;
+            font-family: 'Monaco', monospace;
+        }
+        .participant-btn:hover { background: #f9f9f9; }
+        .participant-btn.active { border-color: #0084ff; background: #eef7ff; }
+        .participant-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-bottom: 5px; }
+        
+        #footer-controls {
+            padding: 10px; background: #e0e0e0; display: flex; justify-content: center; gap: 10px;
+            flex-shrink: 0; 
+        }
+        #footer-controls button {
+            font-family: 'Monaco', monospace; padding: 10px 20px; color: white;
+            border: none; border-radius: 4px; cursor: pointer; font-size: 1em;
+        }
+        .btn-pdf { background: #4CAF50; }
+        .btn-html { background: #008CBA; }
+        
+        .chat-footer {
+            text-align: center; font-size: 0.8em; color: #666; padding: 8px; background: #ece5dd;
+            flex-shrink: 0; 
+        }
+
+        .edit-textarea { width: 100%; font-family: 'Monaco', monospace; font-size: 1em; padding: 5px; box-sizing: border-box; border-radius: 5px; border: 1px solid #ccc; resize: vertical; margin-bottom: 5px; }
+        .save-btn { background: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Monaco', monospace; margin-right: 5px; font-size: 0.8em; }
+        .cancel-btn { background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Monaco', monospace; font-size: 0.8em; }
+        
+        #attachment-preview {
+            display: none; position: absolute; bottom: 100%; left: 15px; 
+            background: #fff; padding: 5px; border: 1px solid #ccc; 
+            border-radius: 5px; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #attachment-preview img {
+            max-height: 80px; vertical-align: middle; border-radius: 4px;
+        }
+        .clear-att-btn {
+            background: #f44336; color: white; border: none; border-radius: 50%; 
+            width: 24px; height: 24px; cursor: pointer; margin-left: 10px; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="saved-data" style="display:none">[]</div>
+
+    <div id="header">
+        <h1>Chat bez internetu</h1>
+        <div class="meta-inputs">
+            <input type="text" id="datum" placeholder="Dátum (napr. 15.10.2026)">
+            <input type="text" id="trieda" placeholder="Trieda/skupina">
+        </div>
+    </div>
+
+    <div id="chat-history"></div>
+
+    <div id="input-container">
+        <div id="emoji-bar">
+            <button class="emoji-btn" onclick="insertEmoji('👍')" disabled>👍</button>
+            <button class="emoji-btn" onclick="insertEmoji('👎')" disabled>👎</button>
+			<button class="emoji-btn" onclick="insertEmoji('🙂')" disabled>🙂</button>
+            <button class="emoji-btn" onclick="insertEmoji('😊')" disabled>😊</button>
+			<button class="emoji-btn" onclick="insertEmoji('😉')" disabled>😉</button>
+            <button class="emoji-btn" onclick="insertEmoji('😂')" disabled>😂</button>
+			<button class="emoji-btn" onclick="insertEmoji('😮')" disabled>😮</button>           
+            <button class="emoji-btn" onclick="insertEmoji('🤔')" disabled>🤔</button>
+            <button class="emoji-btn" onclick="insertEmoji('🔥')" disabled>🔥</button>
+            <button class="emoji-btn" onclick="insertEmoji('👏')" disabled>👏</button>
+			<button class="emoji-btn" onclick="insertEmoji('❤️')" disabled>❤️</button>
+			<button class="emoji-btn" onclick="insertEmoji('🍎')" disabled>🍎</button>
+			<button class="emoji-btn" onclick="insertEmoji('💡')" disabled>💡</button>
+            
+            <div style="flex-grow: 1;"></div>
+            <button id="attach-btn" class="emoji-btn" onclick="document.getElementById('attach-img').click()" disabled title="Pridať obrázok">📎</button>
+            <input type="file" id="attach-img" accept="image/*" style="display:none" onchange="handleAttachment(event)">
+        </div>
+        <div id="input-area">
+            <div id="attachment-preview">
+                <img id="preview-img">
+                <button class="clear-att-btn" onclick="clearAttachment()">X</button>
+            </div>
+            <textarea id="msg-input" rows="1" placeholder="Vyberte účastníka kliknutím na jeho meno dole..." disabled></textarea>
+            <button id="send-btn" disabled>&#10148;</button>
+        </div>
+        <div id="char-bar">
+            <button class="char-btn" onclick="insertEmoji('ä')" disabled>ä</button>
+            <button class="char-btn" onclick="insertEmoji('ö')" disabled>ö</button>
+            <button class="char-btn" onclick="insertEmoji('ü')" disabled>ü</button>
+            <button class="char-btn" onclick="insertEmoji('ß')" disabled>ß</button>
+            <button class="char-btn" onclick="insertEmoji('Ä')" disabled>Ä</button>
+            <button class="char-btn" onclick="insertEmoji('Ö')" disabled>Ö</button>
+            <button class="char-btn" onclick="insertEmoji('Ü')" disabled>Ü</button>
+        </div>
+    </div>
+
+    <div id="participants-bar"></div>
+
+    <div id="footer-controls">
+        <button class="btn-html" onclick="saveAsHTML()">Uložiť chat ako HTML (pre pokračovanie)</button>
+        <button class="btn-pdf" onclick="generateSummary()">Zobraziť prehľad a uložiť ako PDF</button>
+    </div>
+    
+    <div class="chat-footer">
+        Vygenerované nástrojom. Autor: <b>${data.autor}</b> | Rok: <b>${data.rok}</b>
+    </div>
+
+    <script>
+        const chatData = ${JSON.stringify(data)};
+        let activeUser = null;
+        let messages = [];
+        let currentAttachment = null;
+
+        window.onload = function() {
+            const savedRaw = document.getElementById('saved-data').textContent;
+            try {
+                messages = JSON.parse(savedRaw || "[]");
+                if (messages.length > 0) renderAllMessages();
+            } catch(e) {}
+            
+            const pBar = document.getElementById('participants-bar');
+            pBar.innerHTML = '';
+            chatData.participants.forEach((p, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'participant-btn';
+                btn.id = 'pbtn-' + index;
+                btn.setAttribute('onclick', 'selectUser(' + index + ')');
+                btn.innerHTML = \`<img src="\${p.avatar || defaultAvatar}" class="participant-img"><span>\${p.name}</span>\`;
+                pBar.appendChild(btn);
+            });
+        };
+
+        const defaultAvatar = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2220%22%20fill%3D%22%23ddd%22%2F%3E%3C%2Fsvg%3E';
+
+        function selectUser(index) {
+            activeUser = chatData.participants[index];
+            document.querySelectorAll('.participant-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('pbtn-' + index).classList.add('active');
+            
+            const msgInput = document.getElementById('msg-input');
+            msgInput.disabled = false;
+            document.getElementById('send-btn').disabled = false;
+            document.getElementById('attach-btn').disabled = false;
+            document.querySelectorAll('.emoji-btn').forEach(b => b.disabled = false);
+            document.querySelectorAll('.char-btn').forEach(b => b.disabled = false);
+            
+            msgInput.placeholder = "Píše: " + activeUser.name + " (Shift + Enter pre nový riadok)";
+            msgInput.focus();
+        }
+
+        function insertEmoji(emoji) {
+            const msgInput = document.getElementById('msg-input');
+            const start = msgInput.selectionStart;
+            const end = msgInput.selectionEnd;
+            const text = msgInput.value;
+            msgInput.value = text.substring(0, start) + emoji + text.substring(end);
+            msgInput.selectionStart = msgInput.selectionEnd = start + emoji.length;
+            msgInput.focus();
+        }
+        
+        window.handleAttachment = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 800; 
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    currentAttachment = canvas.toDataURL('image/jpeg', 0.8);
+                    document.getElementById('attachment-preview').style.display = 'block';
+                    document.getElementById('preview-img').src = currentAttachment;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+        
+        window.clearAttachment = function() {
+            currentAttachment = null;
+            document.getElementById('attachment-preview').style.display = 'none';
+            document.getElementById('attach-img').value = '';
+        };
+
+        function formatDateTime() {
+            const now = new Date();
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yyyy = now.getFullYear();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            return { full: \`\${dd}.\${mm}.\${yyyy}, \${hh}:\${min}\` };
+        }
+
+        function sendMessage() {
+            const msgInput = document.getElementById('msg-input');
+            const text = msgInput.value.trim();
+            if ((!text && !currentAttachment) || !activeUser) return;
+
+            const msgObj = {
+                id: Date.now().toString() + Math.random().toString().substr(2, 5),
+                user: activeUser,
+                text: text,
+                datetime: formatDateTime().full,
+                attachment: currentAttachment
+            };
+            
+            messages.push(msgObj);
+            renderAllMessages();
+            msgInput.value = '';
+            clearAttachment();
+            msgInput.focus();
+        }
+
+        function renderAllMessages() {
+            const chatHistory = document.getElementById('chat-history');
+            chatHistory.innerHTML = '';
+            messages.forEach((msg, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'message-wrapper';
+                
+                const isMe = chatData.participants.findIndex(p => p.name === msg.user.name) === 0; 
+                
+                wrapper.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
+
+                wrapper.innerHTML = \`
+                    <div class="msg-name" style="text-align: \${isMe ? 'right' : 'left'}">
+                        \${msg.user.name} 
+                        <button class="edit-btn" onclick="startEdit('\${msg.id}')" title="Upraviť správu">&#9998;</button>
+                        <button class="edit-btn" onclick="deleteMessage('\${msg.id}')" title="Zmazať správu" style="color: #f44336; font-weight: bold;">&#10006;</button>
+                    </div>
+                    <div class="message" style="background-color: \${msg.user.color}; border-bottom-\${isMe ? 'right' : 'left'}-radius: 0;">
+                        <div id="msg-content-\${msg.id}"></div>
+                        \${msg.attachment ? '<div style="margin-top: 8px;"><a href="' + msg.attachment + '" download="priloha_' + msg.id + '.jpg" title="Kliknite pre stiahnutie obrázka"><img src="' + msg.attachment + '" style="max-width: 100%; max-height: 250px; border-radius: 8px; cursor: pointer;"></a></div>' : ''}
+                        <div class="msg-time">\${msg.datetime}</div>
+                    </div>
+                \`;
+                chatHistory.appendChild(wrapper);
+                document.getElementById('msg-content-' + msg.id).textContent = msg.text;
+            });
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        window.startEdit = function(id) {
+            const msg = messages.find(m => m.id === id);
+            const contentDiv = document.getElementById('msg-content-' + id);
+            contentDiv.innerHTML = \`
+                <textarea id="edit-input-\${id}" class="edit-textarea"></textarea>
+                <div style="text-align: right;">
+                    <button class="save-btn" onclick="saveEdit('\${id}')">Uložiť</button>
+                    <button class="cancel-btn" onclick="renderAllMessages()">Zrušiť</button>
+                </div>
+            \`;
+            document.getElementById('edit-input-' + id).value = msg.text;
+        };
+
+        window.saveEdit = function(id) {
+            const msg = messages.find(m => m.id === id);
+            const newText = document.getElementById('edit-input-' + id).value.trim();
+            if (newText !== '' || msg.attachment) msg.text = newText;
+            renderAllMessages();
+        };
+
+        window.deleteMessage = function(id) {
+            if (confirm("Naozaj chcete zmazať túto správu?")) {
+                messages = messages.filter(m => m.id !== id);
+                renderAllMessages();
+            }
+        };
+
+        document.getElementById('send-btn').onclick = sendMessage;
+        document.getElementById('msg-input').onkeydown = function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        };
+
+        function sanitizeFilename(str) {
+            return str.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[\\s\\(\\)\\[\\]\\{\\}]+/g, "_").replace(/[^\\w\\.\\-]/g, "") || "subor";
+        }
+
+        function saveAsHTML() {
+            document.getElementById('datum').setAttribute('value', document.getElementById('datum').value);
+            document.getElementById('trieda').setAttribute('value', document.getElementById('trieda').value);
+            document.getElementById('saved-data').textContent = JSON.stringify(messages);
+            
+            const clone = document.documentElement.cloneNode(true);
+            clone.querySelector('#chat-history').innerHTML = '';
+            clone.querySelector('#participants-bar').innerHTML = '';
+            
+            const htmlContent = clone.outerHTML;
+            
+            const blob = new Blob(["<!DOCTYPE html>\\n" + htmlContent], { type: "text/html;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = sanitizeFilename(chatData.nazov) + "_pokracovanie.html";
+            a.click();
+        }
+
+        function generateSummary() {
+            const nazovChatu = chatData.nazov;
+            const datum = document.getElementById('datum').value || 'Neuvedené';
+            const trieda = document.getElementById('trieda').value || 'Neuvedené';
+            
+            const activeUsersSet = new Set(messages.map(m => m.user.name));
+            const ucastnici = activeUsersSet.size > 0 ? Array.from(activeUsersSet).join(', ') : 'Nikto neposlal správu';
+            
+            let casOdDo = "Žiadne správy";
+            if (messages.length > 0) {
+                const start = messages[0].datetime;
+                const end = messages[messages.length - 1].datetime;
+                casOdDo = start === end ? start : \`\${start} - \${end}\`;
+            }
+
+            const win = window.open('', '_blank');
+            win.document.write(\`
+                <html>
+                <head>
+                    <title>Prehľad - \${nazovChatu}</title>
+                    <style>
+                        body { font-family: 'Monaco', monospace; padding: 20px; line-height: 1.5; color: #333; }
+                        h2 { text-align: center; color: #444; margin-bottom: 20px; }
+                        .header-info { margin-bottom: 20px; border-bottom: 2px solid #555; padding-bottom: 15px; }
+                        .header-info p { margin: 5px 0; }
+                        .chat-content { margin-top: 20px; }
+                        .msg { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #ccc; }
+                        .msg:last-child { border-bottom: none; }
+                        .msg-meta { font-size: 0.85em; color: #666; margin-bottom: 5px; }
+                        .att-img { max-height: 200px; display: block; margin-top: 8px; border-radius: 6px; border: 1px solid #eee; }
+                        .footer-info { margin-top: 40px; border-top: 2px solid #555; padding-top: 15px; text-align: right; font-size: 0.9em; color: #555; }
+                    </style>
+                </head>
+                <body>
+                    <h2>Prehľad četu: \${nazovChatu}</h2>
+                    <div class="header-info">
+                        <p><b>Dátum:</b> \${datum}</p>
+                        <p><b>Trieda/Skupina:</b> \${trieda}</p>
+                        <p><b>Účastníci (aktívni):</b> \${ucastnici}</p>
+                        <p><b>Čas od - do:</b> \${casOdDo}</p>
+                    </div>
+                    
+                    <div class="chat-content">
+                        \${messages.map(m => \`
+                            <div class="msg">
+                                <div class="msg-meta"><b>\${m.user.name}</b> [\${m.datetime}]</div>
+                                <div>\${m.text}</div>
+                                \${m.attachment ? '<img src="' + m.attachment + '" class="att-img">' : ''}
+                            </div>
+                        \`).join('')}
+                    </div>
+
+                    <div class="footer-info">
+                        Vytvorené pomocou generátora | <b>Autor:</b> \${chatData.autor} | <b>Rok:</b> \${chatData.rok}
+                    </div>
+                    <script>setTimeout(() => window.print(), 500);<\\/script>
+                </body>
+                </html>
+            \`);
+            win.document.close();
+        }
+    <\/script>
+</body>
+</html>`;
+
+            const blob = new Blob([generatedHtml], { type: "text/html;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = safeName;
+            a.click();
+        }
+
+        function saveAsHTML() {
+            document.getElementById('nazov').setAttribute('value', document.getElementById('nazov').value);
+            document.getElementById('predmet').setAttribute('value', document.getElementById('predmet').value);
+            document.getElementById('autor').setAttribute('value', document.getElementById('autor').value);
+            document.getElementById('rok').setAttribute('value', document.getElementById('rok').value);
+            
+            const clone = document.documentElement.cloneNode(true);
+            const historyDiv = clone.querySelector('#chat-history');
+            const pBarDiv = clone.querySelector('#participants-bar');
+            
+            if(historyDiv) historyDiv.innerHTML = ''; 
+            if(pBarDiv) pBarDiv.innerHTML = ''; 
+            
+            const htmlContent = clone.outerHTML;
+            
+            const blob = new Blob(["<!DOCTYPE html>\n" + htmlContent], { type: "text/html;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = sanitizeFilename(document.getElementById('nazov').value || "generator") + "_pokracovanie.html";
+            a.click();
+        }
+
+        addParticipant("Učiteľ");
+    </script>
+</body>
+</html>
