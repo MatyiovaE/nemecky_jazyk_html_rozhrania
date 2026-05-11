@@ -1,0 +1,775 @@
+
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Názvy krajín a jazyky</title>
+    <style>
+        body {
+            font-family: Courier bold, monospace;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+            color: #212121;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        h1 {
+            text-align: center;
+            color: #0056b3;
+        }
+        
+        #startScreen {
+            text-align: center;
+            padding: 40px 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        #startScreen .start-settings {
+            margin-bottom: 25px;
+            font-size: 1.2em;
+        }
+        #startScreen label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        #startScreen input[type="number"] {
+            width: 80px;
+            font-size: 1.1em;
+            padding: 5px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #startBtn {
+            font-size: 1.5em;
+            padding: 12px 30px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #startBtn:hover {
+            background-color: #218838;
+        }
+        
+        #studentInfo, #exerciseContainer {
+            display: none;
+        }
+        
+        #studentInfo {
+            text-align: left;
+            margin: 20px 0;
+        }
+        #studentInfo label {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        #studentInfo input[type="text"] {
+            font-size: 1em;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-left: 10px;
+            width: 300px;
+        }
+        #instructions {
+            background-color: #e6f7ff;
+            border-left: 5px solid #007bff;
+            padding: 10px 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        #exerciseContainer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        #taskDisplay {
+            font-size: 2.4em; 
+            margin: 40px 0;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #taskDisplay .main-text {
+            font-weight: bold;
+            display: block;
+            text-align: center;
+            line-height: 1.6;
+            word-spacing: 0.5em;
+        }
+        #taskDisplay .stub {
+            margin: 0;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        #taskDisplay input[type="text"] {
+            font-family: inherit;
+			font-size: 1em; 
+            font-weight: bold;
+			color: blue;
+            border: none;
+            border-bottom: 3px solid #007bff;
+            background-color: #f0f8ff;
+            text-align: center;
+            padding: 0px 2px; 
+            margin: 0 1px;
+            border-radius: 0;
+            box-shadow: none;
+            line-height: 1.6;
+            height: 1.6em;
+            vertical-align: baseline;
+        }
+        #taskDisplay input[type="text"]:focus {
+            outline: none;
+            border-bottom: 3px solid #0056b3;
+            background-color: #e6f7ff;
+        }
+        #miniKeyboard {
+            margin: 20px 0;
+        }
+        #miniKeyboard .kb-row {
+            margin-bottom: 8px;
+        }
+        #miniKeyboard button {
+            font-size: 1.1em;
+            font-weight: bold;
+            padding: 10px 15px;
+            margin: 3px;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            cursor: pointer;
+            min-width: 40px;
+        }
+        #miniKeyboard button:hover {
+            background-color: #e0e0e0;
+        }
+        #navigation button {
+            font-size: 1.2em;
+            padding: 10px 25px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #nextBtn, #evalBtn {
+            background-color: #28a745;
+            color: white;
+        }
+        #navButtons {
+            margin-top: 25px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        #navButtons button {
+            width: 40px;
+            height: 40px;
+            font-size: 1em;
+            margin: 4px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #navButtons button.current {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            border: 1px solid #0056b3;
+        }
+        #navButtons button.completed {
+            background-color: #add8e6;
+            border: 1px solid #8abccf;
+        }
+        #navButtons button.current.completed {
+            background-color: #007bff; 
+            color: white;
+        }
+        #resultsContainer {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        #resultsSummary {
+            font-size: 1.2em;
+            line-height: 1.8;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        #detailBtn {
+            font-size: 1.1em;
+            padding: 10px 20px;
+            margin: 20px 0;
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #detailBtn:hover {
+            background-color: #138496;
+        }
+
+        #resultsList {
+            margin-top: 20px;
+        }
+        .result-item {
+            font-size: 1.1em;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .symbol {
+            font-size: 1.5em;
+            margin-right: 15px;
+        }
+        .correct .symbol {
+            color: #28a745;
+        }
+        .incorrect .symbol {
+            color: #dc3545;
+        }
+        .correct-answer {
+            font-style: italic;
+            color: #555;
+            margin-left: auto;
+        }
+
+        .detail-results-body {
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+            padding: 20px;
+        }
+        .detail-results-body h1 {
+            color: #000;
+            border-bottom: 2px solid #000;
+        }
+        .detail-results-body h2 {
+             margin-top: 30px; 
+             border-bottom: 1px solid #ccc; 
+             padding-bottom: 3px;
+        }
+        .detail-results-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .detail-results-body th, .detail-results-body td {
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .detail-results-body th {
+            background-color: #f0f0f0;
+        }
+        .detail-results-body .symbol {
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: center;
+        }
+        .detail-results-body .correct { color: #28a745; }
+        .detail-results-body .incorrect { color: #dc3545; }
+        .detail-results-body .legend { margin-top: 20px; }
+
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+            .container {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                margin: 0;
+            }
+            #startScreen, #studentInfo, #instructions, #exerciseContainer, #resultsSummary button, #detailBtn, #resultsList {
+                display: none;
+            }
+            #resultsContainer {
+                display: block !important;
+                border: none;
+                padding: 0;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Názvy krajín a jazyky</h1>
+
+        <div id="startScreen">
+            <div class="start-settings">
+                <label for="taskCountInput">Zadajte počet úloh (max: <span id="maxTasksLabel">0</span>):</label>
+                <input type="number" id="taskCountInput" value="10" min="1">
+            </div>
+            <button id="startBtn">Štart</button>
+        </div>
+
+        <div id="studentInfo">
+            <label for="studentName">Meno žiaka:</label>
+            <input type="text" id="studentName">
+        </div>
+
+        <p id="instructions">
+            <strong>Pokyny:</strong> Doplň chýbajúce písmená. Počet spodných čiar naznačuje počet chýbajúcich písmen. Dbaj na písanie malých a veľkých písmen.
+        </p>
+
+        <div id="exerciseContainer">
+            <div id="taskDisplay"></div>
+
+            
+                <div id="miniKeyboard">
+                    <div class="kb-row">
+                        <button onmousedown="handleKey(this); return false;">ä</button>
+                        <button onmousedown="handleKey(this); return false;">ö</button>
+                        <button onmousedown="handleKey(this); return false;">ü</button>
+                        <button onmousedown="handleKey(this); return false;">ß</button>
+                    </div>
+                    <div class="kb-row">
+                        <button onmousedown="handleKey(this); return false;">Ä</button>
+						<button onmousedown="handleKey(this); return false;">Ö</button>
+						<button onmousedown="handleKey(this); return false;">Ü</button>
+                              </div>
+                </div>
+             <div id="navigation">
+                <button id="nextBtn">Ďalej</button>
+                <button id="evalBtn" style="display:none;">Vyhodnotiť</button>
+            </div>
+
+            <div id="navButtons"></div>
+        </div>
+
+        <div id="resultsContainer">
+            <h2>Výsledky</h2>
+            <div id="resultsSummary"></div>
+            <button id="detailBtn">Detailné výsledky</button>
+            <div id="resultsList"></div>
+        </div>
+        
+        <br><br>
+        <b>Spracoval(a) pomocou UI:</b> Mgr. Erika Matyiová (2026)
+        <br><br>
+    </div>
+
+    <script>
+        const rawExerciseData = [{"components":[{"type":"stub","value":"In England spricht man "},{"type":"answer","value":"Englisch"},{"type":"stub","value":"."}],"fullAnswer":"In England spricht man Englisch."},{"components":[{"type":"stub","value":"In den USA spricht man "},{"type":"answer","value":"Englisch"},{"type":"stub","value":"."}],"fullAnswer":"In den USA spricht man Englisch."},{"components":[{"type":"stub","value":"In Russland spricht man "},{"type":"answer","value":"Russisch"},{"type":"stub","value":"."}],"fullAnswer":"In Russland spricht man Russisch."},{"components":[{"type":"stub","value":"In der Schweiz spricht man\u003cbr> D"},{"type":"answer","value":"eutsch"},{"type":"stub","value":",\u003cbr> F"},{"type":"answer","value":"ranzösisch"},{"type":"stub","value":", \u003cbr>I"},{"type":"answer","value":"talienisch"},{"type":"stub","value":" und \u003cbr>R"},{"type":"answer","value":"ätoromanisch"},{"type":"stub","value":"."}],"fullAnswer":"In der Schweiz spricht man\u003cbr> Deutsch,\u003cbr> Französisch, \u003cbr>Italienisch und \u003cbr>Rätoromanisch."},{"components":[{"type":"stub","value":"In Belgien spricht man \u003cbr>F"},{"type":"answer","value":"ranzösisch"},{"type":"stub","value":", \u003cbr>N"},{"type":"answer","value":"iederländisch"},{"type":"stub","value":" \u003cbr>und D"},{"type":"answer","value":"eutsch"},{"type":"stub","value":"."}],"fullAnswer":"In Belgien spricht man \u003cbr>Französisch, \u003cbr>Niederländisch \u003cbr>und Deutsch."},{"components":[{"type":"stub","value":"In Italien spricht man "},{"type":"answer","value":"Italienisch"},{"type":"stub","value":"."}],"fullAnswer":"In Italien spricht man Italienisch."},{"components":[{"type":"stub","value":"In Polen spricht man "},{"type":"answer","value":"Polnisch"},{"type":"stub","value":"."}],"fullAnswer":"In Polen spricht man Polnisch."},{"components":[{"type":"stub","value":"In Ungarn spricht man "},{"type":"answer","value":"Ungarisch"}],"fullAnswer":"In Ungarn spricht man Ungarisch"},{"components":[{"type":"stub","value":"In der Ukraine spricht man "},{"type":"answer","value":"Ukrainisch"},{"type":"stub","value":"."}],"fullAnswer":"In der Ukraine spricht man Ukrainisch."},{"components":[{"type":"stub","value":"In Liechtenstein spricht man "},{"type":"answer","value":"Deutsch"},{"type":"stub","value":"."}],"fullAnswer":"In Liechtenstein spricht man Deutsch."},{"components":[{"type":"stub","value":"In Deutschland spricht man "},{"type":"answer","value":"Deutsch"},{"type":"stub","value":"."}],"fullAnswer":"In Deutschland spricht man Deutsch."},{"components":[{"type":"stub","value":"In Rumänien spricht man "},{"type":"answer","value":"Rumänisch"},{"type":"stub","value":"."}],"fullAnswer":"In Rumänien spricht man Rumänisch."},{"components":[{"type":"stub","value":"In Tschechien spricht man "},{"type":"answer","value":"Tschechisch"},{"type":"stub","value":"."}],"fullAnswer":"In Tschechien spricht man Tschechisch."},{"components":[{"type":"stub","value":"In Kanada spricht man \u003cbr>E"},{"type":"answer","value":"nglisch"},{"type":"stub","value":" und \u003cbr>F"},{"type":"answer","value":"ranzösisch"},{"type":"stub","value":"."}],"fullAnswer":"In Kanada spricht man \u003cbr>Englisch und \u003cbr>Französisch."},{"components":[{"type":"stub","value":"In Vietnam spricht man "},{"type":"answer","value":"Vietnamesisch"},{"type":"stub","value":"."}],"fullAnswer":"In Vietnam spricht man Vietnamesisch."},{"components":[{"type":"stub","value":"In der Slowakei spricht man "},{"type":"answer","value":"Slowakisch"},{"type":"stub","value":"."}],"fullAnswer":"In der Slowakei spricht man Slowakisch."},{"components":[{"type":"stub","value":"In Österreich spricht man "},{"type":"answer","value":"Deutsch"},{"type":"stub","value":"."}],"fullAnswer":"In Österreich spricht man Deutsch."},{"components":[{"type":"stub","value":"In Frankreich spricht man "},{"type":"answer","value":"Französisch"},{"type":"stub","value":"."}],"fullAnswer":"In Frankreich spricht man Französisch."}];
+        const exerciseTitle = "Názvy krajín a jazyky";
+        const generatorMaxTasks = 0; 
+
+        let fullTaskPool = []; 
+        let allTasks = [];     
+        let globalTaskIndex = 0;
+        
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        (function createFullPool() {
+            rawExerciseData.forEach(task => {
+                fullTaskPool.push({
+                    ...task,
+                    globalIndex: globalTaskIndex++
+                });
+            });
+
+            fullTaskPool = shuffle(fullTaskPool); 
+
+            if (generatorMaxTasks > 0 && generatorMaxTasks < fullTaskPool.length) {
+                fullTaskPool = fullTaskPool.slice(0, generatorMaxTasks);
+            }
+        })();
+        
+        const startScreen = document.getElementById('startScreen');
+        const startBtn = document.getElementById('startBtn');
+        const taskCountInput = document.getElementById('taskCountInput');
+        const maxTasksLabel = document.getElementById('maxTasksLabel');
+        const studentInfoDiv = document.getElementById('studentInfo'); 
+
+        const maxAvailable = fullTaskPool.length;
+        maxTasksLabel.textContent = maxAvailable;
+        taskCountInput.max = maxAvailable;
+        if (parseInt(taskCountInput.value) > maxAvailable) {
+            taskCountInput.value = maxAvailable;
+        }
+        if (maxAvailable === 0) {
+            startScreen.innerHTML = '<p style="font-size: 1em; color: red;">Chyba: Neboli nájdené žiadne úlohy. Skontrolujte vstupné dáta v generátore.</p>';
+        }
+        
+        let userAnswers = []; 
+        let currentTaskIndex = 0;
+        let isEvaluated = false;
+        let detailedResultsData = null; 
+
+        const studentNameInput = document.getElementById('studentName');
+        const taskDisplay = document.getElementById('taskDisplay');
+        const nextBtn = document.getElementById('nextBtn');
+        const evalBtn = document.getElementById('evalBtn');
+        const navButtonsContainer = document.getElementById('navButtons');
+        const exerciseContainer = document.getElementById('exerciseContainer');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsSummary = document.getElementById('resultsSummary');
+        const resultsList = document.getElementById('resultsList');
+        const detailBtn = document.getElementById('detailBtn');
+        
+        studentNameInput.value = localStorage.getItem('studentName') || '';
+        studentNameInput.addEventListener('input', (e) => localStorage.setItem('studentName', e.target.value));
+
+        function handleKey(buttonElement) {
+            const char = buttonElement.textContent;
+            const focusedInput = document.activeElement; 
+            
+            if (focusedInput && focusedInput.classList.contains('answer-input')) {
+                focusedInput.value = char;
+                focusedInput.dispatchEvent(new Event('input')); 
+            }
+        }
+        window.handleKey = handleKey; 
+
+        function renderTask(index) {
+            if (isEvaluated) return;
+            currentTaskIndex = index;
+            const task = allTasks[index]; 
+
+            let html = `<div class="main-text">`;
+            
+            let inputCounter = 0;
+            task.components.forEach(comp => {
+                if (comp.type === 'stub') {
+                    html += `<span class="stub">${comp.value}</span>`;
+                } else { 
+                    html += `<span style="white-space: nowrap;">`;
+                    for(let i=0; i<comp.value.length; i++) {
+                        let savedAnswer = (userAnswers[index] && userAnswers[index].length > inputCounter) ? userAnswers[index][inputCounter] : "";
+                        
+                        html += `<input type="text" class="answer-input" maxlength="1" data-task-index="${index}" data-input-index="${inputCounter}" value="${savedAnswer}" style="width: 1.2em; text-align: center; margin: 0 3px;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">`;
+                        inputCounter++;
+                    }
+                    html += `</span>`;
+                }
+            });
+            html += `</div>`;
+
+            taskDisplay.innerHTML = html;
+
+            const inputs = taskDisplay.querySelectorAll('.answer-input');
+            inputs.forEach((input, i) => {
+                input.addEventListener('input', (e) => {
+                    if (input.value.length === 1 && i < inputs.length - 1) {
+                        inputs[i + 1].focus();
+                    }
+                });
+                
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && input.value === '' && i > 0) {
+                        inputs[i - 1].focus();
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (currentTaskIndex === allTasks.length - 1) {
+                            evalBtn.click();
+                        } else {
+                            nextBtn.click();
+                        }
+                    } else if (e.key === 'ArrowLeft' && i > 0) {
+                        inputs[i - 1].focus();
+                    } else if (e.key === 'ArrowRight' && i < inputs.length - 1) {
+                        inputs[i + 1].focus();
+                    }
+                });
+            });
+
+            const firstInput = taskDisplay.querySelector('input[type="text"]');
+            if (firstInput) firstInput.focus();
+
+            updateNavButtons();
+            updateNavState();
+        }
+
+        function saveAnswer() {
+            const inputs = taskDisplay.querySelectorAll('.answer-input');
+            if (inputs.length === 0) return;
+
+            const answers = [];
+            inputs.forEach(input => answers.push(input.value.trim()));
+            userAnswers[currentTaskIndex] = answers;
+        }
+
+        function updateNavButtons() {
+            navButtonsContainer.innerHTML = '';
+            for (let i = 0; i < allTasks.length; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i + 1;
+                
+                if (i === currentTaskIndex) {
+                    btn.classList.add('current');
+                } 
+                
+                if (userAnswers[i] !== null) {
+                    btn.classList.add('completed');
+                }
+                
+                if (!isEvaluated) { 
+                    btn.onclick = () => { saveAnswer(); renderTask(i); };
+                }
+                
+                navButtonsContainer.appendChild(btn);
+            }
+        }
+
+        function updateNavState() {
+            if (currentTaskIndex === allTasks.length - 1) {
+                nextBtn.style.display = 'none';
+                evalBtn.style.display = 'inline-block';
+            } else {
+                nextBtn.style.display = 'inline-block';
+                evalBtn.style.display = 'none';
+            }
+        }
+
+        nextBtn.onclick = () => {
+            saveAnswer();
+            if (currentTaskIndex < allTasks.length - 1) {
+                renderTask(currentTaskIndex + 1);
+            }
+        };
+
+        evalBtn.onclick = () => {
+            saveAnswer();
+            evaluate();
+        };
+
+        detailBtn.onclick = showDetailedResults;
+        
+        startBtn.onclick = () => {
+            let numTasks = parseInt(taskCountInput.value, 10);
+            
+            if (isNaN(numTasks) || numTasks < 1) {
+                numTasks = 1;
+            }
+            if (numTasks > fullTaskPool.length) {
+                numTasks = fullTaskPool.length;
+            }
+            
+            allTasks = fullTaskPool.slice(0, numTasks);
+            userAnswers = new Array(allTasks.length).fill(null);
+
+            startScreen.style.display = 'none';
+            studentInfoDiv.style.display = 'block';
+            exerciseContainer.style.display = 'block';
+            
+            if (allTasks.length > 0) {
+                renderTask(0);
+            } else {
+                exerciseContainer.innerHTML = '<p style="font-size: 1em; color: red;">Chyba: Neboli nájdené žiadne úlohy na spustenie.</p>';
+            }
+        };
+
+        function evaluate() {
+            isEvaluated = true;
+            let score = 0;
+            const results = [];
+
+            allTasks.forEach((task, index) => {
+                const studentAnswers = userAnswers[index] || [];
+                let isCorrect = true;
+                let studentTextAnswer = "";
+                let inputCounter = 0;
+
+                task.components.forEach(c => {
+                    if (c.type === 'stub') {
+                        studentTextAnswer += c.value;
+                    } else {
+                        for(let i=0; i<c.value.length; i++) {
+                            let charAns = studentAnswers[inputCounter] || "";
+                            studentTextAnswer += (charAns || "_");
+                            if (charAns !== c.value[i]) {
+                                isCorrect = false;
+                            }
+                            inputCounter++;
+                        }
+                    }
+                });
+
+                if (isCorrect) score++;
+
+                results.push({
+                    ...task,
+                    studentAnswers,
+                    studentTextAnswer, 
+                    isCorrect
+                });
+            });
+
+            const percentage = (score / allTasks.length) * 100;
+            const now = new Date();
+            const datePart = now.toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const timePart = now.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const timestamp = datePart + ', ' + timePart;
+            const studentName = studentNameInput.value.trim() || 'Anonym';
+
+            exerciseContainer.style.display = 'none';
+            resultsContainer.style.display = 'block';
+            studentNameInput.disabled = true;
+
+            resultsSummary.innerHTML = `
+                <p><strong>Názov cvičenia:</strong> ${exerciseTitle}</p>
+                <p><strong>Meno žiaka:</strong> ${studentName}</p>
+                <p><strong>Bodové hodnotenie:</strong> ${score} z ${allTasks.length}</p>
+                <p><strong>Percentuálna úspešnosť:</strong> ${percentage.toFixed(1)} %</p>
+                <p><strong>Dátum a čas:</strong> ${timestamp}</p>
+            `;
+
+            let resultsHTML = "<h3>Detailné odpovede:</h3>";
+            results.forEach(res => {
+                const symbol = res.isCorrect ? '✓' : '✗';
+                const symbolClass = res.isCorrect ? 'correct' : 'incorrect';
+                
+                resultsHTML += `<div class="result-item ${symbolClass}">`;
+                resultsHTML += `<span class="symbol ${symbolClass}">${symbol}</span>`;
+                resultsHTML += `<div>
+                                    <span><strong>${res.studentTextAnswer}</strong></span>
+                                </div>`;
+                if (!res.isCorrect) {
+                    resultsHTML += `<span class="correct-answer">(Správne: ${res.fullAnswer})</span>`;
+                }
+                resultsHTML += `</div>`;
+            });
+            resultsList.innerHTML = resultsHTML;
+
+            detailedResultsData = {
+                title: exerciseTitle,
+                name: studentName,
+                score,
+                total: allTasks.length,
+                percentage,
+                timestamp,
+                results
+            };
+        }
+        
+        function showDetailedResults() {
+            if (!detailedResultsData) {
+                alert("Najprv je potrebné cvičenie vyhodnotiť.");
+                return;
+            }
+            const data = detailedResultsData;
+
+            const newWin = window.open('', 'DetailnéVýsledky', 'width=900,height=700,scrollbars=yes,resizable=yes'); 
+            if (!newWin) {
+                alert("Prosím, povoľte vyskakovacie okná pre zobrazenie detailných výsledkov.");
+                return;
+            }
+
+            let html = `
+                <!DOCTYPE html>
+                <html lang="sk">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Detailné výsledky - ${data.title}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.5; padding: 20px; }
+                        h1 { color: #000; border-bottom: 2px solid #000; padding-bottom: 5px; }
+                        h2 { margin-top: 30px; border-bottom: 1px solid #ccc; padding-bottom: 3px;}
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 1em;}
+                        th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; vertical-align: top; }
+                        th { background-color: #f0f0f0; }
+                        .symbol { font-size: 1.2em; font-weight: bold; text-align: center; }
+                        .correct { color: #28a745; }
+                        .incorrect { color: #dc3545; }
+                        .legend { margin-top: 20px; font-size: 0.9em; }
+                        @media print {
+                            body { padding: 10px; }
+                            .no-print { display: none !important; }
+                        }
+                    </style>
+                </head>
+                <body class="detail-results-body">
+                    <h1>${data.title}</h1>
+                    <p><strong>Meno žiaka:</strong> ${data.name}</p>
+                    <p><strong>Bodové a percentuálne hodnotenie:</strong> ${data.score} z ${data.total}, ${data.percentage.toFixed(1)}%</p>
+                    <p><strong>Dátum a čas:</strong> ${data.timestamp}</p>
+
+                    <h2>Detailný prehľad</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tvoja odpoveď</th>
+                                <th>Správna odpoveď</th>
+                                <th class="symbol">Výsledok</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            data.results.forEach(res => {
+                const symbol = res.isCorrect ? '✓' : '✗';
+                const symbolClass = res.isCorrect ? 'correct' : 'incorrect';
+                
+                html += `
+                    <tr>
+                        <td><strong>${res.studentTextAnswer || '–'}</strong></td>
+                        <td><strong>${res.fullAnswer}</strong></td>
+                        <td class="symbol ${symbolClass}">${symbol}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                    <div class="legend">
+                        <p><strong>Vysvetlivky:</strong></p>
+                        <ul>
+                            <li><span class="symbol correct">✓</span> = Správne</li>
+                            <li><span class="symbol incorrect">✗</span> = Nesprávne</li>
+                        </ul>
+                    </div>
+                    <div class="no-print" style="margin-top: 40px;"><p>Túto stránku je možné vytlačiť pomocou Ctrl + P (alebo Command + P).</p></div>
+                </body>
+                </html>
+            `;
+
+            newWin.document.open();
+            newWin.document.write(html);
+            newWin.document.close();
+            newWin.focus(); 
+        }
+      
+    </script>
+</body>
+</html>
