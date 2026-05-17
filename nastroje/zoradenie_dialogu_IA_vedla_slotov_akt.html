@@ -74,6 +74,19 @@ A: Danke, es geht."></textarea>
   const inpTitle = document.getElementById('title');
   const inpAuth = document.getElementById('author');
 
+  // Funkcia pre vytvorenie bezpečného názvu súboru bez diakritiky, interpunkcie a medzier
+  function sanitizeFilename(name) {
+    if (!name) return "";
+    return name
+      .replace(/ß/g, "ss")               // nahradenie nemeckého ß za ss
+      .normalize("NFD")                  // rozdelenie znakov na základ a diakritiku
+      .replace(/[\u0300-\u036f]/g, "")   // odstránenie diakritiky
+      .replace(/[^a-zA-Z0-9]/g, "_")     // nahradenie všetkého okrem písmen a čísel podčiarkovníkom
+      .replace(/_+/g, "_")               // zredukovanie viacnásobných podčiarkovníkov
+      .replace(/^_|_$/g, "")             // odstránenie podčiarkovníkov na okrajoch
+      .toLowerCase();                    // zmena na malé písmená
+  }
+
   // Funkcia pre tučné písmo
   document.getElementById('formatBold').addEventListener('click', () => {
     const start = textarea.selectionStart;
@@ -96,7 +109,11 @@ A: Danke, es geht."></textarea>
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'nastavenia_dialogu.json';
+    
+    // Použitie bezpečného názvu pre JSON
+    const safeName = sanitizeFilename(inpTitle.value) || 'nastavenia_dialogu';
+    a.download = safeName + '.json';
+    
     a.click();
   });
 
@@ -144,7 +161,11 @@ A: Danke, es geht."></textarea>
     const blob = new Blob([rtf], { type: 'application/rtf' });
     const btn = document.getElementById('downloadRTF');
     btn.href = URL.createObjectURL(blob);
-    btn.download = 'pracovny_list.rtf';
+    
+    // Použitie bezpečného názvu pre RTF
+    const safeName = sanitizeFilename(inpTitle.value) || 'pracovny_list';
+    btn.download = safeName + '.rtf';
+    
     btn.classList.remove('disabled');
   });
 
@@ -230,7 +251,7 @@ A: Danke, es geht."></textarea>
   </div>
 
   <div style="margin-top: 30px; font-size: 0.8em; text-align: center; font-family: sans-serif;">
-    Spracovala pomocou UI: Mgr. Erika Matyiová (2025)
+    Spracovala pomocou UI: Mgr. Erika Matyiová (2025 - 2026)
   </div>
 
   <script>
@@ -387,7 +408,11 @@ A: Danke, es geht."></textarea>
     const blob = new Blob([finalHTML], { type: 'text/html' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = (inpTitle.value || 'zoradenie_dialogu') + '.html';
+    
+    // Použitie bezpečného názvu pre HTML
+    const safeName = sanitizeFilename(inpTitle.value) || 'zoradenie_dialogu';
+    a.download = safeName + '.html';
+    
     a.click();
   });
 </script>
