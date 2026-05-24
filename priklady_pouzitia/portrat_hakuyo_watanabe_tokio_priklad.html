@@ -1,0 +1,647 @@
+
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Porträt: Hakuyo Watanabe, Tokio</title>
+    <style>
+        body {
+            font-family: Courier bold, monospace;
+            line-height: 1.2;
+            background-color: #f8f9fa;
+            color: #212529;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 25px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        h1 {
+            color: #005a9c;
+            text-align: center;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 15px;
+            margin-bottom: 5px;
+        }
+        .exercise-meta {
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.95em;
+            margin-bottom: 20px;
+        }
+        
+        .student-info {
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .student-info label {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+        }
+        #studentName {
+            flex-grow: 1;
+            padding: 10px 12px;
+            font-size: 1em;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.07);
+        }
+
+        #exerciseContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        #paragraphsContainer {
+            flex: 2;
+            min-width: 450px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            transition: flex 0.3s ease;
+        }
+        .paragraph-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 10px;
+            background-color: #fdfdfd;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+        }
+        .slot {
+            flex-shrink: 0;
+            width: 300px;
+            min-height: 45px;
+            background-color: #e9ecef;
+            border: 2px dashed #adb5bd;
+            border-radius: 5px;
+            padding: 5px;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .slot.drop-target {
+            border-color: #007bff;
+            background-color: #e6f7ff;
+        }
+        .paragraph-item p {
+            flex-grow: 1;
+            margin: 0;
+            padding-top: 5px;
+            white-space: pre-wrap;
+        }
+
+        #headingsContainer {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
+            background-color: #f1f3f5;
+            font-weight: bold;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            align-self: flex-start;
+            transition: opacity 0.3s ease;
+        }
+        .heading-item {
+            padding: 10px 15px;
+            background-color: #fff;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .heading-item:hover {
+            background-color: #f8f9fa;
+        }
+        .heading-item.selected {
+            background-color: #007bff;
+            color: white;
+            border-color: #0056b3;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .heading-item.placed {
+            cursor: default;
+            background-color: #fff;
+            color: #333;
+            border-color: #ced4da;
+            font-weight: bold;
+        }
+        .slot .heading-item {
+            margin: 0;
+            box-shadow: none;
+            cursor: grab;
+        }
+        .slot .heading-item:hover {
+            background-color: #fef4f4;
+            border-color: #e57373;
+        }
+
+        .slot .heading-item.evaluated-correct {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+            cursor: default;
+            font-weight: bold;
+        }
+        .slot .heading-item.evaluated-incorrect {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+            cursor: default;
+            font-weight: bold;
+        }
+        .slot .heading-item.evaluated-correct:hover {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .slot .heading-item.evaluated-incorrect:hover {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .button-container {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        #evaluateBtn {
+            padding: 12px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #fff;
+            background-color: #28a745;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #evaluateBtn:hover {
+            background-color: #218838;
+        }
+        #evaluateBtn:disabled {
+            background-color: #adb5bd;
+            cursor: not-allowed;
+        }
+
+        #summary {
+            margin-top: 30px;
+            background-color: #e6f7ff;
+            border: 1px solid #b3e0ff;
+            border-radius: 8px;
+            padding: 20px;
+            display: none;
+        }
+        #summary h2 {
+            margin-top: 0;
+            color: #005a9c;
+        }
+        #summary p {
+            font-size: 1.1em;
+            margin: 8px 0;
+        }
+        #summary strong {
+            color: #333;
+        }
+        #detailBtn {
+            padding: 10px 20px;
+            font-size: 1em;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.3s;
+        }
+        #detailBtn:hover {
+            background-color: #0056b3;
+        }
+
+        .results-window body {
+            font-family: Courier bold, monospace;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .results-window h1 {
+            color: #005a9c;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 10px;
+        }
+        .results-window h2 {
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .results-window .summary-details p {
+            font-size: 1.1em;
+        }
+        .results-window table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .results-window th, .results-window td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+            white-space: pre-wrap; 
+        }
+        .results-window th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+        .results-window tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .results-window .symbol {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .results-window .correct { color: #28a745; }
+        .results-window .incorrect { color: #dc3545; }
+        .results-window .legend {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        
+        .footer-note {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        @media print {
+            .footer-note { display: none !important; }
+            h1, .exercise-meta { page-break-after: avoid; }
+            .paragraph-item { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Porträt: Hakuyo Watanabe, Tokio</h1>
+        <div class="exercise-meta"><strong>Predmet:</strong> NEJ | <strong>Autor:</strong> Mgr. Erika Matyiová | <strong>Rok:</strong> 2026</div>
+
+        <div class="student-info">
+            <label for="studentName">Meno žiaka:</label>
+            <input type="text" id="studentName" placeholder="Zadajte meno žiaka.">
+        </div>
+
+        <div id="exerciseContainer">
+            <div id="paragraphsContainer"></div>
+            <div id="headingsContainer"></div>
+        </div>
+
+        <div class="button-container">
+            <button id="evaluateBtn">Vyhodnotiť</button>
+        </div>
+
+        <div id="summary">
+            <h2>Výsledky cvičenia</h2>
+            <p><strong>Názov cvičenia:</strong> <span id="summaryTitle"></span></p>
+            <p><strong>Meno žiaka:</strong> <span id="summaryName"></span></p>
+            <p><strong>Hodnotenie:</strong> <span id="summaryScore"></span></p>
+            <p><strong>Dátum a čas:</strong> <span id="summaryDateTime"></span></p>
+            <button id="detailBtn">Detailné výsledky</button>
+        </div>
+        
+        <div class="footer-note">
+            Spracované pomocou UI: Mgr. Erika Matyiová (2026)
+        </div>
+    </div>
+
+    <script id="exerciseData" type="application/json">
+        [{"heading":"Hakuyo, wie ist dein Tag im Heya?","paragraph":"Wir stehen um halb fünf auf und um fünf haben wir Training. Wir\ntrainieren bis halb elf und dann duschen wir. Um halb zwölf essen\nwir, meistens Fleisch, Gemüse und Reis. Und dann schlafen wir.","id":"pair-0"},{"heading":"Wie lange schlaft ihr?","paragraph":"Von ein bis vier Uhr ungefähr. So lange ist Mittagsruhe. Dann machen\nwir Hausarbeiten: Wir räumen die Zimmer auf und kaufen ein. \nUm sechs Uhr machen wir das Abendessen. Wir kochen wieder Gemüse,\nFleisch und Reis, und dann essen wir zusammen. Um sieben Uhr\ntrainieren wir noch einmal eine Stunde und dann haben wir frei.","id":"pair-1"},{"heading":"Und was macht ihr in der Freizeit?","paragraph":"Wir schauen DVDs oder machen Computerspiele. Jeder hat einen\nFernseher im Zimmer und einen Computer. Um zehn Uhr ist Schluss.\nWir müssen schlafen. Wir stehen ja um halb fünf schon wieder auf.","id":"pair-2"},{"heading":"Noch eine Frage, Hakuyo: Magst du Fleisch?","paragraph":"Nein, ich esse viel lieber Fisch!","id":"pair-3"}]
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const data = JSON.parse(document.getElementById('exerciseData').textContent);
+            const paragraphsContainer = document.getElementById('paragraphsContainer');
+            const headingsContainer = document.getElementById('headingsContainer');
+            const evaluateBtn = document.getElementById('evaluateBtn');
+            const detailBtn = document.getElementById('detailBtn');
+            const studentNameInput = document.getElementById('studentName');
+            let selectedHeadingElement = null;
+            let detailedResultsData = [];
+            let evaluationDone = false;
+
+            function shuffleArray(array) {
+                let currentIndex = array.length, randomIndex;
+                while (currentIndex != 0) {
+                    randomIndex = Math.floor(Math.random() * currentIndex);
+                    currentIndex--;
+                    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+                }
+                return array;
+            }
+
+            function setHTMLContent(element, htmlString) {
+                element.innerHTML = htmlString;
+            }
+
+            function initializeExercise() {
+                const fixedParagraphs = [...data]; 
+                const shuffledHeadings = shuffleArray([...data]);
+
+                paragraphsContainer.innerHTML = '';
+                fixedParagraphs.forEach(item => {
+                    const paraItem = document.createElement('div');
+                    paraItem.className = 'paragraph-item';
+                    
+                    const slot = document.createElement('div');
+                    slot.className = 'slot';
+                    slot.dataset.correctId = item.id;
+                  
+                    const para = document.createElement('p');
+                    setHTMLContent(para, item.paragraph); 
+                    
+                    paraItem.appendChild(slot);
+                    paraItem.appendChild(para);
+                    paragraphsContainer.appendChild(paraItem);
+                });
+                
+                headingsContainer.innerHTML = '';
+                shuffledHeadings.forEach(item => {
+                    const headingItem = document.createElement('div');
+                    headingItem.className = 'heading-item';
+                    headingItem.dataset.id = item.id;
+              
+                    setHTMLContent(headingItem, item.heading);
+                    headingsContainer.appendChild(headingItem);
+                });
+                
+                addEventListeners();
+            }
+
+            function addEventListeners() {
+                headingsContainer.addEventListener('click', handleHeadingClick);
+                paragraphsContainer.addEventListener('click', handleSlotClick);
+                paragraphsContainer.addEventListener('dblclick', handleItemReturn);
+                evaluateBtn.addEventListener('click', evaluateExercise);
+                detailBtn.addEventListener('click', showDetailedResults);
+            }
+            
+            function checkVisibility() {
+                const allSlots = document.querySelectorAll('.slot');
+                const allFilled = [...allSlots].every(slot => slot.children.length > 0);
+                
+                if (allFilled) {
+                    headingsContainer.style.display = 'none';
+                    paragraphsContainer.style.flex = '1 1 100%';
+                } else {
+                    headingsContainer.style.display = 'flex';
+                    paragraphsContainer.style.flex = '2';
+                }
+            }
+
+            function handleHeadingClick(e) {
+                if (evaluationDone) return;
+                
+                const clickedItem = e.target.closest('.heading-item');
+                if (!clickedItem) return;
+
+                if (selectedHeadingElement) {
+                    selectedHeadingElement.classList.remove('selected');
+                    toggleDropTargetSlots(false);
+                }
+
+                if (selectedHeadingElement === clickedItem) {
+                    selectedHeadingElement = null;
+                } else {
+                    selectedHeadingElement = clickedItem;
+                    selectedHeadingElement.classList.add('selected');
+                    toggleDropTargetSlots(true);
+                }
+            }
+
+            function handleSlotClick(e) {
+                if (evaluationDone) return;
+                const clickedSlot = e.target.closest('.slot');
+                
+                if (selectedHeadingElement && clickedSlot) {
+                    if (clickedSlot.children.length === 0) {
+                        clickedSlot.appendChild(selectedHeadingElement);
+                        selectedHeadingElement.classList.remove('selected');
+                        selectedHeadingElement.classList.add('placed');
+                        selectedHeadingElement = null;
+                        toggleDropTargetSlots(false);
+                        checkVisibility();
+                    }
+                }
+            }
+            
+            function handleItemReturn(e) {
+                if (evaluationDone) return;
+                const clickedItem = e.target.closest('.heading-item');
+                if (clickedItem && clickedItem.parentElement.classList.contains('slot')) {
+                    clickedItem.classList.remove('placed');
+                    headingsContainer.appendChild(clickedItem);
+                    
+                    if (selectedHeadingElement === clickedItem) {
+                        selectedHeadingElement = null;
+                        toggleDropTargetSlots(false);
+                    }
+                    checkVisibility();
+                }
+            }
+            
+            function toggleDropTargetSlots(highlight) {
+                document.querySelectorAll('.slot').forEach(slot => {
+                    if (slot.children.length === 0) {
+                        slot.classList.toggle('drop-target', highlight);
+                     }
+                });
+            }
+
+            function evaluateExercise() {
+                const allSlots = document.querySelectorAll('.slot');
+                const allFilled = [...allSlots].every(slot => slot.children.length > 0);
+
+                if (!allFilled) {
+                    alert('Prosím, priraďte všetky nadpisy k odstavcom predtým, než cvičenie vyhodnotíte.');
+                    return;
+                }
+                
+                evaluationDone = true;
+                evaluateBtn.disabled = true;
+                if (selectedHeadingElement) {
+                    selectedHeadingElement.classList.remove('selected');
+                    selectedHeadingElement = null;
+                    toggleDropTargetSlots(false);
+                }
+
+                let score = 0;
+                const total = data.length;
+                detailedResultsData = [];
+                
+                const dataMap = new Map(data.map(item => [item.id, item]));
+                
+                allSlots.forEach(slot => {
+                    const correctId = slot.dataset.correctId;
+                    const correctItem = dataMap.get(correctId);
+                    
+                    const placedItemEl = slot.querySelector('.heading-item');
+                    const studentAnswerId = placedItemEl.dataset.id;
+                    const studentAnswerItem = dataMap.get(studentAnswerId);
+                    
+                    let isCorrect = (correctId === studentAnswerId);
+                  
+                    placedItemEl.classList.remove('placed');
+                    if (isCorrect) {
+                        score++;
+                        placedItemEl.classList.add('evaluated-correct');
+                    } else {
+                        placedItemEl.classList.add('evaluated-incorrect');
+                    }
+       
+                    detailedResultsData.push({
+                        paragraph: correctItem.paragraph,
+                        correctHeading: correctItem.heading,
+                        studentAnswer: studentAnswerItem.heading,
+                        isCorrect: isCorrect
+                    });
+                });
+
+                const percentage = (score / total) * 100;
+                const studentName = studentNameInput.value.trim() || "Anonym";
+                const dateTime = new Date().toLocaleString('sk-SK');
+                
+                showSummary(studentName, score, total, percentage, dateTime);
+            }
+
+            function showSummary(name, score, total, percentage, dateTime) {
+                document.getElementById('summaryTitle').textContent = 'Porträt: Hakuyo Watanabe, Tokio';
+                document.getElementById('summaryName').textContent = name;
+                document.getElementById('summaryScore').textContent = `${score} z ${total} správne (${percentage.toFixed(1)} %)`;
+                document.getElementById('summaryDateTime').textContent = dateTime;
+                
+                document.getElementById('summary').style.display = 'block';
+                document.getElementById('summary').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function showDetailedResults() {
+                const studentName = document.getElementById('summaryName').textContent;
+                const scoreText = document.getElementById('summaryScore').textContent;
+                const dateTime = document.getElementById('summaryDateTime').textContent;
+
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(createResultsPageHTML(studentName, scoreText, dateTime));
+                newWindow.document.close();
+            }
+            
+            function allowHTMLText(str) {
+                if (typeof str !== 'string') return '';
+                return str; 
+            }
+            
+            function createResultsPageHTML(studentName, scoreText, dateTime) {
+                let tableRows = '';
+                
+                detailedResultsData.forEach(res => {
+                    const symbol = res.isCorrect 
+                        ? '<span class="symbol correct">&#10003;</span>'
+                        : '<span class="symbol incorrect">&#10007;</span>';
+                
+                    tableRows += `
+                        <tr>
+                            <td>${allowHTMLText(res.paragraph)}</td>
+                            <td>${allowHTMLText(res.studentAnswer)} ${symbol}</td>
+                            <td>${allowHTMLText(res.correctHeading)}</td>
+                        </tr>
+                    `;
+                });
+                
+                return `
+                    <!DOCTYPE html>
+                    <html lang="sk">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>Detailné výsledky - Porträt: Hakuyo Watanabe, Tokio</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.5; }
+                            h1 { color: #005a9c; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+                            h2 { color: #333; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+                            .summary-details p { font-size: 1.1em; margin: 5px 0; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: top; white-space: pre-wrap; }
+                            th { background-color: #f4f4f4; font-weight: bold; }
+                            tr:nth-child(even) { background-color: #f9f9f9; }
+                            .symbol { font-size: 1.3em; font-weight: bold; margin-left: 10px; }
+                            .correct { color: #28a745; }
+                            .incorrect { color: #dc3545; }
+                            .legend { margin-top: 20px; font-size: 0.9em; color: #555; }
+                            
+                            @media print {
+                                body { padding: 0; margin: 20px; }
+                                h1, h2, table, .legend { page-break-inside: avoid; }
+                                .summary-details { page-break-after: avoid; }
+                                tr { page-break-inside: avoid; }
+                                a { text-decoration: none; color: #000; }
+                                .symbol { -webkit-print-color-adjust: exact; color-adjust: exact; }
+                                .correct { color: #28a745 !important; }
+                                .incorrect { color: #dc3545 !important; }
+                            }
+                        </style>
+                    </head>
+                    <body class="results-window">
+                        <h1>Detailné výsledky</h1>
+                        
+                        <div class="summary-details">
+                            <p><strong>Názov cvičenia:</strong> Porträt: Hakuyo Watanabe, Tokio</p>
+                            <p><strong>Meno žiaka:</strong> ${allowHTMLText(studentName)}</p>
+                            <p><strong>Hodnotenie:</strong> ${allowHTMLText(scoreText)}</p>
+                            <p><strong>Dátum a čas:</strong> ${allowHTMLText(dateTime)}</p>
+                        </div>
+
+                        <h2>Detailný prehľad</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Text (Odstavec)</th>
+                                    <th>Odpoveď žiaka</th>
+                                    <th>Správna odpoveď</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                        
+                        <div class="legend">
+                            <p><strong>Vysvetlivky:</strong><br>
+                                <span class="symbol correct">&#10003;</span> = Správna odpoveď<br>
+                                <span class="symbol incorrect">&#10007;</span> = Nesprávna odpoveď
+                            </p>
+                        </div>
+                    </body>
+                    </html>
+                `;
+            }
+
+            initializeExercise();
+        });
+    </script>
+</body>
+</html>
