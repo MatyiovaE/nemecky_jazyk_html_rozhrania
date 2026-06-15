@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor jednoduchého kalendára</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --panel-bg: #ffffff;
+            --border-color: #ddd;
+            --text-color: #333;
+            --primary: #4a90e2;
+            --primary-hover: #357abd;
+        }
+        
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-color); }
+        
+        /* Layout */
+        #sidebar { width: 400px; padding: 20px; background: var(--panel-bg); overflow-y: auto; border-right: 1px solid var(--border-color); box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
+        #main { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+        
+        /* UI Elements */
+        h1, h2, h3 { margin-top: 0; color: var(--text-color); }
+        h1 { font-size: 1.5rem; text-align: center; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; }
+        input[type="color"] { width: 100%; height: 35px; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; }
+        .btn { display: block; width: 100%; padding: 10px; margin-top: 10px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-align: center; text-decoration: none; }
+        .btn:hover { background: var(--primary-hover); }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+        .btn-success { background: #28a745; margin-top: 30px; }
+        .btn-success:hover { background: #218838; }
+        .flex-row { display: flex; gap: 10px; }
+        .flex-row > div { flex: 1; }
+        hr { border: 0; border-top: 1px solid var(--border-color); margin: 20px 0; }
+        
+        /* Preview Frame */
+        #preview-wrapper { width: 210mm; background: white; padding: 15mm; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        
+        /* Generated Calendar Styles */
+        #calendar-canvas { width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .cal-header { text-align: center; margin-bottom: 22px; width: 100%; }
+        .cal-logo { max-width: 150px; max-height: 90px; margin-bottom: 10px; display: none; }
+        .cal-year { font-weight: bold; margin: 0; line-height: 1; }
+        
+        .cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 38px 26px; width: 100%; }
+        .cal-month { width: 100%; border-collapse: collapse; text-align: center; }
+        .cal-month th { font-weight: bold; padding: 2px 0; }
+        /* Mierne zväčšené medzery a výška riadku medzi dňami */
+        .cal-month td, .cal-month thead tr:nth-child(2) th { padding: 1px 0; line-height: 1.4; font-size: 0.82em; }
+        .bold-day { font-weight: bold; }
+        
+        .cal-footer { margin-top: 25px; text-align: center; width: 100%; }
+        .cal-author { margin-bottom: 0px; font-style: italic; font-size: 0.88rem; }
+        .cal-quote-img { max-width: 100%; max-height: 120px; display: none; }
+        
+        #ui-signature { margin-top: 15px; text-align: center; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Settings -->
+    <div id="sidebar">
+        <h1>Generátor jednoduchého kalendára</h1>
+        
+        <div class="form-group">
+            <label>Základné nastavenia</label>
+            <input type="number" id="inp-year" value="2026" placeholder="Rok (napr. 2026)">
+        </div>
+        <div class="form-group">
+            <input type="text" id="inp-author" placeholder="Autor kalendára (zobrazí sa dole)">
+        </div>
+        
+        <div class="form-group">
+            <label>Logo (voliteľné)</label>
+            <input type="file" id="inp-logo" accept="image/*">
+        </div>
+
+        <hr>
+        
+        <div class="form-group">
+            <label>Jazyk a formát</label>
+            <input type="text" id="inp-months" value="január, február, marec, apríl, máj, jún, júl, august, september, október, november, december" placeholder="Názvy mesiacov (oddelené čiarkou)">
+            <small style="display:block; margin-bottom: 8px;">(Pre nemčinu zadaj napr.: Januar, Februar...)</small>
+            
+            <input type="text" id="inp-days" value="po ut st št pi so ne" placeholder="Skratky dní (oddelené medzerou)">
+        </div>
+        
+        <div class="form-group">
+            <label>Začiatok týždňa</label>
+            <select id="inp-startday">
+                <option value="1">Pondelok</option>
+                <option value="0">Nedeľa</option>
+            </select>
+        </div>
+
+        <hr>
+
+        <div class="form-group">
+            <label>Vzhľad a písmo</label>
+            <!-- Použitý datalist pre možnosť výberu z ponuky alebo ručného zadania akéhokoľvek systémového písma -->
+            <input type="text" list="font-list" id="inp-font" value="Arial, sans-serif" placeholder="Napr. Tahoma, Verdana...">
+            <datalist id="font-list">
+                <option value="Arial, sans-serif">
+                <option value="'Calibri', sans-serif">
+                <option value="'Comic Sans MS', cursive, sans-serif">
+                <option value="'Monaco', monospace">
+                <option value="'Monotype Corsiva', cursive">
+                <option value="'Times New Roman', serif">
+            </datalist>
+            <small style="display:block; margin-top:5px;">Vyber zo zoznamu alebo jednoducho vpíš názov akéhokoľvek písma vo tvojom PC (napr. <i>Verdana</i>).</small>
+        </div>
+        
+        <div class="flex-row">
+            <div class="form-group">
+                <label>Veľkosť roka</label>
+                <input type="number" id="inp-year-size" value="48" min="10" max="100">
+            </div>
+            <div class="form-group">
+                <label>Veľkosť mesiacov</label>
+                <input type="number" id="inp-month-size" value="15" min="10" max="50">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Formát názvu mesiacov</label>
+            <select id="inp-month-case">
+                <option value="uppercase">VŠETKY VEĽKÉ</option>
+                <option value="capitalize">Začiatočné Veľké</option>
+                <option value="lowercase">všetky malé</option>
+            </select>
+        </div>
+
+        <hr>
+
+        <div class="form-group">
+            <label>Farby</label>
+            <div class="flex-row">
+                <div>Rok<input type="color" id="col-year" value="#000000"></div>
+                <div>Mesiace<input type="color" id="col-month" value="#000000"></div>
+            </div>
+            <div class="flex-row" style="margin-top:5px;">
+                <div>Dni<input type="color" id="col-day" value="#000000"></div>
+                <div>Pozadie<input type="color" id="col-bg" value="#ffffff"></div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="form-group">
+            <label>Motivačný citát na spodku (voliteľné)</label>
+            <select id="inp-quote-type" onchange="toggleQuoteType()">
+                <option value="text">Textový citát</option>
+                <option value="image">Obrázok s textom</option>
+            </select>
+            
+            <input type="text" id="inp-quote-text" placeholder="Zadaj motivačný citát..." style="margin-top:5px;">
+            
+            <div id="quote-size-container" style="margin-top:5px;">
+                <label style="font-weight:normal; font-size:0.8rem;">Veľkosť písma citátu</label>
+                <input type="number" id="inp-quote-size" value="16" min="10" max="50">
+            </div>
+            
+            <input type="file" id="inp-quote-image" accept="image/*" style="display:none; margin-top:5px;">
+        </div>
+
+        <hr>
+        
+        <label>Dáta a export</label>
+        <div class="flex-row">
+            <button class="btn btn-secondary" onclick="exportJSON()">Export JSON</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('import-json').click()">Import JSON</button>
+            <input type="file" id="import-json" accept=".json" style="display:none;" onchange="importJSON(event)">
+        </div>
+
+        <button class="btn btn-success" onclick="downloadHTML()">Stiahnuť kalendár ako .html</button>
+        
+        <div id="ui-signature">
+            <b>Spracovala pomocou UI:</b> Mgr. Erika Matyiová
+        </div>
+    </div>
+
+    <!-- Live Preview -->
+    <div id="main">
+        <div id="preview-wrapper">
+            <div id="calendar-canvas">
+                <!-- Obsah sa generuje dynamicky -->
+            </div>
+        </div>
+    </div>
+
+<script>
+    let base64Logo = "";
+    let base64Quote = "";
+
+    const inputs = [
+        'inp-year', 'inp-author', 'inp-months', 'inp-days', 'inp-startday', 
+        'inp-font', 'inp-year-size', 'inp-month-size', 'inp-month-case', 
+        'col-year', 'col-month', 'col-day', 'col-bg', 'inp-quote-type', 
+        'inp-quote-text', 'inp-quote-size'
+    ];
+
+    inputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', generateCalendar);
+    });
+
+    document.getElementById('inp-logo').addEventListener('change', function(e) { handleImageUpload(e, 'logo'); });
+    document.getElementById('inp-quote-image').addEventListener('change', function(e) { handleImageUpload(e, 'quote'); });
+
+    function toggleQuoteType() {
+        const type = document.getElementById('inp-quote-type').value;
+        document.getElementById('inp-quote-text').style.display = type === 'text' ? 'block' : 'none';
+        document.getElementById('quote-size-container').style.display = type === 'text' ? 'block' : 'none';
+        document.getElementById('inp-quote-image').style.display = type === 'image' ? 'block' : 'none';
+        generateCalendar();
+    }
+
+    function handleImageUpload(event, target) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (target === 'logo') base64Logo = e.target.result;
+                if (target === 'quote') base64Quote = e.target.result;
+                generateCalendar();
+            };
+            reader.readAsDataURL(file);
+        } else {
+            if (target === 'logo') base64Logo = "";
+            if (target === 'quote') base64Quote = "";
+            generateCalendar();
+        }
+    }
+
+    function generateCalendar() {
+        const year = parseInt(document.getElementById('inp-year').value) || new Date().getFullYear();
+        const author = document.getElementById('inp-author').value;
+        const monthNames = document.getElementById('inp-months').value.split(',').map(m => m.trim());
+        const daysShort = document.getElementById('inp-days').value.trim().split(/\s+/);
+        const startDay = parseInt(document.getElementById('inp-startday').value);
+        
+        const fontFamily = document.getElementById('inp-font').value;
+        const yearSize = document.getElementById('inp-year-size').value + 'px';
+        const monthSize = document.getElementById('inp-month-size').value + 'px';
+        const monthCase = document.getElementById('inp-month-case').value;
+        
+        const colYear = document.getElementById('col-year').value;
+        const colMonth = document.getElementById('col-month').value;
+        const colDay = document.getElementById('col-day').value;
+        const colBg = document.getElementById('col-bg').value;
+        
+        const quoteType = document.getElementById('inp-quote-type').value;
+        const quoteText = document.getElementById('inp-quote-text').value;
+        const quoteSize = document.getElementById('inp-quote-size').value + 'px';
+
+        const canvas = document.getElementById('calendar-canvas');
+        canvas.style.fontFamily = fontFamily;
+        canvas.style.backgroundColor = colBg;
+        canvas.style.color = colDay;
+        
+        let html = `<div class="cal-header">`;
+        if (base64Logo) {
+            html += `<img src="${base64Logo}" class="cal-logo" style="display:inline-block;">`;
+        }
+        html += `<h1 class="cal-year" style="font-size:${yearSize}; color:${colYear};">${year}</h1>`;
+        html += `</div>`;
+        
+        html += `<div class="cal-grid">`;
+        
+        for (let m = 0; m < 12; m++) {
+            const mName = monthNames[m] || `Mesiac ${m+1}`;
+            html += `<table class="cal-month">`;
+            html += `<thead>`;
+            html += `<tr><th colspan="7" style="font-size:${monthSize}; color:${colMonth}; text-transform:${monthCase}; font-weight: bold;">${mName}</th></tr>`;
+            
+            html += `<tr style="color:${colMonth}; font-weight: normal;">`;
+            for (let d = 0; d < 7; d++) {
+                html += `<th>${daysShort[d] || ''}</th>`;
+            }
+            html += `</tr></thead><tbody>`;
+            
+            const firstDayIndex = new Date(year, m, 1).getDay();
+            const daysInMonth = new Date(year, m + 1, 0).getDate();
+            
+            let offset = 0;
+            if (startDay === 1) {
+                offset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+            } else {
+                offset = firstDayIndex;
+            }
+
+            let d = 1;
+            for (let row = 0; row < 6; row++) {
+                let rowHtml = `<tr>`;
+                let hasDays = false;
+                
+                for (let col = 0; col < 7; col++) {
+                    if (row === 0 && col < offset) {
+                        rowHtml += `<td></td>`;
+                    } else if (d > daysInMonth) {
+                        rowHtml += `<td></td>`;
+                    } else {
+                        hasDays = true;
+                        let isBold = false;
+                        
+                        if (startDay === 1 && col === 6) isBold = true;
+                        if (startDay === 0 && col === 0) isBold = true;
+                        
+                        if (m === 11 && (d === 24 || d === 25 || d === 26)) {
+                            isBold = true;
+                        }
+                        
+                        const cellClass = isBold ? 'bold-day' : '';
+                        rowHtml += `<td class="${cellClass}">${d}</td>`;
+                        d++;
+                    }
+                }
+                rowHtml += `</tr>`;
+                if (hasDays) html += rowHtml;
+                if (d > daysInMonth) break;
+            }
+            
+            html += `</tbody></table>`;
+        }
+        
+        html += `</div>`;
+        
+        html += `<div class="cal-footer">`;
+        if (author) {
+            html += `<div class="cal-author" style="color:${colDay};">Autor: ${author}</div>`;
+        }
+        
+        if (quoteType === 'text' && quoteText) {
+            html += `<div style="font-size:${quoteSize}; font-style:italic; color:${colDay}; margin-top: 1cm;">${quoteText}</div>`;
+        } else if (quoteType === 'image' && base64Quote) {
+            html += `<img src="${base64Quote}" class="cal-quote-img" style="display:block; margin: 1cm auto 0 auto;">`;
+        }
+        
+        html += `</div>`;
+
+        canvas.innerHTML = html;
+    }
+
+    function exportJSON() {
+        const config = { base64Logo, base64Quote };
+        inputs.forEach(id => { config[id] = document.getElementById(id).value; });
+        
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "nastavenia_kalendara.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function importJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const config = JSON.parse(e.target.result);
+                base64Logo = config.base64Logo || "";
+                base64Quote = config.base64Quote || "";
+                inputs.forEach(id => {
+                    if (config[id] !== undefined) {
+                        const el = document.getElementById(id);
+                        if(el) el.value = config[id];
+                    }
+                });
+                toggleQuoteType();
+                generateCalendar();
+            } catch (err) {
+                alert("Chyba pri čítaní súboru JSON.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function downloadHTML() {
+        const canvasContent = document.getElementById('calendar-canvas').innerHTML;
+        const fontFamily = document.getElementById('inp-font').value;
+        const colBg = document.getElementById('col-bg').value;
+        const colDay = document.getElementById('col-day').value;
+
+        const htmlTemplate = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <title>Kalendár</title>
+    <style>
+        body { margin: 0; padding: 15px; font-family: ${fontFamily}; background-color: ${colBg}; color: ${colDay}; }
+        #calendar-canvas { display: flex; flex-direction: column; align-items: center; max-width: 210mm; margin: 0 auto; }
+        .cal-header { text-align: center; margin-bottom: 22px; width: 100%; }
+        .cal-logo { max-width: 150px; max-height: 90px; margin-bottom: 10px; display: inline-block; }
+        .cal-year { font-weight: bold; margin: 0; line-height: 1; }
+        
+        .cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 38px 26px; width: 100%; }
+        .cal-month { width: 100%; border-collapse: collapse; text-align: center; page-break-inside: avoid; }
+        .cal-month th { font-weight: bold; padding: 2px 0; }
+        /* Mierne zväčšené medzery a výška riadku medzi dňami pre tlač */
+        .cal-month td, .cal-month thead tr:nth-child(2) th { padding: 1px 0; line-height: 1.4; font-size: 0.82em; }
+        .bold-day { font-weight: bold; }
+        
+        .cal-footer { margin-top: 25px; text-align: center; width: 100%; }
+        .cal-author { margin-bottom: 0px; font-style: italic; font-size: 0.88rem; }
+        .cal-quote-img { max-width: 100%; max-height: 120px; display: block; margin: 1cm auto 0 auto; }
+        
+        @media print {
+            body { background: ${colBg} !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0; }
+            @page { size: A4 portrait; margin: 13mm 10mm 8mm 10mm; }
+            #calendar-canvas { max-width: 100%; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="calendar-canvas">
+        ${canvasContent}
+    </div>
+</body>
+</html>`;
+
+        const blob = new Blob([htmlTemplate], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Kalendar_${document.getElementById('inp-year').value}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    window.onload = generateCalendar;
+</script>
+</body>
+</html>
