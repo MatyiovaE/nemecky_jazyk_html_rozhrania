@@ -153,6 +153,16 @@ function importJSON(event) {
   reader.readAsText(file);
 }
 
+/* --- Pomocná funkcia pre bezpečné odovzdanie textu (escapovanie úvodzoviek) --- */
+function escapeSpeechText(str) {
+  if (!str) return '';
+  return str
+    .replace(/\\/g, '\\\\')    // Escapne spätné lomítka
+    .replace(/"/g, '&quot;')   // Escapne dvojité úvodzovky pre HTML atribút
+    .replace(/'/g, '\\\'')     // Escapne jednoduché úvodzovky pre JS string
+    .replace(/\r/g, '');       // Odstráni prípadné prebytočné carriage returns
+}
+
 /* --- Generovanie výstupu --- */
 function generate() {
   const title = document.getElementById('titleInput').value.trim() || 'Čítací zoznam';
@@ -204,11 +214,11 @@ function generate() {
         ${lines.map(([col1, col2]) => `
           <tr>
             <td>
-              <span class="icon" onclick="speak('${col1 || ''}', '${lang1}')">🔊</span>
+              <span class="icon" onclick="speak('${escapeSpeechText(col1)}', '${lang1}')">🔊</span>
               <span class="${boldCol === '1' ? 'bold' : ''}">${col1 || ''}</span>
             </td>
             <td>
-              <span class="icon" onclick="speak('${col2 || ''}', '${lang2}')">🔊</span>
+              <span class="icon" onclick="speak('${escapeSpeechText(col2)}', '${lang2}')">🔊</span>
               <span class="${boldCol === '2' ? 'bold' : ''}">${col2 || ''}</span>
             </td>
           </tr>
@@ -317,11 +327,11 @@ function downloadHTML() {
     ${lines.map(([col1, col2]) => `
       <tr>
         <td>
-          <span class="icon" onclick="speak('${col1 || ''}', '${lang1}')">🔊</span>
+          <span class="icon" onclick="speak('${escapeSpeechText(col1)}', '${lang1}')">🔊</span>
           <span class="${boldCol === '1' ? 'bold' : ''}">${col1 || ''}</span>
         </td>
         <td>
-          <span class="icon" onclick="speak('${col2 || ''}', '${lang2}')">🔊</span>
+          <span class="icon" onclick="speak('${escapeSpeechText(col2)}', '${lang2}')">🔊</span>
           <span class="${boldCol === '2' ? 'bold' : ''}">${col2 || ''}</span>
         </td>
       </tr>
